@@ -1,6 +1,7 @@
 #!/bin/sh
 # Ralph Vibe Installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
+# Beta:  VERSION=v0.3.0-beta.1 curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
 
 set -e
 
@@ -61,8 +62,12 @@ detect_platform() {
     esac
 }
 
-# Get latest release version
-get_latest_version() {
+# Get release version (uses VERSION env var if set, otherwise latest)
+get_version() {
+    if [ -n "$VERSION" ]; then
+        info "Using specified version: $VERSION"
+        return
+    fi
     VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
     if [ -z "$VERSION" ]; then
         error "Failed to get latest version. Check your internet connection."
@@ -75,8 +80,8 @@ install() {
     detect_platform
     info "Platform: $PLATFORM"
 
-    info "Fetching latest version..."
-    get_latest_version
+    info "Fetching version..."
+    get_version
     info "Version: $VERSION"
 
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$PLATFORM"
@@ -99,6 +104,13 @@ install() {
     chmod +x "$INSTALL_DIR/$BINARY_NAME"
 
     success "Ralph Vibe installed to $INSTALL_DIR/$BINARY_NAME"
+
+    # Check for existing ralph binary that might conflict
+    EXISTING_RALPH=$(command -v ralph 2>/dev/null || true)
+    if [ -n "$EXISTING_RALPH" ] && [ "$EXISTING_RALPH" != "$INSTALL_DIR/$BINARY_NAME" ]; then
+        warn "Found existing ralph at: $EXISTING_RALPH"
+        warn "You may need to remove it or ensure $INSTALL_DIR is first in PATH"
+    fi
 
     # Add to PATH if not already there
     case ":$PATH:" in
@@ -136,6 +148,9 @@ install() {
     echo ""
     printf "${GREEN}Ralph Vibe${NC} - Run it. Go for beer. Come back to code.\n"
     echo ""
+
+    # Show installed version
+    info "Installed version: $($INSTALL_DIR/$BINARY_NAME --version 2>/dev/null | head -1 || echo 'unknown')"
 }
 
 # Run installer

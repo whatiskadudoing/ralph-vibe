@@ -8,6 +8,7 @@
  */
 
 import { Command } from '@cliffy/command';
+import { Confirm } from '@cliffy/prompt';
 import { amber, dim } from '@/ui/colors.ts';
 import { withSpinner } from '@/ui/spinner.ts';
 import { initProject, isRalphProject } from '@/services/project_service.ts';
@@ -29,6 +30,7 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
+import { hasExistingCode, onboardAction } from './onboard.ts';
 
 // ============================================================================
 // Command
@@ -88,6 +90,24 @@ async function initAction(options: InitOptions): Promise<void> {
     Deno.exit(1);
   }
   console.log(checkSuccess('Not already initialized'));
+
+  // Check for existing code - offer onboard instead
+  if (await hasExistingCode()) {
+    console.log(checkInfo('Existing code detected', 'src/, lib/, or project files found'));
+    console.log();
+
+    const useOnboard = await Confirm.prompt({
+      message: 'Use project analysis to discover patterns? (recommended for existing codebases)',
+      default: true,
+    });
+
+    if (useOnboard) {
+      // Run onboard flow instead
+      await onboardAction({ force: false, vibe: options.vibe });
+      return;
+    }
+    // Continue with normal init if user declines
+  }
 
   // Check git
   if (await isGitRepo()) {
