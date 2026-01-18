@@ -1,0 +1,19 @@
+# Build output
+dist/
+
+# Deno cache
+.deno/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+coverage/
+.ralph-spec-done
