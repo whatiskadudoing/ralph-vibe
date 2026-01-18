@@ -129,16 +129,29 @@ install() {
                         PROFILE="$HOME/.bashrc"
                     fi
                     ;;
+                fish)
+                    PROFILE="$HOME/.config/fish/config.fish"
+                    mkdir -p "$HOME/.config/fish"
+                    ;;
                 *)    PROFILE="$HOME/.profile" ;;
             esac
 
-            # Add PATH export if not already present
-            PATH_EXPORT="export PATH=\"$INSTALL_DIR:\$PATH\""
-            if ! grep -q "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
-                echo "" >> "$PROFILE"
-                echo "# Ralph Vibe" >> "$PROFILE"
-                echo "$PATH_EXPORT" >> "$PROFILE"
-                info "Added Ralph to PATH in $PROFILE"
+            # Add PATH export if not already present (Fish uses different syntax)
+            if [ "$SHELL_NAME" = "fish" ]; then
+                if ! grep -q "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
+                    echo "" >> "$PROFILE"
+                    echo "# Ralph Vibe" >> "$PROFILE"
+                    echo "fish_add_path $INSTALL_DIR" >> "$PROFILE"
+                    info "Added Ralph to PATH in $PROFILE"
+                fi
+            else
+                PATH_EXPORT="export PATH=\"$INSTALL_DIR:\$PATH\""
+                if ! grep -q "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
+                    echo "" >> "$PROFILE"
+                    echo "# Ralph Vibe" >> "$PROFILE"
+                    echo "$PATH_EXPORT" >> "$PROFILE"
+                    info "Added Ralph to PATH in $PROFILE"
+                fi
             fi
 
             success "Ralph is ready! Restart your shell or run: source $PROFILE"
