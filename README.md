@@ -281,9 +281,9 @@ Claude Code is powerful but has no memory between sessions. Ralph Vibe gives it 
 
 ## Credits
 
-Built on the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum) by Geoffrey Huntley.
+Built on the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum) by Geoffrey Huntley, with methodology documented in the [Ralph Playbook](https://github.com/ClaytonFarr/ralph-playbook) by Clayton Farr.
 
-Ralph Vibe takes the proven methodology and wraps it in a tool that anyone can use.
+Ralph Vibe takes the proven methodology and wraps it in a tool that anyone can use - no scripts, no setup, just results.
 
 ---
 
