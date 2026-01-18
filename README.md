@@ -1,10 +1,10 @@
 # Ralph Vibe
 
-> The Ralph loop, without the homework.
+> The Ralph technique, without learning the Ralph technique.
 
 Everyone's talking about the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum). It's powerful. It works. But have you tried setting it up?
 
-**Ralph Vibe is the Ralph loop made simple.**
+**Ralph Vibe gives you all the benefits of the Ralph loop - without the homework.**
 
 ```bash
 ralph init --vibe
@@ -43,7 +43,7 @@ Ralph Vibe handles all of that for you:
 | Debug your setup | It just works |
 | Hours of configuration | One command |
 
-**You don't need to understand how the Ralph loop works.** Just use it.
+**The Ralph technique without learning the Ralph technique.** All the power, none of the setup. Just vibe.
 
 ---
 
@@ -283,7 +283,9 @@ Claude Code is powerful but has no memory between sessions. Ralph Vibe gives it 
 
 Built on the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum) by Geoffrey Huntley, with methodology documented in the [Ralph Playbook](https://github.com/ClaytonFarr/ralph-playbook) by Clayton Farr.
 
-Ralph Vibe takes the proven methodology and wraps it in a tool that anyone can use - no scripts, no setup, just results.
+**Fun fact**: Ralph Vibe itself was built using the Ralph technique. The tool that simplifies Ralph was created with Ralph. It works.
+
+Ralph Vibe takes the proven methodology and wraps it in a tool that anyone can use - no scripts, no setup, no learning curve. Just the results.
 
 ---
 
@@ -293,4 +295,4 @@ MIT
 
 ---
 
-**Ralph Vibe**: Run it. Go for beer. Come back to code.
+**Ralph Vibe**: The Ralph technique without learning the Ralph technique. Run it. Go for beer. Come back to code.
