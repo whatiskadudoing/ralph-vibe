@@ -406,30 +406,12 @@ export function renderStartPrompt(): string {
 
     ---
 
-    ## The Ralph Philosophy
+    ## Spec Rules
 
-    You are writing specs for the **Ralph Wiggum technique** - an autonomous AI development method.
-    Understanding this philosophy is CRITICAL for writing good specs.
-
-    **Core Principles:**
-
-    1. **Specs are the source of truth.** The AI implementer will ONLY know what's in the specs.
-       If it's not written down, it doesn't exist. Be explicit about everything.
-
-    2. **Write for an AI implementer.** The spec must be clear enough that an AI (or developer)
-       can implement it WITHOUT asking clarifying questions. Ambiguity = bad implementation.
-
-    3. **Acceptance criteria are king.** Every feature needs observable, verifiable outcomes.
-       "How do we know it's done?" must have a clear answer.
-
-    4. **Include edge cases.** What happens when inputs are invalid? When the network fails?
-       When the user does something unexpected? Document these explicitly.
-
-    5. **Define what's OUT of scope.** Explicitly stating what you're NOT building prevents
-       scope creep and keeps the AI focused.
-
-    6. **One topic per spec file.** Keep specs focused. A spec about "user authentication"
-       shouldn't also cover "user profiles" - that's a separate spec.
+    - Be explicit - if it's not written, it won't be implemented
+    - One topic per spec file (use "one sentence without 'and'" test)
+    - Include acceptance criteria, edge cases, and out-of-scope
+    - Write for an AI implementer - no ambiguity
 
     ---
 
@@ -461,7 +443,7 @@ export function renderStartPrompt(): string {
     3. If yes, create spec file(s) in \`specs/\` directory
     4. **Create/update \`specs/README.md\`** as the lookup table index
 
-    **Spec structure** (adapt as needed - no rigid template):
+    **Spec format:**
 
     \`\`\`markdown
     # [Feature Name]
@@ -583,30 +565,12 @@ export function renderSpecInterviewPrompt(featureHint?: string): string {
 
     ---
 
-    ## The Ralph Philosophy
+    ## Spec Rules
 
-    You are writing specs for the **Ralph Wiggum technique** - an autonomous AI development method.
-    Understanding this philosophy is CRITICAL for writing good specs.
-
-    **Core Principles:**
-
-    1. **Specs are the source of truth.** The AI implementer will ONLY know what's in the specs.
-       If it's not written down, it doesn't exist. Be explicit about everything.
-
-    2. **Write for an AI implementer.** The spec must be clear enough that an AI (or developer)
-       can implement it WITHOUT asking clarifying questions. Ambiguity = bad implementation.
-
-    3. **Acceptance criteria are king.** Every feature needs observable, verifiable outcomes.
-       "How do we know it's done?" must have a clear answer.
-
-    4. **Include edge cases.** What happens when inputs are invalid? When the network fails?
-       When the user does something unexpected? Document these explicitly.
-
-    5. **Define what's OUT of scope.** Explicitly stating what you're NOT building prevents
-       scope creep and keeps the AI focused.
-
-    6. **One topic per spec file.** Keep specs focused. A spec about "user authentication"
-       shouldn't also cover "user profiles" - that's a separate spec.
+    - Be explicit - if it's not written, it won't be implemented
+    - One topic per spec file (use "one sentence without 'and'" test)
+    - Include acceptance criteria, edge cases, and out-of-scope
+    - Write for an AI implementer - no ambiguity
 
     ---
 
@@ -655,7 +619,7 @@ export function renderSpecInterviewPrompt(featureHint?: string): string {
     5. Show the completion message
     6. Say goodbye and END
 
-    **Spec structure** (adapt as needed - no rigid template):
+    **Spec format:**
 
     \`\`\`markdown
     # [Feature Name]
@@ -742,5 +706,123 @@ export function renderSpecInterviewPrompt(featureHint?: string): string {
     ---
 
     **Start now.** First, read existing specs in \`specs/\`, then ask your first question.
+  `).trim();
+}
+
+/**
+ * Generates the analysis prompt for onboarding existing projects.
+ * This guides Claude to comprehensively analyze the codebase.
+ */
+export function renderOnboardAnalysisPrompt(): string {
+  return dedent(`
+    # Comprehensive Project Analysis
+
+    Study this existing codebase thoroughly. Your analysis will guide all future development.
+
+    ## A. Documentation & Rules
+    - Read README.md, CONTRIBUTING.md, docs/
+    - Find coding standards (eslint, prettier, rustfmt configs)
+    - Identify style guides, naming conventions
+    - Check for ARCHITECTURE.md or design docs
+
+    ## B. Architecture & Structure
+    - Map project structure (directories, modules)
+    - Identify architectural layers (API, service, repository, domain)
+    - Trace main entry points and flows
+    - Note module dependencies
+
+    ## C. Error Handling
+    - Find error types/classes
+    - Identify exception handling patterns
+    - Note error response formats
+    - Check logging patterns
+
+    ## D. Patterns & Conventions
+    - Document naming conventions (files, functions, variables, types)
+    - Identify testing patterns (unit, integration, e2e)
+    - Note dependency injection approach
+    - Check state management patterns
+
+    ## E. Technical Stack
+    - Language and version
+    - Framework and major libraries
+    - Build/test/lint commands
+    - CI/CD configuration
+
+    ## Output Format
+    Provide comprehensive analysis as structured markdown covering all sections above.
+    Be thorough - this analysis prevents breaking existing patterns when adding features.
+  `).trim();
+}
+
+/**
+ * Generates the synthesis prompt for onboarding existing projects.
+ * This takes the analysis and creates the Ralph files.
+ */
+export function renderOnboardSynthesisPrompt(analysis: string): string {
+  return dedent(`
+    # Generate Ralph Files for Existing Project
+
+    Based on this project analysis:
+
+    ---
+    ${analysis}
+    ---
+
+    ## Create These Files
+
+    ### 1. AGENTS.md
+    Operational guide with:
+    - Build/test/lint commands (discovered from analysis)
+    - Key coding conventions to follow
+    - Error handling approach
+    - Testing requirements
+
+    ### 2. specs/README.md
+    Project overview with:
+    - Architecture summary
+    - Existing features index table (list what already exists)
+    - Quick reference to patterns
+
+    ### 3. specs/PROJECT_CONTEXT.md
+    Comprehensive context document with:
+    - Full architecture description
+    - Layer structure and responsibilities
+    - Naming conventions (with examples)
+    - Error handling patterns (with examples)
+    - Testing approach
+    - Key dependencies and their purposes
+    - **What NOT to break** section
+
+    ### 4. Standard Files
+    - IMPLEMENTATION_PLAN.md (empty placeholder with header)
+    - .ralph.json (standard config)
+    - PROMPT_build.md (standard build prompt)
+    - PROMPT_plan.md (standard plan prompt)
+
+    ## After Creating Files
+
+    Show this summary:
+
+    ---
+    ✅ **Project Onboarded!**
+
+    Created Ralph files for your existing project:
+    - \`AGENTS.md\` - Build commands and conventions
+    - \`specs/README.md\` - Project overview and feature index
+    - \`specs/PROJECT_CONTEXT.md\` - Architecture and patterns
+    - \`IMPLEMENTATION_PLAN.md\` - Ready for tasks
+    - \`.ralph.json\` - Configuration
+
+    **Next steps:**
+    1. Review specs/PROJECT_CONTEXT.md - refine if needed
+    2. Run \`ralph spec\` to add a new feature
+    3. Run \`ralph plan\` to generate implementation tasks
+    4. Run \`ralph work\` to start autonomous building
+
+    RALPH_EXIT_SIGNAL: true
+    ---
+
+    Then create marker file: touch ${RALPH_DONE_MARKER}
   `).trim();
 }
