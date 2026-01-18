@@ -1,6 +1,6 @@
-# Contributing to Ralph CLI
+# Contributing to Ralph Vibe
 
-Thank you for your interest in contributing to Ralph CLI!
+Thank you for your interest in contributing to Ralph Vibe!
 
 ## Development Setup
 
@@ -13,8 +13,8 @@ Thank you for your interest in contributing to Ralph CLI!
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/ralph-cli.git
-   cd ralph-cli
+   git clone https://github.com/whatiskadudoing/ralph-vibe.git
+   cd ralph-vibe
    ```
 
 2. Run tests to verify your setup:
