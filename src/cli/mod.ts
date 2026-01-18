@@ -9,18 +9,20 @@
 
 import { Command } from '@cliffy/command';
 import { createInitCommand } from './init.ts';
+import { createOnboardCommand } from './onboard.ts';
 import { createStartCommand } from './start.ts';
 import { createPlanCommand } from './plan.ts';
 import { createWorkCommand } from './work.ts';
 import { createSpecCommand } from './spec.ts';
 import { createBanner } from '@/ui/banner.ts';
 import { bold, dim, muted, orange } from '@/ui/colors.ts';
+import denoConfig from '../../deno.json' with { type: 'json' };
 
 // ============================================================================
 // Version
 // ============================================================================
 
-const VERSION = '0.1.0';
+const VERSION = denoConfig.version;
 const DESCRIPTION = 'Ralph Vibe - Autonomous development with Claude Code';
 
 // ============================================================================
@@ -50,22 +52,25 @@ export function createProgram(): Command<any> {
       );
       console.log();
       console.log(bold('Commands:'));
-      console.log(`  ${orange('init')}    ${dim('Initialize a new Ralph project')}`);
-      console.log(`  ${orange('start')}   ${dim('Interactive interview to create first specs')}`);
-      console.log(`  ${orange('spec')}    ${dim('Add a new feature spec via interview')}`);
-      console.log(`  ${orange('plan')}    ${dim('Generate implementation plan from specs')}`);
-      console.log(`  ${orange('work')}    ${dim('Run the autonomous build loop')}`);
+      console.log(`  ${orange('init')}     ${dim('Initialize a new Ralph project')}`);
+      console.log(`  ${orange('onboard')}  ${dim('Analyze existing project & create Ralph files')}`);
+      console.log(`  ${orange('start')}    ${dim('Interactive interview to create first specs')}`);
+      console.log(`  ${orange('spec')}     ${dim('Add a new feature spec via interview')}`);
+      console.log(`  ${orange('plan')}     ${dim('Generate implementation plan from specs')}`);
+      console.log(`  ${orange('work')}     ${dim('Run the autonomous build loop')}`);
       console.log();
       console.log(bold('Vibe Mode:'));
       console.log(dim('  Add --vibe to any command to automatically continue the flow:'));
-      console.log(`  ${muted('ralph init --vibe')}  ${dim('→ init → start → plan → work')}`);
-      console.log(`  ${muted('ralph spec --vibe')}  ${dim('→ spec → plan → work')}`);
-      console.log(`  ${muted('ralph plan --vibe')}  ${dim('→ plan → work')}`);
+      console.log(`  ${muted('ralph init --vibe')}     ${dim('→ init → start → plan → work')}`);
+      console.log(`  ${muted('ralph onboard --vibe')}  ${dim('→ onboard → spec → plan → work')}`);
+      console.log(`  ${muted('ralph spec --vibe')}     ${dim('→ spec → plan → work')}`);
+      console.log(`  ${muted('ralph plan --vibe')}     ${dim('→ plan → work')}`);
       console.log();
       console.log(muted('Run `ralph <command> --help` for more information.'));
     })
     // Add subcommands
     .command('init', createInitCommand())
+    .command('onboard', createOnboardCommand())
     .command('start', createStartCommand())
     .command('spec', createSpecCommand())
     .command('plan', createPlanCommand())

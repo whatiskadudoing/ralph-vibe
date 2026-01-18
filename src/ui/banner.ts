@@ -5,6 +5,7 @@
  */
 
 import { dim, muted, primary } from './colors.ts';
+import denoConfig from '../../deno.json' with { type: 'json' };
 
 /**
  * The Ralph ASCII art logo.
@@ -42,7 +43,7 @@ export interface BannerOptions {
 }
 
 const DEFAULT_OPTIONS: Required<BannerOptions> = {
-  version: '0.1.0',
+  version: denoConfig.version,
   tagline: 'Autonomous AI Development',
   size: 'large',
 };
