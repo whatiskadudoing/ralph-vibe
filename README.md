@@ -238,16 +238,8 @@ curl -fsSL https://deno.land/install.sh | sh
 
 ## Installation
 
-### Recommended: Binary Install
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
-```
-
-### Alternative: Deno Install
-
-```bash
-deno install -A -n ralph jsr:@ralph/cli
 ```
 
 ### Verify
