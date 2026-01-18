@@ -198,12 +198,26 @@ const runSingleStagePlan = async (
 interface PlanOptions {
   readonly fast?: boolean;
   readonly vibe?: boolean;
+  readonly model?: string;
 }
 
 /**
  * The plan command action.
  */
 async function planAction(options: PlanOptions): Promise<void> {
+  // Handle --model flag with helpful hint
+  if (options.model) {
+    console.log();
+    console.log(infoBox({
+      title: 'Model selection not available for plan',
+      description:
+        'The plan command uses a two-stage approach (Sonnet→Opus) for best results.\n\n' +
+        '▸ Use --fast for single-stage Sonnet planning\n' +
+        '▸ --model and --adaptive are only available in ralph work',
+    }));
+    Deno.exit(0);
+  }
+
   // Handle vibe mode
   if (options.vibe) {
     enableVibeMode();
@@ -328,5 +342,6 @@ export function createPlanCommand(): Command<any> {
     .description('Generate implementation plan from specs (gap analysis)')
     .option('-f, --fast', 'Use single-stage planning with Sonnet (faster, less thorough)')
     .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
+    .option('--model <model:string>', 'Not supported - see hint', { hidden: true })
     .action(planAction);
 }
