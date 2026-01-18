@@ -105,6 +105,13 @@ install() {
 
     success "Ralph Vibe installed to $INSTALL_DIR/$BINARY_NAME"
 
+    # Check for existing ralph binary that might conflict
+    EXISTING_RALPH=$(command -v ralph 2>/dev/null || true)
+    if [ -n "$EXISTING_RALPH" ] && [ "$EXISTING_RALPH" != "$INSTALL_DIR/$BINARY_NAME" ]; then
+        warn "Found existing ralph at: $EXISTING_RALPH"
+        warn "You may need to remove it or ensure $INSTALL_DIR is first in PATH"
+    fi
+
     # Add to PATH if not already there
     case ":$PATH:" in
         *":$INSTALL_DIR:"*)
@@ -141,6 +148,9 @@ install() {
     echo ""
     printf "${GREEN}Ralph Vibe${NC} - Run it. Go for beer. Come back to code.\n"
     echo ""
+
+    # Show installed version
+    info "Installed version: $($INSTALL_DIR/$BINARY_NAME --version 2>/dev/null | head -1 || echo 'unknown')"
 }
 
 # Run installer
