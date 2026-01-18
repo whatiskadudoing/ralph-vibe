@@ -1,6 +1,7 @@
 #!/bin/sh
 # Ralph Vibe Installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
+# Beta:  VERSION=v0.3.0-beta.1 curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
 
 set -e
 
@@ -61,8 +62,12 @@ detect_platform() {
     esac
 }
 
-# Get latest release version
-get_latest_version() {
+# Get release version (uses VERSION env var if set, otherwise latest)
+get_version() {
+    if [ -n "$VERSION" ]; then
+        info "Using specified version: $VERSION"
+        return
+    fi
     VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
     if [ -z "$VERSION" ]; then
         error "Failed to get latest version. Check your internet connection."
@@ -75,8 +80,8 @@ install() {
     detect_platform
     info "Platform: $PLATFORM"
 
-    info "Fetching latest version..."
-    get_latest_version
+    info "Fetching version..."
+    get_version
     info "Version: $VERSION"
 
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$PLATFORM"
