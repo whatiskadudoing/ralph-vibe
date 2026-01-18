@@ -19,85 +19,39 @@ import { RALPH_DONE_MARKER, RALPH_EXIT_SIGNAL } from '@/core/constants.ts';
  * This is the main prompt used during the build loop.
  *
  * Based on: https://github.com/ghuntley/how-to-ralph-wiggum
+ * Simplified per Geoff Huntley's guidance - minimal prompt, maximum clarity.
  */
 export function renderBuildPrompt(): string {
   return dedent(`
     # Build Mode
 
-    You are implementing features for this project.
+    Study \`specs/README.md\` for the specifications index.
+    Study \`IMPLEMENTATION_PLAN.md\` for current tasks.
+    Study \`AGENTS.md\` for build/test commands.
+
+    Pick the **most important** unchecked task.
+    **Search codebase first** - don't assume things are missing.
+
+    Use existing codebase patterns.
+    Use up to 500 parallel subagents for reading/searching.
+    Use only **1 subagent** for build/test (backpressure).
+
+    Implement completely. No placeholders.
+    Run validation commands from AGENTS.md.
+    When tests pass, mark task \`[x]\` complete in plan.
+    Commit with message capturing the **why**.
+    Push to remote.
+
+    **One task per iteration. Exit after commit.**
 
     ---
 
-    ## Model Strategy
+    If all tasks done: \`EXIT_SIGNAL: true\`
 
-    - Use **parallel Sonnet subagents** (up to 500) for reading files, searching code, exploring
-    - Use **Opus** (yourself) for reasoning, architecture decisions, complex implementation
-    - Use **only 1 Sonnet subagent** for build/test operations (backpressure gate)
-
-    ---
-
-    ## Phase 0: Orientation
-
-    0a. Study the specifications in \`specs/\` (use parallel Sonnet subagents for thorough analysis)
-    0b. Study \`IMPLEMENTATION_PLAN.md\` to understand current state
-    0c. Study \`AGENTS.md\` for operational patterns and validation commands
-    0d. Study project files (package.json, Cargo.toml, etc.) to understand the tech stack
-
-    ## Phase 1: Task Selection & Implementation
-
-    1. Select the **MOST IMPORTANT** unchecked task from IMPLEMENTATION_PLAN.md
-    2. **Do NOT assume functionality is missing** - search codebase to confirm first
-    3. Implement the task **completely** - no placeholders, no partial implementations
-    4. Follow patterns established in AGENTS.md
-    5. Use parallel Sonnet subagents for exploration; single subagent for validation
-
-    ## Phase 2: Validation
-
-    1. Run all validation commands from AGENTS.md (use 1 subagent only - backpressure)
-    2. Fix any failures before proceeding
-    3. Tests **must pass** before moving forward
-
-    ## Phase 3: Documentation
-
-    1. Update IMPLEMENTATION_PLAN.md:
-       - Mark task \`[x]\` complete
-       - Add any learnings discovered during implementation
-       - Periodically clean completed items if plan is getting long
-    2. Update AGENTS.md with operational learnings only (no status/progress)
-    3. If specs contain inconsistencies, update them (use Ultrathink for complex cases)
-
-    ## Phase 4: Commit
-
-    1. Stage all changes
-    2. Write descriptive commit message capturing the **WHY**, not just the what
-    3. Push to remote
-
-    ---
-
-    ## Guardrails
-
-    99. **Search codebase before assuming** something isn't implemented
-    999. **Required tests** from acceptance criteria must exist and pass
-    9999. **Single source of truth** - no migrations, adapters, or duplicate logic
-    99999. **One task per iteration** - exit after Phase 4
-    999999. **Tests must pass** before marking complete
-    9999999. **Keep AGENTS.md operational only** - status belongs in IMPLEMENTATION_PLAN.md
-    99999999. **For bugs noticed**, resolve immediately or document in plan for next iteration
-    999999999. **Implement completely** - placeholders waste iterations
-    9999999999. **Periodically clean** completed items from IMPLEMENTATION_PLAN.md
-
-    ---
-
-    ## Output
-
-    If all tasks are done, output: \`EXIT_SIGNAL: true\`
-
-    End your response with:
-
+    End with:
     \`\`\`
     RALPH_STATUS:
     task: "[task name]"
-    phase: 0-4
     validation: pass/fail
     EXIT_SIGNAL: true/false
     \`\`\`
@@ -129,12 +83,13 @@ export function renderPlanPrompt(): string {
 
     ## Instructions
 
-    1. **Study** all specs in \`specs/\` (use parallel Sonnet subagents for thorough analysis)
-    2. **Study** project files to understand the tech stack and existing patterns
-    3. **Search codebase** to find what's already implemented (parallel Sonnet subagents)
-    4. **Compare** specifications against actual implementation
-    5. **Identify gaps** between specs and reality
-    6. Generate/update \`IMPLEMENTATION_PLAN.md\` as prioritized task list
+    1. **Study** \`specs/README.md\` for the specifications index
+    2. **Study** all specs in \`specs/\` (use parallel Sonnet subagents)
+    3. **Study** project files to understand tech stack and patterns
+    4. **Search codebase** to find what's already implemented
+    5. **Compare** specifications against actual implementation
+    6. **Identify gaps** between specs and reality
+    7. Generate/update \`IMPLEMENTATION_PLAN.md\` as prioritized task list
 
     ---
 
@@ -148,27 +103,35 @@ export function renderPlanPrompt(): string {
 
     ---
 
-    ## Task Guidelines
+    ## Task Format (with Linkage)
+
+    Each task MUST include **linkage** - cite the spec and/or files it relates to:
+
+    \`\`\`markdown
+    - [ ] Add login endpoint [spec: auth.md] [file: src/api/routes.ts]
+    - [ ] Create session middleware [spec: auth.md] [file: src/middleware/]
+    - [ ] Add password validation [spec: auth.md, validation.md]
+    \`\`\`
+
+    This helps the build loop find relevant context faster.
 
     Each task should be:
     - **Small** - completable in one iteration
     - **Clear** - no ambiguity about what to do
+    - **Linked** - cite specs and files it touches
     - **Testable** - how do we know it's done?
-    - **Complete** - no placeholders or partial implementations
 
     ---
 
     ## Output
 
-    Write to \`IMPLEMENTATION_PLAN.md\`. No rigid template required - organize in
-    whatever format best captures the work. Common elements:
+    Write to \`IMPLEMENTATION_PLAN.md\`. Include:
 
-    - Phases or milestones grouping related tasks
-    - Checkbox tasks: \`- [ ] Task description\`
-    - Priority order (most important first within each phase)
-    - Dependencies noted where relevant
+    - Phases grouping related tasks
+    - Checkbox tasks with linkage: \`- [ ] Task [spec: X] [file: Y]\`
+    - Priority order (foundations first)
 
-    The plan is **disposable** - if it becomes wrong or stale, regenerate it.
+    The plan is **disposable** - if wrong or stale, regenerate it.
   `).trim();
 }
 
@@ -307,67 +270,64 @@ export function renderPlanCommandPrompt(): string {
 
     ## YOUR TASK
 
-    1. **Study** all specs in \`specs/\` (use parallel subagents for thorough analysis)
-    2. **Study** project files (package.json, Cargo.toml, etc.) to understand the tech stack
-    3. **Search codebase** to find what's already implemented - do NOT assume things are missing
-    4. **Compare** specifications against actual implementation
-    5. **Identify gaps** between specs and reality
-    6. **Write** \`IMPLEMENTATION_PLAN.md\` with prioritized tasks
+    1. **Study** \`specs/README.md\` for the specifications index
+    2. **Study** all specs in \`specs/\` (use parallel subagents)
+    3. **Study** project files (package.json, Cargo.toml, etc.) for tech stack
+    4. **Search codebase** to find what's already implemented - do NOT assume missing
+    5. **Compare** specifications against actual implementation
+    6. **Identify gaps** between specs and reality
+    7. **Write** \`IMPLEMENTATION_PLAN.md\` with prioritized tasks
 
     ## CRITICAL RULES
 
     - **Plan only.** Do NOT implement anything.
     - **Do NOT assume functionality is missing** - confirm with code search first
-    - Each task should be completable in **one iteration** (one build loop cycle)
+    - Each task should be completable in **one iteration**
     - Order by **dependency** (foundations first)
 
-    ## TASK GUIDELINES
+    ## TASK FORMAT (with Linkage)
+
+    Each task MUST include **linkage** - cite the spec and/or files it relates to:
+
+    \`\`\`markdown
+    - [ ] Add login endpoint [spec: auth.md] [file: src/api/routes.ts]
+    - [ ] Create session middleware [spec: auth.md] [file: src/middleware/]
+    - [ ] Add password validation [spec: auth.md, validation.md]
+    \`\`\`
 
     Each task should be:
     - **Small** - completable in one iteration
-    - **Clear** - no ambiguity about what to do
+    - **Clear** - no ambiguity
+    - **Linked** - cite specs and files
     - **Testable** - how do we know it's done?
 
     ## OUTPUT FORMAT
 
-    Write to \`IMPLEMENTATION_PLAN.md\`. Organize in whatever format best captures the work:
+    Write to \`IMPLEMENTATION_PLAN.md\`:
 
-    - Group related tasks into phases or milestones
-    - Use checkbox format: \`- [ ] Task description\`
-    - Order by priority (most important/foundational first)
-    - Note dependencies where relevant
+    - Group related tasks into phases
+    - Use checkbox format with linkage: \`- [ ] Task [spec: X] [file: Y]\`
+    - Order by priority (foundations first)
 
     ## COMPLETION MESSAGE
 
-    After writing IMPLEMENTATION_PLAN.md, display this message:
+    After writing IMPLEMENTATION_PLAN.md, display:
 
     ---
 
     ✅ **Plan generated!**
 
-    I've analyzed your specs and created \`IMPLEMENTATION_PLAN.md\` with [N] tasks
-    organized into [M] phases.
+    Created \`IMPLEMENTATION_PLAN.md\` with [N] tasks in [M] phases.
 
-    **What you can do now:**
+    **Next steps:**
+    1. Review the plan - edit tasks as needed
+    2. Run \`ralph work\` to start the autonomous build loop
 
-    1. **Review the plan**: Open \`IMPLEMENTATION_PLAN.md\` and check if the tasks
-       make sense. Reorder, edit, or remove tasks as needed.
-
-    2. **Regenerate if needed**: The plan is disposable. If it's wrong, just run
-       \`ralph plan\` again - it's cheap to regenerate.
-
-    3. **Start building**: When you're happy with the plan, run:
-       \`\`\`
-       ralph work
-       \`\`\`
-       This starts the autonomous build loop that implements tasks one by one.
-
-    **Tip**: The clearer your specs, the better the plan. If tasks seem wrong,
-    consider improving your spec files first.
+    The plan is disposable - regenerate with \`ralph plan\` if needed.
 
     ---
 
-    Start now. Read the specs and analyze the codebase.
+    Start now. Read specs/README.md and analyze the codebase.
   `).trim();
 }
 
@@ -499,6 +459,7 @@ export function renderStartPrompt(): string {
     1. Summarize what you learned
     2. Ask "Does this capture what you want to build?"
     3. If yes, create spec file(s) in \`specs/\` directory
+    4. **Create/update \`specs/README.md\`** as the lookup table index
 
     **Spec structure** (adapt as needed - no rigid template):
 
@@ -531,11 +492,31 @@ export function renderStartPrompt(): string {
 
     Create ONE file per topic. Name descriptively: \`specs/user-auth.md\`, \`specs/data-export.md\`
 
+    **IMPORTANT: Create \`specs/README.md\`** as the specifications index:
+
+    \`\`\`markdown
+    # Specifications Index
+
+    Lookup table for all project specifications.
+
+    | Spec | Description | Key Topics |
+    |------|-------------|------------|
+    | [feature.md](feature.md) | Brief description | topic1, topic2, topic3 |
+    | [auth.md](auth.md) | User authentication | login, sessions, tokens |
+
+    ## Quick Reference
+
+    - **Authentication**: See [auth.md](auth.md)
+    - **Data Export**: See [export.md](export.md)
+    \`\`\`
+
+    This index helps the build loop find relevant specs faster.
+
     ---
 
     ## Completion Steps
 
-    After creating all spec files, do these steps IN ORDER:
+    After creating all spec files AND specs/README.md, do these steps IN ORDER:
 
     1. Display this completion message (replace filenames with actual ones):
 
@@ -543,6 +524,7 @@ export function renderStartPrompt(): string {
     ✅ **Specs created!**
 
     I've created the following specifications:
+    - \`specs/README.md\` (index)
     - \`specs/[filename1].md\`
     - \`specs/[filename2].md\`
 
@@ -669,8 +651,9 @@ export function renderSpecInterviewPrompt(featureHint?: string): string {
     1. Summarize what you learned
     2. Ask "Does this capture what you want? Should I save it?"
     3. If yes, write to \`specs/\` - either UPDATE existing or CREATE new
-    4. Show the completion message
-    5. Say goodbye and END
+    4. **Update \`specs/README.md\`** to include the new/updated spec in the index
+    5. Show the completion message
+    6. Say goodbye and END
 
     **Spec structure** (adapt as needed - no rigid template):
 
@@ -701,16 +684,26 @@ export function renderSpecInterviewPrompt(featureHint?: string): string {
     [Explicitly what this feature does NOT include]
     \`\`\`
 
+    **IMPORTANT: Update \`specs/README.md\`** to add the new spec to the index table:
+
+    \`\`\`markdown
+    | Spec | Description | Key Topics |
+    |------|-------------|------------|
+    | [new-feature.md](new-feature.md) | Brief description | topic1, topic2 |
+    \`\`\`
+
     ---
 
     ## Completion Steps
 
-    After saving the spec, do these steps IN ORDER:
+    After saving the spec AND updating specs/README.md, do these steps IN ORDER:
 
     1. Display this completion message (replace filename with actual one):
 
     ---
     ✅ **Spec saved!** [Created/Updated] \`specs/[filename].md\`
+
+    Updated \`specs/README.md\` index.
 
     Next steps:
     - Review and refine the spec if needed

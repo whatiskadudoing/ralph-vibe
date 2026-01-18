@@ -167,14 +167,14 @@ Deno.test('initProject writes config with work settings', async () => {
   }
 });
 
-Deno.test('initProject writes build prompt with phases', async () => {
+Deno.test('initProject writes build prompt with key elements', async () => {
   const tempDir = await createTempDir();
   try {
     await initProject(tempDir);
     const content = await Deno.readTextFile(join(tempDir, 'PROMPT_build.md'));
-    assertStringIncludes(content, 'Phase 0');
-    assertStringIncludes(content, 'Phase 1');
-    assertStringIncludes(content, 'Guardrails');
+    assertStringIncludes(content, 'specs/README.md');
+    assertStringIncludes(content, 'IMPLEMENTATION_PLAN.md');
+    assertStringIncludes(content, 'EXIT_SIGNAL');
   } finally {
     await cleanupTempDir(tempDir);
   }

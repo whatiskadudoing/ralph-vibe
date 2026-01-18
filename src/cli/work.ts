@@ -12,6 +12,7 @@ import { amber, bold, dim, error, muted, orange, success as successColor } from 
 import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
+import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { renderBuildPrompt } from '@/core/templates.ts';
 import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
 import {
@@ -415,6 +416,46 @@ const renderWorkSummary = async (
 };
 
 /**
+ * Creates a git tag after successful build completion.
+ * Increments patch version by default.
+ */
+const createGitTag = async (termWidth: number): Promise<void> => {
+  try {
+    // Get the latest tag
+    const latestResult = await getLatestTag();
+    if (!latestResult.ok) {
+      return; // Silent fail - tagging is optional
+    }
+
+    // Increment version
+    const newVersion = incrementVersion(latestResult.value, 'patch');
+
+    // Create the tag
+    const tagResult = await createTag(newVersion, `Ralph build complete - ${newVersion}`);
+    if (!tagResult.ok) {
+      console.log(dim(`  Could not create tag: ${tagResult.error.message}`));
+      return;
+    }
+
+    // Push the tag
+    const pushResult = await pushTags();
+    if (pushResult.ok) {
+      console.log(createBox(
+        `${successColor(CHECK)} Tagged ${amber(newVersion)}`,
+        { style: 'rounded', padding: 1, paddingY: 0, borderColor: dim, minWidth: termWidth - 6 },
+      ));
+    } else {
+      console.log(createBox(
+        `${successColor(CHECK)} Tagged ${amber(newVersion)} ${dim('(not pushed)')}`,
+        { style: 'rounded', padding: 1, paddingY: 0, borderColor: dim, minWidth: termWidth - 6 },
+      ));
+    }
+  } catch {
+    // Silent fail - tagging is optional
+  }
+};
+
+/**
  * The main build loop.
  */
 const buildLoop = async (
@@ -489,6 +530,9 @@ const buildLoop = async (
         `${successColor(CHECK)} ${bold('All tasks complete!')}`,
         { style: 'rounded', padding: 1, paddingY: 0, borderColor: dim, minWidth: termWidth - 6 },
       ));
+
+      // Create git tag on successful completion
+      await createGitTag(termWidth);
       break;
     }
 

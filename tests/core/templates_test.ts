@@ -17,75 +17,59 @@ import {
 // renderBuildPrompt Tests
 // ============================================================================
 
-Deno.test('renderBuildPrompt includes Phase 0 (Orientation)', () => {
+Deno.test('renderBuildPrompt includes specs/README.md reference', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Phase 0: Orientation');
-  assertStringIncludes(result, 'Study the specifications');
+  assertStringIncludes(result, 'specs/README.md');
   assertStringIncludes(result, 'IMPLEMENTATION_PLAN.md');
 });
 
-Deno.test('renderBuildPrompt includes Phase 1 (Task Selection)', () => {
+Deno.test('renderBuildPrompt includes task selection', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Phase 1: Task Selection & Implementation');
-  assertStringIncludes(result, 'MOST IMPORTANT');
+  assertStringIncludes(result, 'most important');
   assertStringIncludes(result, 'AGENTS.md');
 });
 
-Deno.test('renderBuildPrompt includes Phase 2 (Validation)', () => {
+Deno.test('renderBuildPrompt includes validation instructions', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Phase 2: Validation');
-  assertStringIncludes(result, 'Run all validation commands');
+  assertStringIncludes(result, 'Run validation commands');
+  assertStringIncludes(result, 'tests pass');
 });
 
-Deno.test('renderBuildPrompt includes Phase 3 (Documentation)', () => {
+Deno.test('renderBuildPrompt includes commit instructions', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Phase 3: Documentation');
-  assertStringIncludes(result, 'Mark task `[x]` complete');
-  assertStringIncludes(result, 'Add any learnings');
-});
-
-Deno.test('renderBuildPrompt includes Phase 4 (Commit)', () => {
-  const result = renderBuildPrompt();
-
-  assertStringIncludes(result, 'Phase 4: Commit');
-  assertStringIncludes(result, 'Stage all changes');
+  assertStringIncludes(result, 'Commit');
   assertStringIncludes(result, 'Push to remote');
 });
 
-Deno.test('renderBuildPrompt includes Guardrails', () => {
+Deno.test('renderBuildPrompt includes key guardrails', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Guardrails');
-  assertStringIncludes(result, 'Search codebase before assuming');
+  assertStringIncludes(result, 'Search codebase first');
   assertStringIncludes(result, 'One task per iteration');
-  assertStringIncludes(result, 'Tests must pass');
 });
 
-Deno.test('renderBuildPrompt includes original Ralph Wiggum guardrails', () => {
+Deno.test('renderBuildPrompt includes implementation quality rules', () => {
   const result = renderBuildPrompt();
 
   assertStringIncludes(result, 'Implement completely');
-  assertStringIncludes(result, 'placeholders');
-  assertStringIncludes(result, 'Single source of truth');
-  assertStringIncludes(result, 'AGENTS.md operational only');
+  assertStringIncludes(result, 'No placeholders');
 });
 
 Deno.test('renderBuildPrompt includes backpressure control', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, '1 Sonnet subagent');
+  assertStringIncludes(result, '1 subagent');
   assertStringIncludes(result, 'backpressure');
 });
 
-Deno.test('renderBuildPrompt uses Study for specs', () => {
+Deno.test('renderBuildPrompt includes subagent guidance', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'Study the specifications');
-  assertStringIncludes(result, 'parallel Sonnet subagents');
+  assertStringIncludes(result, '500 parallel subagents');
 });
 
 Deno.test('renderBuildPrompt includes EXIT_SIGNAL', () => {
@@ -121,10 +105,12 @@ Deno.test('renderPlanPrompt uses Study and parallel subagents', () => {
   assertStringIncludes(result, 'parallel Sonnet subagents');
 });
 
-Deno.test('renderPlanPrompt emphasizes no placeholders', () => {
+Deno.test('renderPlanPrompt includes linkage requirement', () => {
   const result = renderPlanPrompt();
 
-  assertStringIncludes(result, 'no placeholders');
+  assertStringIncludes(result, 'linkage');
+  assertStringIncludes(result, '[spec:');
+  assertStringIncludes(result, '[file:');
 });
 
 Deno.test('renderPlanPrompt references IMPLEMENTATION_PLAN.md', () => {
@@ -133,10 +119,10 @@ Deno.test('renderPlanPrompt references IMPLEMENTATION_PLAN.md', () => {
   assertStringIncludes(result, 'IMPLEMENTATION_PLAN.md');
 });
 
-Deno.test('renderPlanPrompt references specs directory', () => {
+Deno.test('renderPlanPrompt references specs/README.md', () => {
   const result = renderPlanPrompt();
 
-  assertStringIncludes(result, '`specs/`');
+  assertStringIncludes(result, 'specs/README.md');
 });
 
 // ============================================================================
@@ -226,4 +212,10 @@ Deno.test('renderSpecInterviewPrompt includes interview guidelines', () => {
   assertStringIncludes(result, 'Who');
   assertStringIncludes(result, 'How');
   assertStringIncludes(result, 'Edge cases');
+});
+
+Deno.test('renderSpecInterviewPrompt includes specs/README.md update instruction', () => {
+  const result = renderSpecInterviewPrompt();
+
+  assertStringIncludes(result, 'specs/README.md');
 });

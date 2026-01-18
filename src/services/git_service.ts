@@ -370,3 +370,125 @@ export async function getRecentCommits(
     return err(gitError('not_found', 'Git not found'));
   }
 }
+
+// ============================================================================
+// Tag Operations
+// ============================================================================
+
+/**
+ * Gets the latest semver tag (e.g., v1.2.3).
+ * Returns null if no tags exist.
+ */
+export async function getLatestTag(cwd?: string): Promise<Result<string | null, GitError>> {
+  try {
+    const command = new Deno.Command('git', {
+      args: ['tag', '--sort=-v:refname', '--list', 'v*'],
+      stdout: 'piped',
+      stderr: 'piped',
+      cwd,
+    });
+    const { success, stdout } = await command.output();
+
+    if (!success) {
+      return ok(null);
+    }
+
+    const output = new TextDecoder().decode(stdout).trim();
+    if (!output) {
+      return ok(null);
+    }
+
+    // Return the first (latest) tag
+    const tags = output.split('\n');
+    return ok(tags[0] ?? null);
+  } catch {
+    return err(gitError('not_found', 'Git not found'));
+  }
+}
+
+/**
+ * Creates a new git tag.
+ */
+export async function createTag(
+  tagName: string,
+  message?: string,
+  cwd?: string,
+): Promise<Result<void, GitError>> {
+  try {
+    const args = message ? ['tag', '-a', tagName, '-m', message] : ['tag', tagName];
+
+    const command = new Deno.Command('git', {
+      args,
+      stdout: 'piped',
+      stderr: 'piped',
+      cwd,
+    });
+    const { success, stderr } = await command.output();
+
+    if (!success) {
+      const error = new TextDecoder().decode(stderr);
+      return err(gitError('command_failed', error));
+    }
+
+    return ok(undefined);
+  } catch {
+    return err(gitError('not_found', 'Git not found'));
+  }
+}
+
+/**
+ * Pushes tags to remote.
+ */
+export async function pushTags(cwd?: string): Promise<Result<void, GitError>> {
+  try {
+    const command = new Deno.Command('git', {
+      args: ['push', '--tags'],
+      stdout: 'piped',
+      stderr: 'piped',
+      cwd,
+    });
+    const { success, stderr } = await command.output();
+
+    if (!success) {
+      const error = new TextDecoder().decode(stderr);
+      return err(gitError('command_failed', error));
+    }
+
+    return ok(undefined);
+  } catch {
+    return err(gitError('not_found', 'Git not found'));
+  }
+}
+
+/**
+ * Increments a semver version.
+ * @param version - Current version (e.g., "v1.2.3" or "1.2.3")
+ * @param type - Type of increment: "major", "minor", or "patch"
+ * @returns New version with "v" prefix
+ */
+export function incrementVersion(
+  version: string | null,
+  type: 'major' | 'minor' | 'patch' = 'patch',
+): string {
+  if (!version) {
+    return 'v0.1.0';
+  }
+
+  // Remove "v" prefix if present
+  const cleanVersion = version.startsWith('v') ? version.slice(1) : version;
+  const parts = cleanVersion.split('.').map(Number);
+
+  const major = parts[0] ?? 0;
+  const minor = parts[1] ?? 0;
+  const patch = parts[2] ?? 0;
+
+  switch (type) {
+    case 'major':
+      return `v${major + 1}.0.0`;
+    case 'minor':
+      return `v${major}.${minor + 1}.0`;
+    case 'patch':
+    default:
+      return `v${major}.${minor}.${patch + 1}`;
+  }
+}
