@@ -100,18 +100,36 @@ install() {
 
     success "Ralph Vibe installed to $INSTALL_DIR/$BINARY_NAME"
 
-    # Check if in PATH
+    # Add to PATH if not already there
     case ":$PATH:" in
         *":$INSTALL_DIR:"*)
             success "Ralph is ready! Run 'ralph --help' to get started."
             ;;
         *)
-            echo ""
-            warn "Add Ralph to your PATH by adding this to your shell profile:"
-            echo ""
-            printf "  ${CYAN}export PATH=\"%s:\$PATH\"${NC}\n" "$INSTALL_DIR"
-            echo ""
-            info "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
+            # Detect shell profile
+            SHELL_NAME=$(basename "$SHELL")
+            case "$SHELL_NAME" in
+                zsh)  PROFILE="$HOME/.zshrc" ;;
+                bash)
+                    if [ -f "$HOME/.bash_profile" ]; then
+                        PROFILE="$HOME/.bash_profile"
+                    else
+                        PROFILE="$HOME/.bashrc"
+                    fi
+                    ;;
+                *)    PROFILE="$HOME/.profile" ;;
+            esac
+
+            # Add PATH export if not already present
+            PATH_EXPORT="export PATH=\"$INSTALL_DIR:\$PATH\""
+            if ! grep -q "$INSTALL_DIR" "$PROFILE" 2>/dev/null; then
+                echo "" >> "$PROFILE"
+                echo "# Ralph Vibe" >> "$PROFILE"
+                echo "$PATH_EXPORT" >> "$PROFILE"
+                info "Added Ralph to PATH in $PROFILE"
+            fi
+
+            success "Ralph is ready! Restart your shell or run: source $PROFILE"
             ;;
     esac
 
