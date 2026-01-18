@@ -22,7 +22,7 @@ export type DeepPartial<T> = {
 /**
  * Supported AI models.
  */
-export type Model = 'opus' | 'sonnet';
+export type Model = 'opus' | 'sonnet' | 'adaptive';
 
 /**
  * Path configuration for Ralph files.
@@ -98,7 +98,7 @@ export const DEFAULT_WORK: WorkConfig = {
 /**
  * Valid model values.
  */
-export const VALID_MODELS: readonly Model[] = ['opus', 'sonnet'];
+export const VALID_MODELS: readonly Model[] = ['opus', 'sonnet', 'adaptive'];
 
 // ============================================================================
 // Functions

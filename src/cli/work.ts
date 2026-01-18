@@ -14,6 +14,7 @@ import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { renderBuildPrompt } from '@/core/templates.ts';
+import { assessComplexity } from '@/core/complexity.ts';
 import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
 import {
   formatUsageStats,
@@ -42,6 +43,8 @@ interface WorkOptions {
   readonly maxIterations?: number;
   readonly dryRun?: boolean;
   readonly vibe?: boolean;
+  readonly adaptive?: boolean;
+  readonly model?: 'opus' | 'sonnet';
 }
 
 interface IterationResult {
@@ -49,6 +52,7 @@ interface IterationResult {
   readonly status: RalphStatus | null;
   readonly usage: UsageStats;
   readonly error?: string;
+  readonly modelUsed: 'opus' | 'sonnet';
 }
 
 interface SessionStats {
@@ -153,15 +157,28 @@ const getNextTaskFromPlan = async (): Promise<NextTask | null> => {
 /**
  * Runs a single iteration of the build loop.
  * Renders progress inside an orange-bordered box.
+ * When modelMode is 'adaptive', selects model based on task complexity.
  */
 const runIteration = async (
   iteration: number,
-  model: 'opus' | 'sonnet',
+  modelMode: 'opus' | 'sonnet' | 'adaptive',
 ): Promise<IterationResult> => {
   // Get next task from plan for display
   const nextTask = await getNextTaskFromPlan();
   const phaseTitle = nextTask?.phase ?? 'Building';
   const taskPreview = nextTask?.task ? truncateTask(nextTask.task, 50) : 'Selecting next task...';
+
+  // Determine model to use
+  let model: 'opus' | 'sonnet';
+  if (modelMode === 'adaptive' && nextTask?.task) {
+    const assessment = assessComplexity(nextTask.task, nextTask.phase);
+    model = assessment.model;
+  } else if (modelMode === 'adaptive') {
+    // No task info available, default to opus
+    model = 'opus';
+  } else {
+    model = modelMode;
+  }
 
   const prompt = renderBuildPrompt();
 
@@ -187,6 +204,7 @@ const runIteration = async (
       status: null,
       usage: result.usage,
       error: 'Claude execution failed',
+      modelUsed: model,
     };
   }
 
@@ -197,6 +215,7 @@ const runIteration = async (
     success: true,
     status: status ? { ...status, exitSignal } : null,
     usage: result.usage,
+    modelUsed: model,
   };
 };
 
@@ -459,7 +478,7 @@ const createGitTag = async (termWidth: number): Promise<void> => {
  * The main build loop.
  */
 const buildLoop = async (
-  model: 'opus' | 'sonnet',
+  modelMode: 'opus' | 'sonnet' | 'adaptive',
   maxIterations: number,
 ): Promise<void> => {
   const completedTasks: string[] = [];
@@ -474,10 +493,13 @@ const buildLoop = async (
   // Fetch initial subscription usage
   const initialUsage = await getSubscriptionUsage();
 
+  // Format model display for header
+  const modelDisplay = modelMode === 'adaptive' ? 'adaptive (sonnet/opus)' : modelMode;
+
   console.log();
   console.log(commandHeader({
     name: 'Ralph Work',
-    description: `Autonomous build loop · ${model} · max ${maxIterations} iterations`,
+    description: `Autonomous build loop · ${modelDisplay} · max ${maxIterations} iterations`,
     usage: initialUsage.ok ? initialUsage.value : undefined,
   }));
   console.log();
@@ -490,7 +512,7 @@ const buildLoop = async (
     const usageBefore = await getSubscriptionUsage();
     const usageBeforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
 
-    const result = await runIteration(iteration, model);
+    const result = await runIteration(iteration, modelMode);
 
     // Get usage after iteration
     const usageAfter = await getSubscriptionUsage();
@@ -510,13 +532,13 @@ const buildLoop = async (
 
     if (!result.success) {
       // Show error summary box
-      renderIterationSummary(iteration, result.status, result.usage, model, false, usageDelta);
+      renderIterationSummary(iteration, result.status, result.usage, result.modelUsed, false, usageDelta);
       await renderWorkSummary(completedTasks, sessionStats, true);
       Deno.exit(1);
     }
 
     // Show completion summary box (white border)
-    renderIterationSummary(iteration, result.status, result.usage, model, true, usageDelta);
+    renderIterationSummary(iteration, result.status, result.usage, result.modelUsed, true, usageDelta);
 
     // Track completed task
     if (result.status?.task) {
@@ -614,10 +636,21 @@ async function workAction(options: WorkOptions): Promise<void> {
 
   // Read config for model setting
   const configResult = await readConfig();
-  const model = configResult.ok ? configResult.value.work.model : 'opus';
+
+  // Determine model - precedence: --model > --adaptive > config
+  let modelMode: 'opus' | 'sonnet' | 'adaptive';
+
+  if (options.model) {
+    // Explicit model flag takes highest precedence
+    modelMode = options.model;
+  } else if (options.adaptive) {
+    modelMode = 'adaptive';
+  } else {
+    modelMode = configResult.ok ? configResult.value.work.model : 'opus';
+  }
 
   // Run the build loop
-  await buildLoop(model as 'opus' | 'sonnet', maxIterations);
+  await buildLoop(modelMode, maxIterations);
 }
 
 // ============================================================================
@@ -636,5 +669,14 @@ export function createWorkCommand(): Command<any> {
     })
     .option('--dry-run', 'Show what would happen without running')
     .option('--vibe', 'Vibe mode (no effect on work - already the last step)')
+    .option('--adaptive', 'Adaptive model selection (sonnet for simple, opus for complex)')
+    .option('--model <model:string>', 'Force specific model (opus or sonnet)', {
+      value: (val: string) => {
+        if (val !== 'opus' && val !== 'sonnet') {
+          throw new Error('Model must be "opus" or "sonnet"');
+        }
+        return val as 'opus' | 'sonnet';
+      },
+    })
     .action(workAction);
 }
