@@ -163,6 +163,8 @@ ralph work                      # Build until done
 ralph work --max-iterations 10  # Limit iterations
 ```
 
+When all tasks complete successfully, Ralph auto-creates a git tag (e.g., `v0.1.0`) and pushes it.
+
 ---
 
 ## Why It Works
@@ -200,13 +202,36 @@ your-project/
 ├── PROMPT_build.md        # Build instructions (auto-generated)
 ├── PROMPT_plan.md         # Planning instructions (auto-generated)
 ├── AGENTS.md              # How to build/test your project
-├── IMPLEMENTATION_PLAN.md # Task checklist
+├── IMPLEMENTATION_PLAN.md # Task checklist with linkage
 ├── specs/                 # Your feature specifications
+│   ├── README.md          # Specs index (lookup table)
 │   └── *.md
 └── .ralph.json            # Ralph config (hidden)
 ```
 
 You can edit any of these. Ralph Vibe creates them; you own them.
+
+### The Specs Index
+
+`specs/README.md` is a lookup table that helps Claude find relevant specs faster:
+
+```markdown
+| Spec | Description | Key Topics |
+|------|-------------|------------|
+| auth.md | User authentication | login, sessions, tokens |
+| api.md | REST API endpoints | routes, handlers, validation |
+```
+
+### Task Linkage
+
+Tasks in `IMPLEMENTATION_PLAN.md` include linkage to specs and files:
+
+```markdown
+- [ ] Add login endpoint [spec: auth.md] [file: src/api/routes.ts]
+- [ ] Create session middleware [spec: auth.md] [file: src/middleware/]
+```
+
+This helps Claude find relevant context instantly.
 
 ---
 

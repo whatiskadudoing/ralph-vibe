@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0-beta] - 2026-01-18
+## [0.2.0] - 2026-01-18
+
+### Added
+
+- **specs/README.md lookup table** - Prompts now instruct Claude to create and maintain an index of all specs with descriptions and key topics. This helps the build loop find relevant specs faster.
+- **Task linkage in plans** - Implementation plan tasks now require `[spec: X]` and `[file: Y]` citations to help Claude find relevant context instantly.
+- **Git tagging on success** - Automatically creates and pushes a semver git tag when all tasks complete successfully.
+
+### Changed
+
+- **Simplified PROMPT_build.md** - Reduced from ~100 lines to ~30 lines following Geoff Huntley's "minimal prompt, maximum clarity" approach.
+- **Updated PROMPT_plan.md** - Now includes linkage requirement and specs/README.md reference.
+
+## [0.1.1] - 2026-01-18
+
+### Fixed
+
+- **Install script auto-PATH** - The install script now automatically adds Ralph to the user's PATH by appending to `.zshrc`, `.bashrc`, or `.profile`.
+
+## [0.1.0] - 2026-01-18
 
 ### Added
 
@@ -37,6 +56,7 @@ After `ralph init`, your project will have:
 | `PROMPT_build.md` | Instructions for build iterations |
 | `PROMPT_plan.md` | Instructions for gap analysis and planning |
 | `AGENTS.md` | Operational guide - build/run/validate commands |
-| `IMPLEMENTATION_PLAN.md` | Task list with checkboxes |
-| `specs/` | Feature specifications |
+| `IMPLEMENTATION_PLAN.md` | Task list with linkage to specs/files |
+| `specs/README.md` | Specs index (lookup table) |
+| `specs/*.md` | Feature specifications |
 | `.ralph.json` | CLI configuration |
