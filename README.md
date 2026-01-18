@@ -1,218 +1,291 @@
 # Ralph Vibe
 
-> More than a philosophy. More than vibe coding. This is **Ralph Vibe**.
+> The Ralph loop, without the homework.
 
-Autonomous development with Claude Code, built on the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum).
+Everyone's talking about the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum). It's powerful. It works. But have you tried setting it up?
 
-## What is Ralph Vibe?
-
-Everyone talks about the "Ralph philosophy" - fresh context, specs as truth, one task per loop. But Ralph Vibe takes it further. It's not just a methodology; it's a **workflow that lets you step away**.
+**Ralph Vibe is the Ralph loop made simple.**
 
 ```bash
 ralph init --vibe
+# Answer a few questions
+# Go for beer
+# Come back to working code
 ```
 
-Run one command. Answer a few questions. Go grab a beer. Come back to working code.
+That's it. No scripts to write. No files to create. No architecture to understand.
 
-That's Ralph Vibe.
+---
 
-## Getting Started
+## The Problem
 
-### First Time? Start Simple.
+The original Ralph loop is brilliant, but getting started is a project in itself:
 
-Before building your complex app, **try something simple first**. This helps you understand the flow:
+- Write `loop.sh` to orchestrate everything
+- Create `PROMPT_build.md` with the right phases
+- Create `PROMPT_plan.md` for gap analysis
+- Set up `AGENTS.md` with build commands
+- Structure your `specs/` directory correctly
+- Understand how all the pieces fit together
+- Debug when something doesn't work
+
+You spend hours setting up before you write a single line of actual code.
+
+## The Solution
+
+Ralph Vibe handles all of that for you:
+
+| Original Ralph Loop | Ralph Vibe |
+|---------------------|------------|
+| Write shell scripts | Just run `ralph work` |
+| Create prompt files manually | Auto-generated from interview |
+| Understand the architecture | Just answer questions |
+| Debug your setup | It just works |
+| Hours of configuration | One command |
+
+**You don't need to understand how the Ralph loop works.** Just use it.
+
+---
+
+## Quick Start
+
+### New Project
 
 ```bash
-# 1. Create a test folder
-mkdir my-first-ralph && cd my-first-ralph
-
-# 2. Run the full flow
+# Create a folder and run
+mkdir my-app && cd my-app
 ralph init --vibe
 
-# 3. When asked, describe something simple:
-#    "A CLI that converts temperatures between Celsius and Fahrenheit"
-
-# 4. Go grab a beer. Seriously.
-
-# 5. Come back to working code.
+# Answer the interview questions
+# Go grab a beer
+# Come back to working code
 ```
 
-Once you see the magic happen on a simple project, you'll understand exactly how Ralph Vibe works. Then you're ready for the complex stuff.
+### Existing Project
 
-### The Flow
-
-Ralph Vibe follows a natural progression:
-
-```
-init → start → plan → work
-  ↓       ↓       ↓      ↓
-Setup  Specs   Tasks   Build
-```
-
-**With `--vibe` flag**, it flows automatically:
-
-| Command | What Happens |
-|---------|--------------|
-| `ralph init --vibe` | Setup → Interview → Plan → Build (full flow) |
-| `ralph spec --vibe` | New spec → Plan → Build |
-| `ralph plan --vibe` | Plan → Build |
-
-**Without `--vibe`**, run each step manually:
+Already have code? Add Ralph Vibe to any project:
 
 ```bash
-ralph init      # Setup project structure
-ralph start     # Interview to create initial specs
-ralph plan      # Generate implementation plan
-ralph work      # Run autonomous build loop
+cd my-existing-project
+ralph init --vibe
+
+# Tell it about your project
+# It reads your code and creates specs
+# Then builds what's missing
 ```
+
+### First Time? Start Small.
+
+Try something simple first to see the magic:
+
+```bash
+mkdir test-ralph && cd test-ralph
+ralph init --vibe
+
+# When asked, describe something tiny:
+# "A CLI that converts Celsius to Fahrenheit"
+
+# Watch it build the entire thing
+```
+
+Once you see it work on something small, you'll trust it with the big stuff.
+
+---
+
+## How It Works
+
+You don't need to know this. But if you're curious:
+
+```
+ralph init    →  Sets up project files
+ralph start   →  Interviews you, creates specs
+ralph plan    →  Analyzes specs, creates task list
+ralph work    →  Builds one task at a time until done
+```
+
+With `--vibe`, it chains automatically:
+
+```bash
+ralph init --vibe   # Does everything: init → start → plan → work
+ralph spec --vibe   # New feature: spec → plan → work
+ralph plan --vibe   # Replanning: plan → work
+```
+
+Without `--vibe`, run each step when you want control.
+
+---
 
 ## Commands
 
 ### `ralph init`
 
-Initialize a new Ralph project. Sets up all files at your project root.
+Start a new Ralph project or add to existing code.
 
 ```bash
 ralph init              # Interactive setup
-ralph init --vibe       # Setup + full autonomous flow
+ralph init --vibe       # Setup + build everything
 ```
 
 ### `ralph start`
 
-First-time spec creation. Interviews you about what you want to build.
+First-time interview. Tell Ralph what you want to build.
 
 ```bash
-ralph start             # Create initial specs
-ralph start --vibe      # Specs → Plan → Build
+ralph start             # Create specs from interview
+ralph start --vibe      # Interview → Plan → Build
 ```
 
 ### `ralph spec`
 
-Add a new feature to an existing project.
+Add a new feature to your project.
 
 ```bash
 ralph spec                          # Interview for new feature
-ralph spec -f "user authentication" # With a hint
-ralph spec --vibe                   # New spec → Plan → Build
+ralph spec -f "user authentication" # Skip straight to this feature
+ralph spec --vibe                   # Feature → Plan → Build
 ```
 
 ### `ralph plan`
 
-Generate implementation plan from your specs.
+Create or update the implementation plan.
 
 ```bash
-ralph plan              # Create/update plan
+ralph plan              # Analyze specs, create tasks
 ralph plan --vibe       # Plan → Build
 ```
 
 ### `ralph work`
 
-Run the autonomous build loop. This is where the magic happens.
+The autonomous build loop. Where code gets written.
 
 ```bash
-ralph work                      # Run until complete
+ralph work                      # Build until done
 ralph work --max-iterations 10  # Limit iterations
 ```
 
-## The Philosophy
+---
 
-Ralph Vibe is built on proven principles:
+## Why It Works
 
-### 1. Fresh Context Every Time
+Ralph Vibe follows principles that make AI coding reliable:
 
-Each iteration starts clean. No accumulated confusion. No context pollution. Claude reads the specs, picks a task, builds it, commits, and exits.
+### Fresh Start Every Time
 
-### 2. Specs Are Truth
+Each build iteration starts with zero memory. No accumulated confusion. No "I thought I already did that." Claude reads the specs fresh, picks a task, builds it, and exits.
 
-Your specs in `specs/` are the single source of truth. Not the code. Not comments. The specs. When Claude builds, it builds to match the specs.
+### Your Specs Are the Truth
 
-### 3. One Task Per Loop
+The specs in `specs/` are what gets built. Not vague ideas. Not old comments in code. Clear specifications that Claude follows exactly.
 
-Focus beats multitasking. Each iteration: read specs → pick ONE task → implement → test → commit → exit. Repeat.
+### One Thing at a Time
 
-### 4. Tests Are Backpressure
+Each iteration does ONE task. Pick task → implement → test → commit → done. No multitasking. No half-finished features.
 
-Nothing gets marked complete until tests pass. This creates natural quality gates. Claude can't lie about progress.
+### Tests Keep It Honest
 
-### 5. Files Over Memory
+Nothing is "done" until tests pass. Claude can't mark a task complete if the tests fail. Built-in quality gates.
 
-Everything persists in files: specs, plans, agents guide. When context resets, nothing is lost. The project state lives in the filesystem.
+### Everything Lives in Files
 
-## Generated Files
+Specs, plans, build instructions - all in files. When context resets, nothing is lost. Your project state survives every restart.
 
-After `ralph init`:
+---
+
+## What Gets Created
+
+After `ralph init`, your project has:
 
 ```
 your-project/
-├── PROMPT_build.md        # Build mode instructions
-├── PROMPT_plan.md         # Planning mode instructions
-├── AGENTS.md              # How to build/run/test
+├── PROMPT_build.md        # Build instructions (auto-generated)
+├── PROMPT_plan.md         # Planning instructions (auto-generated)
+├── AGENTS.md              # How to build/test your project
 ├── IMPLEMENTATION_PLAN.md # Task checklist
-├── specs/                 # Your specifications
+├── specs/                 # Your feature specifications
 │   └── *.md
-└── .ralph.json            # CLI config (hidden)
+└── .ralph.json            # Ralph config (hidden)
 ```
+
+You can edit any of these. Ralph Vibe creates them; you own them.
+
+---
 
 ## Prerequisites
 
-Before using Ralph Vibe, you need:
+### 1. Claude Code
 
-### 1. Claude Code CLI
-
-Ralph uses Claude Code under the hood. You must have it installed and logged in.
+Ralph Vibe uses Claude Code to do the actual building.
 
 ```bash
 # Install Claude Code
 curl -fsSL https://claude.ai/install.sh | sh
 
-# Log in to your account
+# Log in
 claude login
 ```
 
-**Important**: You need an active [Claude Pro or Team subscription](https://claude.ai/pricing) to use Claude Code.
+**You need a [Claude Pro or Team subscription](https://claude.ai/pricing).**
 
-### 2. Deno Runtime
+### 2. Deno (optional)
 
-Ralph Vibe is built with Deno.
+Only needed if installing via Deno instead of the binary.
 
 ```bash
-# macOS / Linux
 curl -fsSL https://deno.land/install.sh | sh
-
-# Windows (PowerShell)
-irm https://deno.land/install.ps1 | iex
 ```
+
+---
 
 ## Installation
 
+### Recommended: Binary Install
+
 ```bash
-# Install Ralph Vibe (downloads binary from GitHub releases)
 curl -fsSL https://raw.githubusercontent.com/whatiskadudoing/ralph-vibe/main/install.sh | sh
 ```
 
-Or if you have Deno installed:
+### Alternative: Deno Install
 
 ```bash
 deno install -A -n ralph jsr:@ralph/cli
 ```
 
-### Verify Your Setup
-
-Make sure everything is ready:
+### Verify
 
 ```bash
-# Check Claude Code is installed and logged in
-claude --version
-
-# Check Ralph is installed
 ralph --version
+claude --version
 ```
 
-If `claude --version` fails, revisit the [Claude Code installation](https://docs.anthropic.com/claude-code).
+---
 
-## Why "Ralph"?
+## FAQ
 
-Named after the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum) by Geoffrey Huntley. The original technique used shell scripts and manual loops. Ralph Vibe automates the entire flow while keeping the core philosophy intact.
+**Q: Do I need to understand the Ralph Wiggum technique?**
+
+No. That's the whole point. Ralph Vibe handles the complexity so you don't have to.
+
+**Q: Can I use this on an existing project?**
+
+Yes. Run `ralph init` in any project. It will interview you about your codebase and create specs based on what exists.
+
+**Q: What if I want more control?**
+
+Don't use `--vibe`. Run each command separately: `ralph init`, then `ralph start`, then `ralph plan`, then `ralph work`.
+
+**Q: How is this different from just using Claude Code directly?**
+
+Claude Code is powerful but has no memory between sessions. Ralph Vibe gives it structure: specs to follow, plans to execute, one task at a time. It turns Claude Code into a reliable build system.
+
+---
+
+## Credits
+
+Built on the [Ralph Wiggum technique](https://github.com/ghuntley/how-to-ralph-wiggum) by Geoffrey Huntley.
+
+Ralph Vibe takes the proven methodology and wraps it in a tool that anyone can use.
+
+---
 
 ## License
 
