@@ -133,7 +133,7 @@ export function showVibeActivated(nextSteps: string[]): void {
     ? [
       '',
       dim("🎤 I'll ask you a few questions first, then go fully autonomous."),
-      dim('   Make sure you have a beer ready for when we\'re done here!'),
+      dim("   Make sure you have a beer ready for when we're done here!"),
     ]
     : [];
 
@@ -179,14 +179,12 @@ async function showAutonomousStarting(): Promise<void> {
   const termWidth = getTerminalWidth();
   const idx = Math.floor(Math.random() * AUTONOMOUS_MESSAGES.length);
   const selectedMsg = AUTONOMOUS_MESSAGES[idx];
-  const msg = selectedMsg
-    ? selectedMsg
-    : {
-      emoji: '🍺',
-      title: 'Time to grab a beer!',
-      message:
-        "The interactive part is done. From here on, it's fully autonomous.\nGo enjoy yourself - I'll handle the rest and let you know when it's done.",
-    };
+  const msg = selectedMsg ? selectedMsg : {
+    emoji: '🍺',
+    title: 'Time to grab a beer!',
+    message:
+      "The interactive part is done. From here on, it's fully autonomous.\nGo enjoy yourself - I'll handle the rest and let you know when it's done.",
+  };
 
   const countdownSeconds = 5;
   const encoder = new TextEncoder();
@@ -199,7 +197,9 @@ async function showAutonomousStarting(): Promise<void> {
       await Deno.stdout.write(encoder.encode('\x1b[12A\x1b[J'));
     }
 
-    const countdown = i > 0 ? `Starting in ${orange(String(i))} seconds...` : `${orange('Starting now!')}`;
+    const countdown = i > 0
+      ? `Starting in ${orange(String(i))} seconds...`
+      : `${orange('Starting now!')}`;
 
     const lines = [
       `${msg.emoji}  ${bold(orange(msg.title))}`,

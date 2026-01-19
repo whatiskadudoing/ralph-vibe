@@ -6,9 +6,9 @@
 
 import { assertEquals } from '@std/assert';
 import {
+  DependencyGraph,
   parseTaskDependency,
   stripDependencyMetadata,
-  DependencyGraph,
 } from '../../src/core/parallel.ts';
 import type { Task } from '../../src/core/plan.ts';
 

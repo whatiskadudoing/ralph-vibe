@@ -13,7 +13,14 @@ import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { DEFAULT_PARALLEL, DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { createTag, getCurrentBranch, getLatestTag, getRepoRoot, incrementVersion, pushTags } from '@/services/git_service.ts';
+import {
+  createTag,
+  getCurrentBranch,
+  getLatestTag,
+  getRepoRoot,
+  incrementVersion,
+  pushTags,
+} from '@/services/git_service.ts';
 import { renderBuildPrompt } from '@/core/templates.ts';
 import { assessComplexity } from '@/core/complexity.ts';
 import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
@@ -28,9 +35,12 @@ import {
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader } from '@/ui/components.ts';
-import { parsePlan, getPendingTasks } from '@/core/plan.ts';
-import { ParallelOrchestrator, DEFAULT_PARALLEL_CONFIG, type ParallelConfig as ParallelExecConfig } from '@/core/parallel.ts';
-import { ParallelRenderer, renderParallelSummary } from '@/ui/parallel_renderer.ts';
+import { getPendingTasks, parsePlan } from '@/core/plan.ts';
+import {
+  type ParallelConfig as ParallelExecConfig,
+  ParallelOrchestrator,
+} from '@/core/parallel.ts';
+import { ParallelRenderer } from '@/ui/parallel_renderer.ts';
 
 // ============================================================================
 // Types
@@ -537,13 +547,27 @@ const buildLoop = async (
 
     if (!result.success) {
       // Show error summary box
-      renderIterationSummary(iteration, result.status, result.usage, result.modelUsed, false, usageDelta);
+      renderIterationSummary(
+        iteration,
+        result.status,
+        result.usage,
+        result.modelUsed,
+        false,
+        usageDelta,
+      );
       await renderWorkSummary(completedTasks, sessionStats, true);
       Deno.exit(1);
     }
 
     // Show completion summary box (white border)
-    renderIterationSummary(iteration, result.status, result.usage, result.modelUsed, true, usageDelta);
+    renderIterationSummary(
+      iteration,
+      result.status,
+      result.usage,
+      result.modelUsed,
+      true,
+      usageDelta,
+    );
 
     // Track completed task
     if (result.status?.task) {
@@ -672,12 +696,13 @@ const parallelBuildLoop = async (
   const orchestrator = new ParallelOrchestrator(parallelConfig, pendingTasks, {
     onWorkerUpdate: (worker) => renderer.updateWorker(worker),
     onToolCall: (workerId, tool) => renderer.addToolCall(workerId, tool),
-    onStatsUpdate: (stats) => renderer.updateStatus({
-      tasksTotal: stats.total,
-      completed: stats.completed,
-      failed: stats.failed,
-      running: orchestrator.getWorkers().filter(w => w.state === 'running').length,
-    }),
+    onStatsUpdate: (stats) =>
+      renderer.updateStatus({
+        tasksTotal: stats.total,
+        completed: stats.completed,
+        failed: stats.failed,
+        running: orchestrator.getWorkers().filter((w) => w.state === 'running').length,
+      }),
   });
 
   // Set initial task count
@@ -692,7 +717,6 @@ const parallelBuildLoop = async (
   renderer.start();
 
   // Handle Ctrl+C gracefully
-  const abortController = new AbortController();
   let interrupted = false;
 
   const handleSignal = async () => {
@@ -757,7 +781,11 @@ async function workAction(options: WorkOptions): Promise<void> {
   // Warn if max iterations is very high (potential runaway)
   if (maxIterations > 50) {
     console.log();
-    console.log(amber(`  ${INFO} High iteration limit (${maxIterations}). Consider using ${RECOMMENDED_MAX_ITERATIONS} for safety.`));
+    console.log(
+      amber(
+        `  ${INFO} High iteration limit (${maxIterations}). Consider using ${RECOMMENDED_MAX_ITERATIONS} for safety.`,
+      ),
+    );
     console.log(muted('     High limits can lead to runaway loops on impossible tasks.'));
   }
 
@@ -837,9 +865,13 @@ async function workAction(options: WorkOptions): Promise<void> {
 export function createWorkCommand(): Command<any> {
   return new Command()
     .description('Run the autonomous build loop (implements tasks one by one)')
-    .option('-n, --max-iterations <count:number>', 'Maximum iterations before stopping (default: 25 for safety)', {
-      default: DEFAULT_WORK.maxIterations,
-    })
+    .option(
+      '-n, --max-iterations <count:number>',
+      'Maximum iterations before stopping (default: 25 for safety)',
+      {
+        default: DEFAULT_WORK.maxIterations,
+      },
+    )
     .option('--dry-run', 'Show what would happen without running')
     .option('--vibe', 'Vibe mode (no effect on work - already the last step)')
     .option('--adaptive', 'Adaptive model selection (sonnet for simple, opus for complex)')
@@ -851,13 +883,17 @@ export function createWorkCommand(): Command<any> {
         return val as 'opus' | 'sonnet';
       },
     })
-    .option('--experimental-parallel <workers:number>', 'Enable parallel mode with N workers (1-8)', {
-      value: (val: number) => {
-        if (val < 1 || val > 8) {
-          throw new Error('Worker count must be between 1 and 8');
-        }
-        return val;
+    .option(
+      '--experimental-parallel <workers:number>',
+      'Enable parallel mode with N workers (1-8)',
+      {
+        value: (val: number) => {
+          if (val < 1 || val > 8) {
+            throw new Error('Worker count must be between 1 and 8');
+          }
+          return val;
+        },
       },
-    })
+    )
     .action(workAction);
 }

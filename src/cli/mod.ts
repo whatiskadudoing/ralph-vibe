@@ -53,7 +53,9 @@ export function createProgram(): Command<any> {
       console.log();
       console.log(bold('Commands:'));
       console.log(`  ${orange('init')}     ${dim('Initialize a new Ralph project')}`);
-      console.log(`  ${orange('onboard')}  ${dim('Analyze existing project & create Ralph files')}`);
+      console.log(
+        `  ${orange('onboard')}  ${dim('Analyze existing project & create Ralph files')}`,
+      );
       console.log(`  ${orange('start')}    ${dim('Interactive interview to create first specs')}`);
       console.log(`  ${orange('spec')}     ${dim('Add a new feature spec via interview')}`);
       console.log(`  ${orange('plan')}     ${dim('Generate implementation plan from specs')}`);

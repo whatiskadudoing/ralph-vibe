@@ -212,7 +212,9 @@ async function specAction(options: SpecOptions): Promise<void> {
       summaryLines.push('');
       summaryLines.push(`${bold('Next steps:')}`);
       summaryLines.push(`  ${orange('▸')} Review the spec in ${amber('specs/')}`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph plan')} to update implementation plan`);
+      summaryLines.push(
+        `  ${orange('▸')} Run ${amber('ralph plan')} to update implementation plan`,
+      );
       summaryLines.push(`  ${orange('▸')} Run ${amber('ralph work')} to start building`);
     }
 

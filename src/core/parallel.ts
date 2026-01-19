@@ -7,15 +7,21 @@
 
 import { err, ok, type Result } from '@/utils/result.ts';
 import {
+  abortMerge,
+  completeMerge,
   createWorktree,
   deleteBranch,
   ensureWorktreeDir,
   generateWorkerBranchName,
+  getConflictContent,
+  getConflictedFiles,
   getWorkerWorktreePath,
   mergeWorktree,
   pruneWorktrees,
   removeWorktree,
   removeWorktreeDir,
+  stageResolvedFile,
+  writeResolvedContent,
 } from './worktree.ts';
 import type { Task } from './plan.ts';
 
@@ -315,8 +321,22 @@ export class DependencyGraph {
   /**
    * Gets execution statistics.
    */
-  getStats(): { total: number; completed: number; failed: number; blocked: number; running: number; pending: number; ready: number } {
-    let total = 0, completed = 0, failed = 0, blocked = 0, running = 0, pending = 0, ready = 0;
+  getStats(): {
+    total: number;
+    completed: number;
+    failed: number;
+    blocked: number;
+    running: number;
+    pending: number;
+    ready: number;
+  } {
+    let total = 0;
+    let completed = 0;
+    let failed = 0;
+    let blocked = 0;
+    let running = 0;
+    let pending = 0;
+    let ready = 0;
 
     for (const task of this.tasks.values()) {
       total++;
@@ -534,15 +554,17 @@ export class ParallelWorker {
 
   /**
    * Merges the worker's branch into the target branch.
+   * If conflicts occur, uses Claude to resolve them automatically.
    */
   async merge(repoRoot: string, targetBranch: string): Promise<Result<string, ParallelError>> {
     this.setState('merging');
 
+    const mergeMessage = `Merge parallel worker ${this.id}: ${this._branchName}`;
     const result = await mergeWorktree(
       repoRoot,
       this._branchName,
       targetBranch,
-      { noFf: true, message: `Merge parallel worker ${this.id}: ${this._branchName}` },
+      { noFf: true, message: mergeMessage },
     );
 
     if (!result.ok) {
@@ -551,12 +573,230 @@ export class ParallelWorker {
     }
 
     if (result.value.hasConflicts) {
-      this.setState('error');
-      return err(parallelError('merge_failed', `Merge conflicts detected: ${result.value.conflictDetails}`));
+      // Attempt automatic conflict resolution using Claude
+      const resolveResult = await this.resolveConflictsWithClaude(repoRoot, targetBranch);
+      if (!resolveResult.ok) {
+        // Abort the merge if resolution fails
+        await abortMerge(repoRoot);
+        this.setState('error');
+        return err(resolveResult.error);
+      }
+
+      // Complete the merge with resolved conflicts
+      const completeResult = await completeMerge(repoRoot, mergeMessage);
+      if (!completeResult.ok) {
+        this.setState('error');
+        return err(parallelError('merge_failed', completeResult.error.message));
+      }
+
+      this.setState('done');
+      return ok(completeResult.value);
     }
 
     this.setState('done');
     return ok(result.value.commitHash ?? 'unknown');
+  }
+
+  /**
+   * Resolves merge conflicts using Claude.
+   */
+  private async resolveConflictsWithClaude(
+    repoRoot: string,
+    _targetBranch: string,
+  ): Promise<Result<void, ParallelError>> {
+    // Get list of conflicted files
+    const filesResult = await getConflictedFiles(repoRoot);
+    if (!filesResult.ok) {
+      return err(parallelError('merge_failed', filesResult.error.message));
+    }
+
+    const conflictedFiles = filesResult.value;
+    if (conflictedFiles.length === 0) {
+      return ok(undefined);
+    }
+
+    // Resolve each conflicted file
+    for (const filePath of conflictedFiles) {
+      const resolveResult = await this.resolveFileConflict(repoRoot, filePath);
+      if (!resolveResult.ok) {
+        return resolveResult;
+      }
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Resolves conflicts in a single file using Claude.
+   */
+  private async resolveFileConflict(
+    repoRoot: string,
+    filePath: string,
+  ): Promise<Result<void, ParallelError>> {
+    // Get the conflicted content
+    const contentResult = await getConflictContent(repoRoot, filePath);
+    if (!contentResult.ok) {
+      return err(parallelError('merge_failed', contentResult.error.message));
+    }
+
+    const conflictedContent = contentResult.value;
+
+    // Build prompt for Claude to resolve the conflict
+    const prompt = this.buildConflictResolutionPrompt(filePath, conflictedContent);
+
+    // Run Claude to resolve the conflict
+    const model = this.config.model === 'adaptive' ? 'sonnet' : this.config.model;
+    const resolution = await this.runClaudeForConflictResolution(prompt, model);
+
+    if (!resolution.success || !resolution.resolvedContent) {
+      return err(
+        parallelError(
+          'merge_failed',
+          `Failed to resolve conflict in ${filePath}: ${
+            resolution.error ?? 'No resolution provided'
+          }`,
+        ),
+      );
+    }
+
+    // Write the resolved content
+    const writeResult = await writeResolvedContent(repoRoot, filePath, resolution.resolvedContent);
+    if (!writeResult.ok) {
+      return err(parallelError('merge_failed', writeResult.error.message));
+    }
+
+    // Stage the resolved file
+    const stageResult = await stageResolvedFile(repoRoot, filePath);
+    if (!stageResult.ok) {
+      return err(parallelError('merge_failed', stageResult.error.message));
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Builds a prompt for Claude to resolve a merge conflict.
+   */
+  private buildConflictResolutionPrompt(filePath: string, conflictedContent: string): string {
+    // Get info about completed tasks for context
+    const completedTasks = this._stats.tasksCompleted;
+
+    // Build list of tasks this worker completed (from current task if available)
+    const taskContext = this._currentTask
+      ? `This worker was working on: "${this._currentTask.displayText}"`
+      : `This worker completed ${completedTasks} task(s)`;
+
+    return `# Merge Conflict Resolution - PRESERVE ALL WORK
+
+You are resolving a merge conflict in a parallel build system where multiple Claude workers implemented different tasks simultaneously.
+
+## CRITICAL RULES
+1. **PRESERVE ALL FUNCTIONALITY** - Both sides contain real work. You MUST keep all features from BOTH branches.
+2. **NO FEATURE LOSS** - If HEAD added function A and the worker branch added function B, the result MUST have BOTH.
+3. **COMBINE INTELLIGENTLY** - Merge imports, exports, functions, classes from both sides.
+4. **ORDER MATTERS** - Keep logical ordering (imports at top, exports at bottom, related functions together).
+
+## Context
+- Worker ${this.id} completed real implementation work
+- ${taskContext}
+- HEAD (main branch) may contain work from other workers that was already merged
+- The incoming branch contains this worker's completed task implementation
+- BOTH sides represent legitimate, completed work that must be preserved
+
+## Conflicted File
+Path: ${filePath}
+
+## Conflicted Content (with markers)
+\`\`\`
+${conflictedContent}
+\`\`\`
+
+## How to Resolve
+1. **<<<<<<< HEAD** = Changes already in main (from other workers or existing code)
+2. **=======** = Separator
+3. **>>>>>>> branch** = This worker's changes
+
+### Resolution Strategy:
+- For IMPORTS: Include ALL imports from both sides (deduplicate identical ones)
+- For FUNCTIONS/CLASSES: Include ALL definitions from both sides
+- For EXPORTS: Include ALL exports from both sides
+- For MODIFICATIONS to same code: Carefully merge the logic to preserve both intents
+- For CONFLICTING implementations: Combine them if possible, or keep the more complete version
+
+## Output Format
+Output ONLY the fully resolved file content with:
+- NO conflict markers (no <<<<<<<, =======, >>>>>>>)
+- ALL functionality from both sides preserved
+- Proper syntax and formatting
+- No explanations, no code fences, just the raw file content
+
+**YOUR OUTPUT WILL BE WRITTEN DIRECTLY TO THE FILE. OUTPUT ONLY THE RESOLVED CONTENT.**
+`;
+  }
+
+  /**
+   * Runs Claude specifically for conflict resolution (simpler output handling).
+   */
+  private async runClaudeForConflictResolution(
+    prompt: string,
+    model: 'opus' | 'sonnet',
+  ): Promise<{ success: boolean; resolvedContent?: string; error?: string }> {
+    const args = [
+      '-p',
+      '--dangerously-skip-permissions',
+      '--output-format',
+      'json',
+      '--model',
+      model,
+    ];
+
+    const command = new Deno.Command('claude', {
+      args,
+      stdin: 'piped',
+      stdout: 'piped',
+      stderr: 'piped',
+      cwd: this._worktreePath,
+    });
+
+    try {
+      const process = command.spawn();
+
+      // Write prompt to stdin
+      const writer = process.stdin.getWriter();
+      await writer.write(new TextEncoder().encode(prompt));
+      await writer.close();
+
+      // Read output
+      const output = await process.output();
+      const status = await process.status;
+
+      if (!status.success) {
+        const stderr = new TextDecoder().decode(output.stderr);
+        return { success: false, error: stderr };
+      }
+
+      // Parse the JSON output to extract the result
+      const stdout = new TextDecoder().decode(output.stdout);
+      try {
+        const data = JSON.parse(stdout);
+        const resolvedContent = data.result ?? '';
+
+        if (!resolvedContent) {
+          return { success: false, error: 'No content in response' };
+        }
+
+        return { success: true, resolvedContent };
+      } catch {
+        // If JSON parse fails, the output might be raw text
+        if (stdout.trim()) {
+          return { success: true, resolvedContent: stdout };
+        }
+        return { success: false, error: 'Failed to parse response' };
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      return { success: false, error: errorMsg };
+    }
   }
 
   /**
@@ -617,7 +857,15 @@ EXIT_SIGNAL: true
     prompt: string,
     model: 'opus' | 'sonnet',
   ): Promise<{ success: boolean; error?: string; inputTokens: number; outputTokens: number }> {
-    const args = ['-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose', '--model', model];
+    const args = [
+      '-p',
+      '--dangerously-skip-permissions',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--model',
+      model,
+    ];
 
     const command = new Deno.Command('claude', {
       args,
@@ -773,7 +1021,9 @@ export class ParallelOrchestrator {
     // Check for deadlock
     if (this.graph.hasDeadlock()) {
       await this.cleanup(repoRoot);
-      return err(parallelError('execution_failed', 'Deadlock detected: no tasks can make progress'));
+      return err(
+        parallelError('execution_failed', 'Deadlock detected: no tasks can make progress'),
+      );
     }
 
     // Merge phase - sequential for safety
@@ -845,7 +1095,7 @@ export class ParallelOrchestrator {
         await Promise.race(runningTasks.values());
 
         // Clean up completed tasks
-        for (const [taskId, promise] of runningTasks) {
+        for (const [taskId, _promise] of runningTasks) {
           const task = this.graph.getTask(taskId);
           if (task && (task.status === 'completed' || task.status === 'failed')) {
             runningTasks.delete(taskId);

@@ -88,7 +88,7 @@ async function startAction(options: StartOptions): Promise<void> {
   const progressLines = [
     `${orange('◆')} ${bold('Initial Spec Interview')}`,
     '',
-    dim('Tell me what you want to build, and I\'ll create the specs'),
+    dim("Tell me what you want to build, and I'll create the specs"),
     '',
     `${dim('Steps:')}`,
     `  ${amber('1.')} Interview you about the project`,
@@ -207,7 +207,9 @@ async function startAction(options: StartOptions): Promise<void> {
       summaryLines.push('');
       summaryLines.push(`${bold('Next steps:')}`);
       summaryLines.push(`  ${orange('▸')} Review and refine specs in ${amber('specs/')}`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph plan')} to generate implementation plan`);
+      summaryLines.push(
+        `  ${orange('▸')} Run ${amber('ralph plan')} to generate implementation plan`,
+      );
       summaryLines.push(`  ${orange('▸')} Run ${amber('ralph work')} to start autonomous building`);
     }
 

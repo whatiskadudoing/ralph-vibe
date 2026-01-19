@@ -5,10 +5,7 @@
  */
 
 import { assertEquals } from '@std/assert';
-import {
-  generateWorkerBranchName,
-  getWorkerWorktreePath,
-} from '../../src/core/worktree.ts';
+import { generateWorkerBranchName, getWorkerWorktreePath } from '../../src/core/worktree.ts';
 
 // ============================================================================
 // generateWorkerBranchName tests

@@ -245,7 +245,12 @@ export async function mergeWorktree(
   );
 
   if (!checkoutResult.ok) {
-    return err(worktreeError('merge_failed', `Failed to checkout ${targetBranch}: ${checkoutResult.error.message}`));
+    return err(
+      worktreeError(
+        'merge_failed',
+        `Failed to checkout ${targetBranch}: ${checkoutResult.error.message}`,
+      ),
+    );
   }
 
   // Build merge command
@@ -389,4 +394,125 @@ export function generateWorkerBranchName(workerId: number): string {
  */
 export function getWorkerWorktreePath(baseDir: string, workerId: number): string {
   return `${baseDir}/worker-${workerId}`;
+}
+
+/**
+ * Gets the list of files with merge conflicts.
+ *
+ * @param repoRoot - Root directory of the repository
+ */
+export async function getConflictedFiles(
+  repoRoot: string,
+): Promise<Result<string[], WorktreeError>> {
+  const result = await runGitCommand(['diff', '--name-only', '--diff-filter=U'], repoRoot);
+
+  if (!result.ok) {
+    return err(worktreeError('merge_failed', result.error.message));
+  }
+
+  const files = result.value.split('\n').filter((f) => f.trim());
+  return ok(files);
+}
+
+/**
+ * Gets the content of a conflicted file.
+ *
+ * @param repoRoot - Root directory of the repository
+ * @param filePath - Path to the conflicted file
+ */
+export async function getConflictContent(
+  repoRoot: string,
+  filePath: string,
+): Promise<Result<string, WorktreeError>> {
+  try {
+    const fullPath = `${repoRoot}/${filePath}`;
+    const content = await Deno.readTextFile(fullPath);
+    return ok(content);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    return err(worktreeError('merge_failed', `Failed to read conflicted file: ${message}`));
+  }
+}
+
+/**
+ * Writes the resolved content to a file.
+ *
+ * @param repoRoot - Root directory of the repository
+ * @param filePath - Path to the file
+ * @param content - Resolved content
+ */
+export async function writeResolvedContent(
+  repoRoot: string,
+  filePath: string,
+  content: string,
+): Promise<Result<void, WorktreeError>> {
+  try {
+    const fullPath = `${repoRoot}/${filePath}`;
+    await Deno.writeTextFile(fullPath, content);
+    return ok(undefined);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    return err(worktreeError('merge_failed', `Failed to write resolved file: ${message}`));
+  }
+}
+
+/**
+ * Stages a resolved file.
+ *
+ * @param repoRoot - Root directory of the repository
+ * @param filePath - Path to the resolved file
+ */
+export async function stageResolvedFile(
+  repoRoot: string,
+  filePath: string,
+): Promise<Result<void, WorktreeError>> {
+  const result = await runGitCommand(['add', filePath], repoRoot);
+
+  if (!result.ok) {
+    return err(worktreeError('merge_failed', result.error.message));
+  }
+
+  return ok(undefined);
+}
+
+/**
+ * Completes a merge after conflicts have been resolved.
+ *
+ * @param repoRoot - Root directory of the repository
+ * @param message - Commit message for the merge
+ */
+export async function completeMerge(
+  repoRoot: string,
+  message: string,
+): Promise<Result<string, WorktreeError>> {
+  const result = await runGitCommand(['commit', '-m', message], repoRoot);
+
+  if (!result.ok) {
+    return err(worktreeError('merge_failed', result.error.message));
+  }
+
+  // Get the commit hash
+  const hashResult = await runGitCommand(['rev-parse', 'HEAD'], repoRoot);
+  if (!hashResult.ok) {
+    return ok('unknown');
+  }
+
+  return ok(hashResult.value.slice(0, 7));
+}
+
+/**
+ * Aborts a merge in progress.
+ *
+ * @param repoRoot - Root directory of the repository
+ */
+export async function abortMerge(
+  repoRoot: string,
+): Promise<Result<void, WorktreeError>> {
+  const result = await runGitCommand(['merge', '--abort'], repoRoot);
+
+  if (!result.ok) {
+    return err(worktreeError('merge_failed', result.error.message));
+  }
+
+  return ok(undefined);
 }

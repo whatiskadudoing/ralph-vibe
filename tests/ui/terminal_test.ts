@@ -8,6 +8,7 @@ import { assertEquals } from '@std/assert';
 import {
   atomicWrite,
   cleanup,
+  endRenderSession,
   getSessionWidth,
   getTerminalWidth,
   isInRenderSession,
@@ -16,7 +17,6 @@ import {
   removeSignalHandlers,
   setupSignalHandlers,
   startRenderSession,
-  endRenderSession,
 } from '../../src/ui/terminal.ts';
 
 // ============================================================================

@@ -181,6 +181,7 @@ ralph plan --vibe --experimental-parallel 3  # Plan then parallel work
 - Multiple `claude` processes run **truly in parallel** - not sequentially
 - Workers pick up tasks based on dependencies and work concurrently
 - When done, branches are merged back to main one at a time
+- **Merge conflicts are resolved automatically** using Claude (it understands both workers' changes)
 - All worktrees are cleaned up automatically
 
 **Task Dependencies:**
@@ -204,8 +205,15 @@ You can specify which tasks can run in parallel and which depend on others:
 - Large implementation plans with 5+ tasks
 - When you want faster completion (wall-clock time)
 
+**Automatic Merge Conflict Resolution:**
+
+When workers modify the same files, Claude automatically resolves merge conflicts by:
+- Understanding what each worker was implementing
+- Preserving ALL functionality from both branches
+- Intelligently combining imports, functions, and exports
+- Never losing features or implemented code
+
 **Current limitations:**
-- Merge conflicts require manual resolution
 - All workers use the same model (no per-worker model selection yet)
 - UI works best on terminals 100+ columns wide
 

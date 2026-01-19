@@ -128,7 +128,8 @@ export async function onboardAction(options: OnboardOptions): Promise<void> {
     console.log();
     console.log(infoBox({
       title: 'Already initialized',
-      description: 'Ralph project already exists.\n\nUse --force to reinitialize with fresh analysis.',
+      description:
+        'Ralph project already exists.\n\nUse --force to reinitialize with fresh analysis.',
     }));
     Deno.exit(1);
   }
@@ -146,7 +147,7 @@ export async function onboardAction(options: OnboardOptions): Promise<void> {
     console.log(infoBox({
       title: 'No source code detected',
       description:
-        'This directory doesn\'t appear to have existing code.\n\nFor new projects, use ralph init instead.',
+        "This directory doesn't appear to have existing code.\n\nFor new projects, use ralph init instead.",
     }));
     Deno.exit(1);
   }

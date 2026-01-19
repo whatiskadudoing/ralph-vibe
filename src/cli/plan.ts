@@ -352,13 +352,17 @@ export function createPlanCommand(): Command<any> {
     .option('-f, --fast', 'Use single-stage planning with Sonnet (faster, less thorough)')
     .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
     .option('--model <model:string>', 'Not supported - see hint', { hidden: true })
-    .option('--experimental-parallel <workers:number>', 'Enable parallel mode with N workers for subsequent work step (1-8, passed through to work)', {
-      value: (val: number) => {
-        if (val < 1 || val > 8) {
-          throw new Error('Worker count must be between 1 and 8');
-        }
-        return val;
+    .option(
+      '--experimental-parallel <workers:number>',
+      'Enable parallel mode with N workers for subsequent work step (1-8, passed through to work)',
+      {
+        value: (val: number) => {
+          if (val < 1 || val > 8) {
+            throw new Error('Worker count must be between 1 and 8');
+          }
+          return val;
+        },
       },
-    })
+    )
     .action(planAction);
 }

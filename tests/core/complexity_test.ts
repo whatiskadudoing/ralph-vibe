@@ -163,7 +163,9 @@ Deno.test('phase influence - foundation phase favors opus', () => {
 
 Deno.test('defaults to opus when scores are tied (medium-length task)', () => {
   // Medium-length task (50-150 chars) with no keywords = tied scores, defaults to opus
-  const result = assessComplexity('This is a medium length task without any specific keywords matched');
+  const result = assessComplexity(
+    'This is a medium length task without any specific keywords matched',
+  );
   assertEquals(result.model, 'opus');
 });
 

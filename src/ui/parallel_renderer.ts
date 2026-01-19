@@ -15,7 +15,7 @@ import {
   success as successColor,
   visibleLength,
 } from './colors.ts';
-import { BOX, BOX_ROUNDED, CHECK, CIRCLE_FILLED, CIRCLE_HALF, SPINNER_DOTS } from './symbols.ts';
+import { BOX, BOX_ROUNDED, CHECK, SPINNER_DOTS } from './symbols.ts';
 import type { ParallelSummary, Worker, WorkerState } from '@/core/parallel.ts';
 
 // ============================================================================
@@ -257,18 +257,24 @@ export class ParallelRenderer {
     const frame = SPINNER_DOTS[this.frameIndex] ?? '◆';
 
     // Line 1: Top border
-    const topBorder = orange(ROUNDED.topLeft + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + ROUNDED.topRight);
+    const topBorder = orange(
+      ROUNDED.topLeft + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + ROUNDED.topRight,
+    );
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${topBorder}\n`));
 
     // Line 2: Title line
     const running = this.globalStatus.running > 0 ? orange(frame) : dim(frame);
-    const title = `${running} ${bold('Ralph Parallel Mode')} · ${this.workerCount} workers · Tasks: ${
+    const title = `${running} ${
+      bold('Ralph Parallel Mode')
+    } · ${this.workerCount} workers · Tasks: ${
       successColor(String(this.globalStatus.completed))
     }/${this.globalStatus.tasksTotal} · ${dim(elapsed)}`;
     this.renderContentLine(title, this.terminalWidth - 4, orange);
 
     // Line 3: Separator
-    const sep = orange(FULL_BOX.teeRight + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + FULL_BOX.teeLeft);
+    const sep = orange(
+      FULL_BOX.teeRight + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + FULL_BOX.teeLeft,
+    );
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${sep}\n`));
   }
 
@@ -365,12 +371,11 @@ export class ParallelRenderer {
     return `${dim('├─')} ${muted(this.truncate(tool, width - 3))}`;
   }
 
-  private renderPanelStatus(panel: WorkerPanel, width: number): string {
+  private renderPanelStatus(panel: WorkerPanel, _width: number): string {
     return dim(`${CHECK} ${panel.status}`);
   }
 
   private renderPanelLine(contents: string[]): void {
-    const encoder = new TextEncoder();
     let line = orange(ROUNDED.vertical);
 
     for (let i = 0; i < contents.length; i++) {
@@ -408,11 +413,17 @@ export class ParallelRenderer {
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${status}\n`));
   }
 
-  private renderContentLine(content: string, width: number, borderColor: (s: string) => string): void {
+  private renderContentLine(
+    content: string,
+    width: number,
+    borderColor: (s: string) => string,
+  ): void {
     const encoder = new TextEncoder();
     const visLen = visibleLength(content);
     const padding = ' '.repeat(Math.max(0, width - visLen));
-    const line = `${borderColor(ROUNDED.vertical)} ${content}${padding} ${borderColor(ROUNDED.vertical)}`;
+    const line = `${borderColor(ROUNDED.vertical)} ${content}${padding} ${
+      borderColor(ROUNDED.vertical)
+    }`;
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${line}\n`));
   }
 
@@ -450,7 +461,9 @@ export class ParallelRenderer {
     const secs = seconds % 60;
 
     if (hours > 0) {
-      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${
+        String(secs).padStart(2, '0')
+      }`;
     }
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }
@@ -464,7 +477,6 @@ export class ParallelRenderer {
    */
   renderSummary(summary: ParallelSummary): void {
     const width = this.terminalWidth - 4;
-    const encoder = new TextEncoder();
 
     console.log(); // Spacing
 
@@ -507,9 +519,15 @@ export class ParallelRenderer {
     this.renderSummaryLine(dim('┌' + '─'.repeat(detailWidth) + '┐'), width);
     for (const worker of summary.workers) {
       const costStr = `$${worker.estimatedCost.toFixed(2)}`;
-      const tokenStr = `${this.formatTokens(worker.inputTokens)} in / ${this.formatTokens(worker.outputTokens)} out`;
-      const line = `Worker ${worker.id}: ${worker.tasksCompleted} tasks · ${worker.model} · ${tokenStr} · ${costStr}`;
-      this.renderSummaryLine(`${dim('│')} ${this.padToWidth(line, detailWidth - 2)} ${dim('│')}`, width);
+      const tokenStr = `${this.formatTokens(worker.inputTokens)} in / ${
+        this.formatTokens(worker.outputTokens)
+      } out`;
+      const line =
+        `Worker ${worker.id}: ${worker.tasksCompleted} tasks · ${worker.model} · ${tokenStr} · ${costStr}`;
+      this.renderSummaryLine(
+        `${dim('│')} ${this.padToWidth(line, detailWidth - 2)} ${dim('│')}`,
+        width,
+      );
     }
     this.renderSummaryLine(dim('└' + '─'.repeat(detailWidth) + '┘'), width);
 
@@ -547,7 +565,9 @@ export class ParallelRenderer {
     this.renderSummaryLine('', width);
 
     // Bottom border
-    console.log(orange(ROUNDED.bottomLeft + ROUNDED.horizontal.repeat(width) + ROUNDED.bottomRight));
+    console.log(
+      orange(ROUNDED.bottomLeft + ROUNDED.horizontal.repeat(width) + ROUNDED.bottomRight),
+    );
     console.log();
   }
 
