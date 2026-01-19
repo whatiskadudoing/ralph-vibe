@@ -1,8 +1,8 @@
 /**
  * @module ui/parallel_renderer
  *
- * Split terminal UI for parallel execution mode.
- * Renders multiple worker panels side-by-side with real-time updates.
+ * Vertical terminal UI for parallel execution mode.
+ * Renders worker panels as full-width boxes, matching the regular iteration style.
  */
 
 import {
@@ -29,11 +29,17 @@ export interface WorkerPanel {
   state: WorkerState;
   /** Current task description */
   currentTask?: string;
-  /** Progress indicator */
-  progress: string;
+  /** Current task number (1-indexed) */
+  currentTaskNumber: number;
+  /** Total tasks assigned to this worker */
+  totalTasks: number;
   /** Recent tool calls */
   recentTools: string[];
-  /** Status line (tasks completed/failed) */
+  /** Tasks completed */
+  tasksCompleted: number;
+  /** Tasks failed */
+  tasksFailed: number;
+  /** Current status message */
   status: string;
 }
 
@@ -57,10 +63,25 @@ export interface ParallelRendererOptions {
 // ============================================================================
 
 const ROUNDED = BOX_ROUNDED;
-const FULL_BOX = BOX;
-const MAX_TOOLS_PER_PANEL = 4;
+const MAX_TOOLS_PER_WORKER = 5;
 
-// State symbols
+// Tool icons (matching Claude renderer)
+const TOOL_ICONS: Record<string, string> = {
+  Read: '○',
+  Write: '●',
+  Edit: '●',
+  Bash: '⚡',
+  Glob: '◎',
+  Grep: '◎',
+  Task: '◈',
+  TodoWrite: '◈',
+  WebFetch: '◎',
+  WebSearch: '◎',
+  NotebookEdit: '●',
+  AskUserQuestion: '?',
+};
+
+// State indicators
 const STATE_ICONS: Record<WorkerState, string> = {
   idle: '○',
   initializing: '◐',
@@ -70,52 +91,75 @@ const STATE_ICONS: Record<WorkerState, string> = {
   done: '✓',
 };
 
-const STATE_LABELS: Record<WorkerState, string> = {
-  idle: 'Idle',
-  initializing: 'Initializing',
-  running: 'Running',
-  merging: 'Merging',
-  error: 'Error',
-  done: 'Done',
+const STATE_COLORS: Record<WorkerState, (s: string) => string> = {
+  idle: dim,
+  initializing: amber,
+  running: orange,
+  merging: amber,
+  error: errorColor,
+  done: successColor,
 };
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function getTerminalWidth(): number {
+  try {
+    const { columns } = Deno.consoleSize();
+    return Math.max(60, columns);
+  } catch {
+    return 100;
+  }
+}
 
 // ============================================================================
 // Parallel Renderer
 // ============================================================================
 
 /**
- * Renders a split terminal UI for parallel execution.
- * Shows multiple worker panels side-by-side with real-time updates.
+ * Renders a vertical terminal UI for parallel execution.
+ * Each worker gets a full-width box matching the regular iteration style.
  */
 export class ParallelRenderer {
   private workerCount: number;
   private terminalWidth: number;
-  private panelWidth: number;
+  private boxWidth: number;
+  private contentWidth: number;
   private panels: WorkerPanel[];
   private globalStatus: GlobalStatus;
   private startTime: number;
   private frameIndex: number;
   private intervalId: number | null;
   private initialized: boolean;
-
-  // Layout: header (3) + worker panels (10 each) + footer (3)
-  // Worker panel: title + state + task + empty + 4 tools + status + empty
-  private readonly headerHeight = 3;
-  private readonly panelHeight = 10;
-  private readonly footerHeight = 2;
   private fixedHeight: number;
+
+  // Each worker box:
+  // - Top border (1)
+  // - [Worker N] Title (1)
+  // - Task description (1)
+  // - Empty line (1)
+  // - Spinner line (1)
+  // - Separator (1)
+  // - Tools (MAX_TOOLS_PER_WORKER = 5)
+  // - Bottom border (1)
+  // Total: 12 lines per worker
+  private readonly workerBoxHeight = 12;
 
   constructor(options: ParallelRendererOptions) {
     this.workerCount = options.workerCount;
-    this.terminalWidth = options.terminalWidth ?? this.getTerminalWidth();
-    this.panelWidth = Math.floor((this.terminalWidth - 2) / this.workerCount);
+    this.terminalWidth = options.terminalWidth ?? getTerminalWidth();
+    this.boxWidth = this.terminalWidth - 2;
+    this.contentWidth = this.boxWidth - 4;
     this.panels = [];
     this.globalStatus = { tasksTotal: 0, completed: 0, failed: 0, running: 0, elapsedTime: 0 };
     this.startTime = Date.now();
     this.frameIndex = 0;
     this.intervalId = null;
     this.initialized = false;
-    this.fixedHeight = this.headerHeight + this.panelHeight + this.footerHeight;
+
+    // Header (3) + workers (12 each) + footer (2)
+    this.fixedHeight = 3 + (this.workerCount * this.workerBoxHeight) + 2;
 
     // Initialize panels
     for (let i = 1; i <= this.workerCount; i++) {
@@ -123,19 +167,13 @@ export class ParallelRenderer {
         workerId: i,
         state: 'idle',
         currentTask: undefined,
-        progress: '',
+        currentTaskNumber: 0,
+        totalTasks: 0,
         recentTools: [],
-        status: '0 tasks · 0 fail',
+        tasksCompleted: 0,
+        tasksFailed: 0,
+        status: 'Waiting...',
       });
-    }
-  }
-
-  private getTerminalWidth(): number {
-    try {
-      const { columns } = Deno.consoleSize();
-      return Math.max(60, Math.min(columns, 160));
-    } catch {
-      return 100;
     }
   }
 
@@ -190,18 +228,21 @@ export class ParallelRenderer {
 
     panel.state = worker.state;
     panel.currentTask = worker.currentTask?.displayText;
-    panel.status = `${worker.stats.tasksCompleted} tasks · ${worker.stats.tasksFailed} fail`;
+    panel.tasksCompleted = worker.stats.tasksCompleted;
+    panel.tasksFailed = worker.stats.tasksFailed;
 
-    if (worker.state === 'running') {
-      panel.progress = 'Implementing...';
+    // Update task numbers and status
+    if (worker.currentTask) {
+      panel.currentTaskNumber = panel.tasksCompleted + 1;
+      panel.status = 'Implementing...';
     } else if (worker.state === 'merging') {
-      panel.progress = 'Merging to main...';
+      panel.status = 'Merging changes...';
     } else if (worker.state === 'done') {
-      panel.progress = 'Complete';
+      panel.status = 'Complete';
     } else if (worker.state === 'error') {
-      panel.progress = 'Error';
+      panel.status = 'Error';
     } else {
-      panel.progress = '';
+      panel.status = 'Waiting...';
     }
 
     this.render();
@@ -215,7 +256,7 @@ export class ParallelRenderer {
     if (!panel) return;
 
     panel.recentTools.push(tool);
-    if (panel.recentTools.length > MAX_TOOLS_PER_PANEL) {
+    if (panel.recentTools.length > MAX_TOOLS_PER_WORKER) {
       panel.recentTools.shift();
     }
 
@@ -227,6 +268,15 @@ export class ParallelRenderer {
    */
   updateStatus(status: Partial<GlobalStatus>): void {
     this.globalStatus = { ...this.globalStatus, ...status };
+
+    // Distribute tasks to workers for display
+    if (status.tasksTotal !== undefined) {
+      const tasksPerWorker = Math.ceil(status.tasksTotal / this.workerCount);
+      for (const panel of this.panels) {
+        panel.totalTasks = tasksPerWorker;
+      }
+    }
+
     this.render();
   }
 
@@ -242,204 +292,180 @@ export class ParallelRenderer {
     Deno.stdout.writeSync(encoder.encode(`\x1b[${this.fixedHeight}A`));
 
     // Render header
-    this.renderHeader();
+    this.renderHeader(encoder);
 
-    // Render worker panels
-    this.renderPanels();
+    // Render each worker box
+    for (const panel of this.panels) {
+      this.renderWorkerBox(panel, encoder);
+    }
 
     // Render footer
-    this.renderFooter();
+    this.renderFooter(encoder);
   }
 
-  private renderHeader(): void {
-    const encoder = new TextEncoder();
+  private renderHeader(encoder: TextEncoder): void {
     const elapsed = this.formatDuration(this.globalStatus.elapsedTime);
-    const frame = SPINNER_DOTS[this.frameIndex] ?? '◆';
+    const frame = this.globalStatus.running > 0
+      ? orange(SPINNER_DOTS[this.frameIndex] ?? '◆')
+      : dim('◆');
 
-    // Line 1: Top border
-    const topBorder = orange(
-      ROUNDED.topLeft + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + ROUNDED.topRight,
+    // Header line (no box, just info)
+    const header = `${frame} ${bold('Ralph Parallel Mode')} · ${
+      this.workerCount
+    } workers · Tasks: ${successColor(String(this.globalStatus.completed))}/${
+      this.globalStatus.tasksTotal
+    } · ${dim(elapsed)}`;
+    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${header}\n`));
+
+    // Empty line
+    Deno.stdout.writeSync(encoder.encode('\x1b[2K\n'));
+    Deno.stdout.writeSync(encoder.encode('\x1b[2K\n'));
+  }
+
+  private renderWorkerBox(panel: WorkerPanel, encoder: TextEncoder): void {
+    const stateColor = STATE_COLORS[panel.state];
+    const stateIcon = STATE_ICONS[panel.state];
+
+    // Determine border color based on state
+    let borderColor: (s: string) => string;
+    switch (panel.state) {
+      case 'running':
+        borderColor = orange;
+        break;
+      case 'merging':
+        borderColor = amber;
+        break;
+      case 'done':
+        borderColor = successColor;
+        break;
+      case 'error':
+        borderColor = errorColor;
+        break;
+      default:
+        borderColor = dim;
+    }
+
+    // Line 0: Top border
+    const topBorder = borderColor(
+      BOX.topLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.topRight,
     );
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${topBorder}\n`));
 
-    // Line 2: Title line
-    const running = this.globalStatus.running > 0 ? orange(frame) : dim(frame);
-    const title = `${running} ${
-      bold('Ralph Parallel Mode')
-    } · ${this.workerCount} workers · Tasks: ${
-      successColor(String(this.globalStatus.completed))
-    }/${this.globalStatus.tasksTotal} · ${dim(elapsed)}`;
-    this.renderContentLine(title, this.terminalWidth - 4, orange);
+    // Line 1: [Worker N] Title with task count
+    const taskCount = panel.totalTasks > 0
+      ? ` · Task ${panel.currentTaskNumber}/${panel.totalTasks}`
+      : '';
+    const completedStr = panel.tasksCompleted > 0
+      ? ` · ${successColor(CHECK)} ${panel.tasksCompleted} done`
+      : '';
+    const failedStr = panel.tasksFailed > 0
+      ? ` · ${errorColor('✗')} ${panel.tasksFailed} fail`
+      : '';
+    const titleLine = `${amber(`[Worker ${panel.workerId}]`)} ${
+      stateColor(stateIcon)
+    } ${this.getStateLabel(panel.state)}${taskCount}${completedStr}${failedStr}`;
+    this.renderContentLine(titleLine, borderColor, encoder);
 
-    // Line 3: Separator
-    const sep = orange(
-      FULL_BOX.teeRight + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + FULL_BOX.teeLeft,
-    );
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${sep}\n`));
-  }
+    // Line 2: Task description
+    const taskDesc = panel.currentTask
+      ? dim(this.truncate(panel.currentTask, this.contentWidth))
+      : dim('No task assigned');
+    this.renderContentLine(taskDesc, borderColor, encoder);
 
-  private renderPanels(): void {
-    // Render each row of the panel area
-    // Panel structure:
-    // Row 0: Worker N header with bar
-    // Row 1: State icon + label
-    // Row 2: Current task (truncated)
-    // Row 3: Empty
-    // Row 4: Progress text
-    // Row 5-8: Tool calls
-    // Row 9: Status line
+    // Line 3: Empty
+    this.renderContentLine('', borderColor, encoder);
 
-    for (let row = 0; row < this.panelHeight; row++) {
-      const lineContent = this.renderPanelRow(row);
-      this.renderPanelLine(lineContent);
-    }
-  }
+    // Line 4: Spinner/status line
+    const frame = panel.state === 'running' || panel.state === 'merging'
+      ? orange(SPINNER_DOTS[this.frameIndex] ?? '◆')
+      : dim('◆');
+    const statusLine = `${frame} ${this.truncate(panel.status, this.contentWidth - 4)}`;
+    this.renderContentLine(statusLine, borderColor, encoder);
 
-  private renderPanelRow(row: number): string[] {
-    return this.panels.map((panel) => {
-      const width = this.panelWidth - 3; // Account for borders and spacing
+    // Line 5: Separator
+    this.renderContentLine(dim('│'), borderColor, encoder);
 
-      switch (row) {
-        case 0: // Worker header
-          return this.renderPanelHeader(panel, width);
-        case 1: // State
-          return this.renderPanelState(panel, width);
-        case 2: // Task
-          return this.renderPanelTask(panel, width);
-        case 3: // Empty
-          return '';
-        case 4: // Progress
-          return this.renderPanelProgress(panel, width);
-        case 5:
-        case 6:
-        case 7:
-        case 8: // Tools
-          return this.renderPanelTool(panel, row - 5, width);
-        case 9: // Status
-          return this.renderPanelStatus(panel, width);
-        default:
-          return '';
-      }
-    });
-  }
-
-  private renderPanelHeader(panel: WorkerPanel, width: number): string {
-    const title = `Worker ${panel.workerId}`;
-    const bar = '═'.repeat(width - title.length - 1);
-    return `${bold(title)} ${dim(bar)}`;
-  }
-
-  private renderPanelState(panel: WorkerPanel, width: number): string {
-    const icon = STATE_ICONS[panel.state];
-    const label = STATE_LABELS[panel.state];
-
-    let colorFn: (s: string) => string;
-    switch (panel.state) {
-      case 'running':
-        colorFn = orange;
-        break;
-      case 'merging':
-        colorFn = amber;
-        break;
-      case 'done':
-        colorFn = successColor;
-        break;
-      case 'error':
-        colorFn = errorColor;
-        break;
-      default:
-        colorFn = dim;
-    }
-
-    const content = `${colorFn(icon)} ${label}`;
-    return this.padToWidth(content, width);
-  }
-
-  private renderPanelTask(panel: WorkerPanel, width: number): string {
-    if (!panel.currentTask) return '';
-    return dim(this.truncate(panel.currentTask, width));
-  }
-
-  private renderPanelProgress(panel: WorkerPanel, width: number): string {
-    if (!panel.progress) return '';
-    return `${orange('◆')} ${muted(this.truncate(panel.progress, width - 2))}`;
-  }
-
-  private renderPanelTool(panel: WorkerPanel, index: number, width: number): string {
-    const tool = panel.recentTools[index];
-    if (!tool) return '';
-    return `${dim('├─')} ${muted(this.truncate(tool, width - 3))}`;
-  }
-
-  private renderPanelStatus(panel: WorkerPanel, _width: number): string {
-    return dim(`${CHECK} ${panel.status}`);
-  }
-
-  private renderPanelLine(contents: string[]): void {
-    const encoder = new TextEncoder();
-    let line = orange(ROUNDED.vertical);
-
-    for (let i = 0; i < contents.length; i++) {
-      const content = contents[i] ?? '';
-      const paddedContent = this.padToWidth(content, this.panelWidth - 2);
-      line += ` ${paddedContent}`;
-
-      // Add separator between panels
-      if (i < contents.length - 1) {
-        line += orange(ROUNDED.vertical);
+    // Lines 6-10: Tool slots
+    for (let i = 0; i < MAX_TOOLS_PER_WORKER; i++) {
+      const tool = panel.recentTools[i];
+      if (tool) {
+        const formatted = this.formatTool(tool, this.contentWidth - 4);
+        this.renderContentLine(`${dim('│')}  ${formatted}`, borderColor, encoder);
+      } else {
+        this.renderContentLine(dim('│'), borderColor, encoder);
       }
     }
 
-    // Right border - pad to full width
-    const currentLen = visibleLength(line);
-    const padding = Math.max(0, this.terminalWidth - 4 - currentLen);
-    line += ' '.repeat(padding) + orange(ROUNDED.vertical);
-
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${line}\n`));
-  }
-
-  private renderFooter(): void {
-    const encoder = new TextEncoder();
-
-    // Bottom border
-    const bottomBorder = orange(
-      ROUNDED.bottomLeft + ROUNDED.horizontal.repeat(this.terminalWidth - 4) + ROUNDED.bottomRight,
+    // Line 11: Bottom border
+    const bottomBorder = borderColor(
+      BOX.bottomLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.bottomRight,
     );
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${bottomBorder}\n`));
-
-    // Status line below box
-    const status = this.globalStatus.failed > 0
-      ? `${errorColor(`${this.globalStatus.failed} failed`)} · ${dim('Press Ctrl+C to stop')}`
-      : dim('Press Ctrl+C to stop');
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${status}\n`));
   }
 
   private renderContentLine(
     content: string,
-    width: number,
     borderColor: (s: string) => string,
+    encoder: TextEncoder,
   ): void {
-    const encoder = new TextEncoder();
     const visLen = visibleLength(content);
-    const padding = ' '.repeat(Math.max(0, width - visLen));
-    const line = `${borderColor(ROUNDED.vertical)} ${content}${padding} ${
-      borderColor(ROUNDED.vertical)
+    let finalContent = content;
+    if (visLen > this.contentWidth) {
+      finalContent = this.truncate(content, this.contentWidth);
+    }
+    const padding = ' '.repeat(Math.max(0, this.contentWidth - visibleLength(finalContent)));
+    const line = `${borderColor(BOX.vertical)} ${finalContent}${padding} ${
+      borderColor(BOX.vertical)
     }`;
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${line}\n`));
   }
 
-  private padToWidth(content: string, width: number): string {
-    const visLen = visibleLength(content);
-    if (visLen >= width) {
-      return this.truncate(content, width);
+  private renderFooter(encoder: TextEncoder): void {
+    const status = this.globalStatus.failed > 0
+      ? `${errorColor(`${this.globalStatus.failed} failed`)} · ${dim('Press Ctrl+C to stop')}`
+      : dim('Press Ctrl+C to stop');
+    Deno.stdout.writeSync(encoder.encode(`\x1b[2K\n`));
+    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${status}\n`));
+  }
+
+  private formatTool(toolDisplay: string, maxWidth: number): string {
+    const colonIndex = toolDisplay.indexOf(':');
+    let toolName: string;
+    let detail: string;
+
+    if (colonIndex > 0) {
+      toolName = toolDisplay.slice(0, colonIndex);
+      detail = toolDisplay.slice(colonIndex + 1).trim();
+    } else {
+      toolName = toolDisplay;
+      detail = '';
     }
-    return content + ' '.repeat(width - visLen);
+
+    const icon = TOOL_ICONS[toolName] ?? '◆';
+
+    if (detail) {
+      const truncatedDetail = this.truncate(detail, maxWidth - toolName.length - 5);
+      return `${amber(icon)} ${dim(toolName + ':')} ${muted(truncatedDetail)}`;
+    }
+    return `${amber(icon)} ${muted(toolName)}`;
+  }
+
+  private getStateLabel(state: WorkerState): string {
+    const labels: Record<WorkerState, string> = {
+      idle: 'Idle',
+      initializing: 'Initializing',
+      running: 'Running',
+      merging: 'Merging',
+      error: 'Error',
+      done: 'Done',
+    };
+    return labels[state];
   }
 
   private truncate(str: string, maxLen: number): string {
+    if (maxLen < 4) return '...';
     if (visibleLength(str) <= maxLen) return str;
 
-    // Simple truncation - may cut ANSI codes but acceptable for display
     let result = '';
     let len = 0;
     for (const char of str) {
@@ -448,7 +474,6 @@ export class ParallelRenderer {
         break;
       }
       result += char;
-      // Skip ANSI escape sequences in length calculation
       if (char !== '\x1b' && !result.endsWith('m')) {
         len++;
       }
@@ -477,9 +502,9 @@ export class ParallelRenderer {
    * Renders the final summary box after parallel execution completes.
    */
   renderSummary(summary: ParallelSummary): void {
-    const width = this.terminalWidth - 4;
+    const width = this.boxWidth - 2;
 
-    console.log(); // Spacing
+    console.log();
 
     // Top border
     console.log(orange(ROUNDED.topLeft + ROUNDED.horizontal.repeat(width) + ROUNDED.topRight));
@@ -488,7 +513,7 @@ export class ParallelRenderer {
     this.renderSummaryLine(`${successColor(CHECK)} ${bold('Parallel Work Complete')}`, width);
 
     // Separator
-    console.log(orange(FULL_BOX.teeRight + ROUNDED.horizontal.repeat(width) + FULL_BOX.teeLeft));
+    console.log(orange(BOX.teeRight + ROUNDED.horizontal.repeat(width) + BOX.teeLeft));
 
     // Empty line
     this.renderSummaryLine('', width);
@@ -544,14 +569,11 @@ export class ParallelRenderer {
     );
     this.renderSummaryLine(
       `${dim('Merge conflicts:')} ${
-        summary.mergeConflicts > 0 ? errorColor(String(summary.mergeConflicts)) : '0'
+        summary.mergeConflicts > 0 ? `${summary.mergeConflicts} ${dim('(auto-resolved)')}` : '0'
       }`,
       width,
     );
-    this.renderSummaryLine(
-      `${dim('Total cost:')} $${summary.totalCost.toFixed(2)}`,
-      width,
-    );
+    this.renderSummaryLine(`${dim('Total cost:')} $${summary.totalCost.toFixed(2)}`, width);
 
     // Empty line
     this.renderSummaryLine('', width);
@@ -578,6 +600,14 @@ export class ParallelRenderer {
     console.log(`${orange(ROUNDED.vertical)} ${content}${padding} ${orange(ROUNDED.vertical)}`);
   }
 
+  private padToWidth(content: string, width: number): string {
+    const visLen = visibleLength(content);
+    if (visLen >= width) {
+      return this.truncate(content, width);
+    }
+    return content + ' '.repeat(width - visLen);
+  }
+
   private formatDurationLong(seconds: number): string {
     if (seconds < 60) return `${Math.round(seconds)}s`;
     const mins = Math.floor(seconds / 60);
@@ -601,7 +631,6 @@ export class ParallelRenderer {
 
 /**
  * Renders a quick summary box for completed parallel work.
- * Used when renderer is not running (e.g., after interruption).
  */
 export function renderParallelSummary(summary: ParallelSummary): void {
   const renderer = new ParallelRenderer({ workerCount: summary.workers.length });
