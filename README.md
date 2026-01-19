@@ -165,6 +165,50 @@ ralph work --max-iterations 10  # Limit iterations
 
 When all tasks complete successfully, Ralph auto-creates a git tag (e.g., `v0.1.0`) and pushes it.
 
+#### Experimental: Parallel Mode
+
+> **Note**: This feature is experimental and under active testing. It works, but use with caution on critical projects.
+
+Run multiple Claude workers simultaneously, like having multiple developers working on different tasks at the same time:
+
+```bash
+ralph work --experimental-parallel 3    # Run 3 workers in parallel
+ralph plan --vibe --experimental-parallel 3  # Plan then parallel work
+```
+
+**How it works:**
+- Each worker runs in its own isolated git worktree (separate branch)
+- Multiple `claude` processes run **truly in parallel** - not sequentially
+- Workers pick up tasks based on dependencies and work concurrently
+- When done, branches are merged back to main one at a time
+- All worktrees are cleaned up automatically
+
+**Task Dependencies:**
+
+You can specify which tasks can run in parallel and which depend on others:
+
+```markdown
+- [ ] Set up database schema [parallel: true]
+- [ ] Create API structure [parallel: true]
+- [ ] Add authentication [depends: 1,2]
+- [ ] User endpoints [depends: 3] [parallel: true]
+- [ ] Product endpoints [depends: 3] [parallel: true]
+```
+
+- `[parallel: true]` - Task can run alongside other parallel tasks
+- `[depends: N,M]` - Task waits for tasks N and M to complete first
+- Tasks default to parallelizable if no dependency is specified
+
+**Best for:**
+- Projects with multiple independent features
+- Large implementation plans with 5+ tasks
+- When you want faster completion (wall-clock time)
+
+**Current limitations:**
+- Merge conflicts require manual resolution
+- All workers use the same model (no per-worker model selection yet)
+- UI works best on terminals 100+ columns wide
+
 ---
 
 ## Why It Works
