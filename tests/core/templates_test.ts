@@ -105,10 +105,10 @@ Deno.test('renderPlanPrompt uses Study and parallel subagents', () => {
   assertStringIncludes(result, 'parallel Sonnet subagents');
 });
 
-Deno.test('renderPlanPrompt includes linkage requirement', () => {
+Deno.test('renderPlanPrompt includes linked task requirement', () => {
   const result = renderPlanPrompt();
 
-  assertStringIncludes(result, 'linkage');
+  assertStringIncludes(result, 'Linked');
   assertStringIncludes(result, '[spec:');
   assertStringIncludes(result, '[file:');
 });
@@ -129,10 +129,10 @@ Deno.test('renderPlanPrompt references specs/README.md', () => {
 // renderAgentsMd Tests
 // ============================================================================
 
-Deno.test('renderAgentsMd includes build section', () => {
+Deno.test('renderAgentsMd includes commands section', () => {
   const result = renderAgentsMd();
 
-  assertStringIncludes(result, 'Build & Run');
+  assertStringIncludes(result, 'Commands');
   assertStringIncludes(result, 'Build:');
   assertStringIncludes(result, 'Test:');
   assertStringIncludes(result, 'Lint:');
@@ -141,27 +141,34 @@ Deno.test('renderAgentsMd includes build section', () => {
 Deno.test('renderAgentsMd tells Claude to discover commands', () => {
   const result = renderAgentsMd();
 
-  assertStringIncludes(result, 'discover from project files');
+  assertStringIncludes(result, 'discover');
 });
 
-Deno.test('renderAgentsMd includes validation checklist', () => {
+Deno.test('renderAgentsMd includes validation section', () => {
   const result = renderAgentsMd();
 
-  assertStringIncludes(result, 'Validation Checklist');
+  assertStringIncludes(result, 'Validation');
   assertStringIncludes(result, 'Tests pass');
-  assertStringIncludes(result, 'Linting passes');
+  assertStringIncludes(result, 'Lint passes');
 });
 
-Deno.test('renderAgentsMd includes operational notes section', () => {
+Deno.test('renderAgentsMd includes patterns section', () => {
   const result = renderAgentsMd();
 
-  assertStringIncludes(result, 'Operational Notes');
+  assertStringIncludes(result, 'Patterns');
 });
 
-Deno.test('renderAgentsMd includes codebase patterns section', () => {
+Deno.test('renderAgentsMd includes notes section', () => {
   const result = renderAgentsMd();
 
-  assertStringIncludes(result, 'Codebase Patterns');
+  assertStringIncludes(result, 'Notes');
+});
+
+Deno.test('renderAgentsMd emphasizes brevity', () => {
+  const result = renderAgentsMd();
+
+  assertStringIncludes(result, 'BRIEF');
+  assertStringIncludes(result, '60 lines');
 });
 
 // ============================================================================

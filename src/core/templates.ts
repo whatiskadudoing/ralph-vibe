@@ -20,6 +20,7 @@ import { RALPH_DONE_MARKER, RALPH_EXIT_SIGNAL } from '@/core/constants.ts';
  *
  * Based on: https://github.com/ghuntley/how-to-ralph-wiggum
  * Simplified per Geoff Huntley's guidance - minimal prompt, maximum clarity.
+ * Uses numbered guardrails (99999+) for priority signaling.
  */
 export function renderBuildPrompt(): string {
   return dedent(`
@@ -46,6 +47,27 @@ export function renderBuildPrompt(): string {
 
     ---
 
+    ## UI Changes Protocol
+
+    If your task involves UI changes:
+    1. After making UI changes, take a screenshot
+    2. Verify the UI looks correct visually
+    3. Do NOT mark task complete until UI is verified
+    4. If UI tests exist, they must pass
+
+    ---
+
+    ## Guardrails (numbered by priority)
+
+    999999. **ONE TASK ONLY** - Pick one task, complete it fully, commit, exit. Never do multiple tasks.
+    999998. **FULL IMPLEMENTATIONS** - No placeholders, no TODOs, no "will implement later". Complete code only.
+    999997. **SEARCH BEFORE IMPLEMENTING** - Always search codebase first. Don't assume functionality is missing.
+    999996. **TESTS MUST PASS** - Never mark a task complete if tests fail. Fix failures first.
+    999995. **NO INVENTED FEATURES** - Only implement what's in the specs. Don't add unrequested features.
+    999994. **MATCH EXISTING PATTERNS** - Follow the codebase's established conventions and patterns.
+
+    ---
+
     If all tasks done: \`EXIT_SIGNAL: true\`
 
     End with:
@@ -64,6 +86,7 @@ export function renderBuildPrompt(): string {
  * Focuses on gap analysis between specifications and existing code.
  *
  * Based on: https://github.com/ghuntley/how-to-ralph-wiggum
+ * and https://github.com/ClaytonFarr/ralph-playbook
  */
 export function renderPlanPrompt(): string {
   return dedent(`
@@ -81,15 +104,23 @@ export function renderPlanPrompt(): string {
 
     ---
 
-    ## Instructions
+    ## Phase 0: Orientation
 
-    1. **Study** \`specs/README.md\` for the specifications index
-    2. **Study** all specs in \`specs/\` (use parallel Sonnet subagents)
-    3. **Study** project files to understand tech stack and patterns
-    4. **Search codebase** to find what's already implemented
-    5. **Compare** specifications against actual implementation
-    6. **Identify gaps** between specs and reality
-    7. Generate/update \`IMPLEMENTATION_PLAN.md\` as prioritized task list
+    0a. **Study** \`specs/README.md\` for the specifications index
+    0b. **Study** \`IMPLEMENTATION_PLAN.md\` if present (may be stale)
+    0c. **Study** project files to understand tech stack and patterns
+
+    ## Phase 1: Gap Analysis
+
+    1. **Study** all specs in \`specs/\` using parallel Sonnet subagents
+    2. **Search codebase** to find what's already implemented
+    3. Search for: TODOs, placeholders, minimal implementations, skipped tests
+    4. **Compare** specifications against actual implementation
+    5. **Identify gaps** between specs and reality
+
+    ## Phase 2: Generate Plan
+
+    Write/update \`IMPLEMENTATION_PLAN.md\` as prioritized task list.
 
     ---
 
@@ -97,39 +128,62 @@ export function renderPlanPrompt(): string {
 
     - **Plan only.** Do NOT implement anything.
     - **Do NOT assume functionality is missing** - confirm with code search first
-    - Each task should be completable in **one iteration**
     - Order by **dependency** (foundations first)
     - Group related tasks into **phases**
 
     ---
 
-    ## Task Format (with Linkage)
+    ## Task Sizing - CRITICAL
 
-    Each task MUST include **linkage** - cite the spec and/or files it relates to:
+    **DO NOT create micro-tasks.** Each task should be:
 
+    - **Substantial** - worth the cold-start overhead (30min-2hrs of work)
+    - **One meaningful commit** - a coherent, complete unit of work
+    - **Specific** - "Add JWT auth with login/logout endpoints" not "Add auth"
+    - **Measurable** - clear success criteria
+    - **Linked** - cite specs and files: \`[spec: X] [file: Y]\`
+
+    **Anti-patterns to AVOID:**
+    - Splitting related work (error types + error UI + retry = ONE task)
+    - Tasks for trivial changes that don't warrant a commit
+    - More than 7 tasks per phase (consolidate if more)
+
+    **Good examples:**
     \`\`\`markdown
-    - [ ] Add login endpoint [spec: auth.md] [file: src/api/routes.ts]
-    - [ ] Create session middleware [spec: auth.md] [file: src/middleware/]
-    - [ ] Add password validation [spec: auth.md, validation.md]
+    - [ ] Implement authentication: JWT tokens, login/logout, session middleware [spec: auth.md] [file: src/api/auth/]
+    - [ ] Add error handling system: types, recovery UI, graceful degradation [spec: errors.md]
     \`\`\`
 
-    This helps the build loop find relevant context faster.
-
-    Each task should be:
-    - **Small** - completable in one iteration
-    - **Clear** - no ambiguity about what to do
-    - **Linked** - cite specs and files it touches
-    - **Testable** - how do we know it's done?
+    **Bad examples (too granular):**
+    \`\`\`markdown
+    - [ ] Create error types
+    - [ ] Add error messages
+    - [ ] Add error UI
+    \`\`\`
+    → Should be ONE task: "Implement error handling system"
 
     ---
 
-    ## Output
+    ## Output Format
 
-    Write to \`IMPLEMENTATION_PLAN.md\`. Include:
+    Write to \`IMPLEMENTATION_PLAN.md\`:
 
-    - Phases grouping related tasks
-    - Checkbox tasks with linkage: \`- [ ] Task [spec: X] [file: Y]\`
-    - Priority order (foundations first)
+    \`\`\`markdown
+    # Implementation Plan
+
+    ## Phase 1: [Foundation] - CRITICAL
+    - [ ] Substantial task [spec: X] [file: Y]
+
+    ---
+    <!-- CHECKPOINT: Verify Phase 1 before proceeding -->
+
+    ## Phase 2: [Feature Area]
+    - [ ] Substantial task [spec: X] [file: Y]
+    \`\`\`
+
+    - **3-7 tasks per phase** typical
+    - Add **CHECKPOINT** comments between phases
+    - First phase = **vertical slice** (one complete end-to-end flow)
 
     The plan is **disposable** - if wrong or stale, regenerate it.
   `).trim();
@@ -204,6 +258,8 @@ export function renderAnalysisPrompt(): string {
 /**
  * Generates the synthesis prompt for the second stage (Opus).
  * This stage receives analysis and generates the implementation plan.
+ *
+ * Based on: https://github.com/ClaytonFarr/ralph-playbook
  */
 export function renderSynthesisPrompt(analysis: string): string {
   return dedent(`
@@ -221,32 +277,67 @@ export function renderSynthesisPrompt(analysis: string): string {
 
     Based on the analysis above, create \`IMPLEMENTATION_PLAN.md\` with prioritized tasks.
 
+    ## TASK SIZING - CRITICAL
+
+    **DO NOT create micro-tasks.** Each task should be:
+
+    - **Substantial** - worth the cold-start overhead (30min-2hrs of focused work)
+    - **One meaningful commit** - a coherent, complete unit of work
+    - **Specific** - "Add JWT auth with login/logout endpoints" not "Add auth"
+    - **Measurable** - clear success criteria
+    - **Linked** - cite specs and files: \`[spec: X] [file: Y]\`
+
+    **Anti-patterns to AVOID:**
+    - Splitting related work into separate tasks
+    - Tasks for trivial changes
+    - More than 7 tasks per phase
+
+    **Good example:**
+    \`\`\`markdown
+    - [ ] Implement authentication: JWT tokens, login/logout, session middleware [spec: auth.md] [file: src/api/auth/]
+    \`\`\`
+
+    **Bad example (too granular):**
+    \`\`\`markdown
+    - [ ] Create auth types
+    - [ ] Add login endpoint
+    - [ ] Add logout endpoint
+    - [ ] Add middleware
+    \`\`\`
+
     ## GUIDELINES
 
     - **Plan only.** Do NOT implement anything.
-    - Each task should be completable in **one iteration** (one build loop cycle)
     - Order by **dependency** (foundations first)
     - Group related tasks into phases
+    - **3-7 tasks per phase** is typical
 
-    Each task should be:
-    - **Small** - completable in one iteration
-    - **Clear** - no ambiguity about what to do
-    - **Testable** - how do we know it's done?
+    ## OUTPUT FORMAT
 
-    ## OUTPUT
-
-    Write to \`IMPLEMENTATION_PLAN.md\`. Use this structure:
+    Write to \`IMPLEMENTATION_PLAN.md\`:
 
     \`\`\`markdown
     # Implementation Plan
 
-    ## Phase 1: [Phase Name]
-    - [ ] Task 1 description
-    - [ ] Task 2 description
+    ## Phase 1: [Foundation] - CRITICAL
+    - [ ] Substantial task [spec: X] [file: Y]
+    - [ ] Another substantial task [spec: X] [file: Y]
 
-    ## Phase 2: [Phase Name]
-    - [ ] Task 3 description
+    ---
+    <!-- CHECKPOINT: Verify Phase 1 before proceeding -->
+
+    ## Phase 2: [Feature Area]
+    - [ ] Substantial task [spec: X] [file: Y]
+
+    ---
+    <!-- CHECKPOINT -->
+
+    ## Phase 3: [Polish/Testing]
+    - [ ] Comprehensive polish and testing task
     \`\`\`
+
+    - Add **CHECKPOINT** comments between phases
+    - First phase = **vertical slice** (one complete end-to-end flow)
 
     After writing, show this summary:
 
@@ -263,51 +354,97 @@ export function renderSynthesisPrompt(analysis: string): string {
 /**
  * Generates the plan command prompt (for ralph plan).
  * Single-stage version for backwards compatibility.
+ *
+ * Based on: https://github.com/ClaytonFarr/ralph-playbook
  */
 export function renderPlanCommandPrompt(): string {
   return dedent(`
     You are performing **GAP ANALYSIS** between specifications and code.
 
-    ## YOUR TASK
+    ## PHASE 0: ORIENTATION
 
-    1. **Study** \`specs/README.md\` for the specifications index
-    2. **Study** all specs in \`specs/\` (use parallel subagents)
-    3. **Study** project files (package.json, Cargo.toml, etc.) for tech stack
-    4. **Search codebase** to find what's already implemented - do NOT assume missing
-    5. **Compare** specifications against actual implementation
-    6. **Identify gaps** between specs and reality
-    7. **Write** \`IMPLEMENTATION_PLAN.md\` with prioritized tasks
+    0a. **Study** \`specs/README.md\` for the specifications index
+    0b. **Study** all specs in \`specs/\` using parallel subagents
+    0c. **Study** project files (package.json, Cargo.toml, deno.json, Makefile) for tech stack
+    0d. **Study** \`IMPLEMENTATION_PLAN.md\` if present (it may be stale or incorrect)
+
+    ## PHASE 1: GAP ANALYSIS
+
+    1. Use up to **500 parallel Sonnet subagents** to search existing source code
+    2. **Compare** specs against actual implementation
+    3. Search for: TODOs, minimal implementations, placeholders, skipped tests, inconsistent patterns
+    4. **Do NOT assume functionality is missing** - confirm with code search first
+    5. Use **Opus** (yourself) to analyze findings and prioritize
+
+    ## PHASE 2: WRITE PLAN
+
+    Write \`IMPLEMENTATION_PLAN.md\` with prioritized tasks.
 
     ## CRITICAL RULES
 
     - **Plan only.** Do NOT implement anything.
     - **Do NOT assume functionality is missing** - confirm with code search first
-    - Each task should be completable in **one iteration**
     - Order by **dependency** (foundations first)
 
-    ## TASK FORMAT (with Linkage)
+    ## TASK SIZING - IMPORTANT
 
-    Each task MUST include **linkage** - cite the spec and/or files it relates to:
+    **DO NOT create micro-tasks.** Each task should be:
 
+    - **Substantial** - worth the cold-start overhead (30min-2hrs of focused work)
+    - **One meaningful commit** - a coherent, complete change
+    - **Specific** - "Add JWT auth middleware to /api routes" not "Add auth"
+    - **Measurable** - clear success criteria
+    - **Linked** - cite specs and files: \`[spec: auth.md] [file: src/api/]\`
+
+    **Anti-patterns to AVOID:**
+    - Splitting related work into separate tasks (error messages + error UI = ONE task)
+    - Creating tasks for trivial changes that don't warrant a commit
+    - Tasks that are just checkboxes without substance
+
+    **Good task examples:**
     \`\`\`markdown
-    - [ ] Add login endpoint [spec: auth.md] [file: src/api/routes.ts]
-    - [ ] Create session middleware [spec: auth.md] [file: src/middleware/]
-    - [ ] Add password validation [spec: auth.md, validation.md]
+    - [ ] Implement user authentication with JWT tokens, login/logout endpoints, and session middleware [spec: auth.md] [file: src/api/auth/]
+    - [ ] Add comprehensive error handling: error types, recovery UI, graceful degradation [spec: errors.md] [file: src/components/errors/]
+    - [ ] Create data export feature with CSV/JSON formats and download UI [spec: export.md] [file: src/features/export/]
     \`\`\`
 
-    Each task should be:
-    - **Small** - completable in one iteration
-    - **Clear** - no ambiguity
-    - **Linked** - cite specs and files
-    - **Testable** - how do we know it's done?
+    **Bad task examples (too granular):**
+    \`\`\`markdown
+    - [ ] Create error types
+    - [ ] Add error messages
+    - [ ] Add error UI
+    - [ ] Add retry button
+    \`\`\`
+    These should be ONE task: "Implement error handling system"
 
     ## OUTPUT FORMAT
 
-    Write to \`IMPLEMENTATION_PLAN.md\`:
+    Write to \`IMPLEMENTATION_PLAN.md\` using this structure:
 
-    - Group related tasks into phases
-    - Use checkbox format with linkage: \`- [ ] Task [spec: X] [file: Y]\`
-    - Order by priority (foundations first)
+    \`\`\`markdown
+    # Implementation Plan
+
+    ## Phase 1: [Foundation/Core] - CRITICAL
+    - [ ] Task with substance [spec: X] [file: Y]
+    - [ ] Another substantial task [spec: X] [file: Y]
+
+    ---
+    <!-- CHECKPOINT: Verify Phase 1 complete before proceeding -->
+
+    ## Phase 2: [Feature Area]
+    - [ ] Substantial feature task [spec: X] [file: Y]
+
+    ---
+    <!-- CHECKPOINT -->
+
+    ## Phase 3: [Polish/Testing]
+    - [ ] Comprehensive testing and polish task [spec: X]
+    \`\`\`
+
+    **Guidelines:**
+    - **3-7 tasks per phase** is typical (not 10+)
+    - Add **CHECKPOINT** comments between phases
+    - First phase should deliver a **vertical slice** (one complete end-to-end flow)
 
     ## COMPLETION MESSAGE
 
@@ -320,7 +457,7 @@ export function renderPlanCommandPrompt(): string {
     Created \`IMPLEMENTATION_PLAN.md\` with [N] tasks in [M] phases.
 
     **Next steps:**
-    1. Review the plan - edit tasks as needed
+    1. Review the plan - consolidate if tasks are too granular
     2. Run \`ralph work\` to start the autonomous build loop
 
     The plan is disposable - regenerate with \`ralph plan\` if needed.
@@ -349,44 +486,44 @@ export function renderInitialPlan(): string {
  * Generates the AGENTS.md content.
  * This is the operational guide for the project.
  * Claude will discover commands from project files.
+ *
+ * IMPORTANT: Keep this file under 60 lines. It loads every iteration.
+ * Only operational info - no status updates or progress tracking.
  */
 export function renderAgentsMd(): string {
   return dedent(`
     # AGENTS.md - Operational Guide
 
-    ## Build & Run
+    <!-- KEEP THIS FILE BRIEF (~60 lines max). It loads every iteration. -->
+    <!-- Only operational commands and patterns. NO status updates here. -->
 
-    <!-- Claude: Discover commands from package.json, Cargo.toml, Makefile, etc. -->
-    <!-- Document the commands you discover here for reference -->
+    ## Commands
 
-    - **Build:** \`(discover from project files)\`
-    - **Test:** \`(discover from project files)\`
-    - **Lint:** \`(discover from project files)\`
+    <!-- Claude: Discover from package.json, Cargo.toml, Makefile, deno.json -->
+    - **Build:** \`(discover)\`
+    - **Test:** \`(discover)\`
+    - **Lint:** \`(discover)\`
+    - **Dev:** \`(discover)\`
 
-    ---
+    ## Validation (Backpressure)
 
-    ## Validation Checklist
+    Before marking task complete, ALL must pass:
+    1. Tests pass (exit code 0)
+    2. Lint passes
+    3. Types check
+    4. Build succeeds
 
-    Before marking a task complete:
+    If any fail → fix before committing.
 
-    1. [ ] Tests pass
-    2. [ ] Linting passes
-    3. [ ] Types check (if applicable)
-    4. [ ] Manual verification (if needed)
+    ## Patterns
 
-    ---
+    <!-- Brief notes on codebase conventions -->
+    <!-- Example: "Components in src/components/, tests co-located" -->
 
-    ## Operational Notes
+    ## Notes
 
-    <!-- Add learnings about running this project here -->
-    <!-- Example: "Run migrations before tests" or "Requires Docker running" -->
-
-    ---
-
-    ## Codebase Patterns
-
-    <!-- Document discovered conventions here -->
-    <!-- Example: "All API handlers in src/handlers/" or "Use zod for validation" -->
+    <!-- Operational learnings only -->
+    <!-- Example: "Run migrations before tests" -->
   `).trim();
 }
 
@@ -397,12 +534,14 @@ export function renderAgentsMd(): string {
  *
  * Based on: https://github.com/ghuntley/how-to-ralph-wiggum
  * Key principle: "No pre-specified template - let Ralph/LLM dictate format"
+ * Enhanced: Deep requirements gathering (30+ minutes, 20-40 questions)
  */
 export function renderStartPrompt(): string {
   return dedent(`
     # Initial Spec Interview
 
     You are conducting the first spec interview for a new project.
+    This is a **deep requirements gathering session** - expect 20-40 questions over 30+ minutes.
 
     ---
 
@@ -420,23 +559,60 @@ export function renderStartPrompt(): string {
     1. Ask ONE question at a time. Wait for the user's response before asking the next.
     2. Start with: "What are you building?"
     3. Be conversational - like a product manager learning about a feature.
-    4. Dig deeper when answers are vague.
+    4. Dig deeper when answers are vague. Ask follow-up questions.
     5. Do NOT show menus, numbered options, or lists of choices.
+    6. **Take your time** - thorough specs prevent wasted implementation cycles.
 
-    **Areas to cover** (through natural conversation, not as a checklist):
+    **Question Categories** (cover ALL through natural conversation):
+
+    ### Core Requirements & Scope
     - What is the core idea? What problem does it solve?
-    - Who will use this? What's their workflow?
-    - What are the key features? How should they work?
+    - What's the single most important thing this must do?
+    - What would make this project a failure if missing?
+
+    ### Users & Context
+    - Who will use this? What's their technical level?
+    - What's their workflow? When/where/how do they use it?
+    - Are there different user types with different needs?
+
+    ### Features & Behavior
+    - What are the key features? How should each work?
+    - What does the user see first? What's the main flow?
+    - What actions can users take? What happens for each?
+    - Are there any states or modes? How do transitions work?
+
+    ### Technical Choices
+    - Any preferred tech stack, frameworks, or libraries?
+    - Any existing code or systems to integrate with?
+    - Performance requirements? Scale expectations?
+    - Deployment environment? (local, cloud, mobile, etc.)
+
+    ### Edge Cases & Error Handling
+    - What happens when things go wrong?
+    - What are the most likely failure modes?
+    - How should errors be communicated to users?
+    - Any recovery or retry behavior needed?
+
+    ### Quality & Testing
     - What does "done" look like? How do we test it?
-    - What happens when things go wrong? Edge cases?
-    - Are there any technical constraints or dependencies?
+    - Any specific quality requirements? (accessibility, i18n, etc.)
+    - What would make you confident it works correctly?
+
+    ### Scope Boundaries
     - What's explicitly out of scope for now?
+    - Any features that seem related but shouldn't be included?
+    - What's the MVP vs nice-to-have?
+
+    ### User Preferences & Tradeoffs
+    - Speed vs completeness - what matters more?
+    - Simplicity vs flexibility?
+    - Any strong opinions on implementation approach?
 
     ---
 
     ## Writing the Specs
 
-    After 5-10 exchanges, when you understand the project:
+    After **20-40 exchanges**, when you deeply understand the project:
 
     1. Summarize what you learned
     2. Ask "Does this capture what you want to build?"
