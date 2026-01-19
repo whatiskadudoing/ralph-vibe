@@ -11,9 +11,9 @@ import { Command } from '@cliffy/command';
 import { amber, bold, dim, error, muted, orange, success as successColor } from '@/ui/colors.ts';
 import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
-import { DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
+import { DEFAULT_PARALLEL, DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
+import { createTag, getCurrentBranch, getLatestTag, getRepoRoot, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { renderBuildPrompt } from '@/core/templates.ts';
 import { assessComplexity } from '@/core/complexity.ts';
 import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
@@ -28,6 +28,9 @@ import {
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader } from '@/ui/components.ts';
+import { parsePlan, getPendingTasks } from '@/core/plan.ts';
+import { ParallelOrchestrator, DEFAULT_PARALLEL_CONFIG, type ParallelConfig as ParallelExecConfig } from '@/core/parallel.ts';
+import { ParallelRenderer, renderParallelSummary } from '@/ui/parallel_renderer.ts';
 
 // ============================================================================
 // Types
@@ -46,6 +49,7 @@ interface WorkOptions {
   readonly vibe?: boolean;
   readonly adaptive?: boolean;
   readonly model?: 'opus' | 'sonnet';
+  readonly experimentalParallel?: number;
 }
 
 interface IterationResult {
@@ -593,6 +597,153 @@ const buildLoop = async (
 };
 
 // ============================================================================
+// Parallel Build Loop
+// ============================================================================
+
+/**
+ * The parallel build loop using multiple workers.
+ */
+const parallelBuildLoop = async (
+  workerCount: number,
+  modelMode: 'opus' | 'sonnet' | 'adaptive',
+  maxIterations: number,
+): Promise<void> => {
+  // Get repository root and current branch
+  const repoRootResult = await getRepoRoot();
+  if (!repoRootResult.ok) {
+    renderError('Git error', 'Could not determine repository root.');
+    Deno.exit(1);
+  }
+  const repoRoot = repoRootResult.value;
+
+  const branchResult = await getCurrentBranch();
+  if (!branchResult.ok) {
+    renderError('Git error', 'Could not determine current branch.');
+    Deno.exit(1);
+  }
+  const baseBranch = branchResult.value;
+
+  // Read and parse the implementation plan
+  const planPath = getPlanPath();
+  const planResult = await readTextFile(planPath);
+  if (!planResult.ok) {
+    renderError('Plan not found', `Could not read ${planPath}`);
+    Deno.exit(1);
+  }
+
+  const plan = parsePlan(planResult.value);
+  const pendingTasks = getPendingTasks(plan);
+
+  if (pendingTasks.length === 0) {
+    renderInfo('No pending tasks', [
+      'All tasks in the plan are already completed.',
+      `Run ${orange('ralph plan')} to regenerate the plan.`,
+    ]);
+    return;
+  }
+
+  // Fetch initial subscription usage
+  const initialUsage = await getSubscriptionUsage();
+
+  // Format model display for header
+  const modelDisplay = modelMode === 'adaptive' ? 'adaptive (sonnet/opus)' : modelMode;
+
+  console.log();
+  console.log(commandHeader({
+    name: 'Ralph Parallel Work',
+    description: `${workerCount} workers · ${modelDisplay} · ${pendingTasks.length} tasks`,
+    usage: initialUsage.ok ? initialUsage.value : undefined,
+  }));
+  console.log();
+
+  // Create the parallel config
+  const parallelConfig: ParallelExecConfig = {
+    workerCount,
+    worktreeDir: DEFAULT_PARALLEL.worktreeDir,
+    model: modelMode === 'adaptive' ? 'opus' : modelMode,
+    maxIterations,
+    autoCleanup: DEFAULT_PARALLEL.autoCleanup,
+  };
+
+  // Create renderer
+  const renderer = new ParallelRenderer({ workerCount });
+
+  // Create orchestrator with callbacks
+  const orchestrator = new ParallelOrchestrator(parallelConfig, pendingTasks, {
+    onWorkerUpdate: (worker) => renderer.updateWorker(worker),
+    onToolCall: (workerId, tool) => renderer.addToolCall(workerId, tool),
+    onStatsUpdate: (stats) => renderer.updateStatus({
+      tasksTotal: stats.total,
+      completed: stats.completed,
+      failed: stats.failed,
+      running: orchestrator.getWorkers().filter(w => w.state === 'running').length,
+    }),
+  });
+
+  // Set initial task count
+  renderer.updateStatus({
+    tasksTotal: pendingTasks.length,
+    completed: 0,
+    failed: 0,
+    running: 0,
+  });
+
+  // Start the renderer
+  renderer.start();
+
+  // Handle Ctrl+C gracefully
+  const abortController = new AbortController();
+  let interrupted = false;
+
+  const handleSignal = async () => {
+    if (interrupted) return;
+    interrupted = true;
+
+    renderer.stop();
+    console.log();
+    console.log(amber(`${INFO} Interrupted - cleaning up worktrees...`));
+
+    await orchestrator.cleanup(repoRoot);
+    console.log(dim('  Cleanup complete.'));
+    Deno.exit(130);
+  };
+
+  Deno.addSignalListener('SIGINT', handleSignal);
+
+  try {
+    // Run the parallel orchestrator
+    const result = await orchestrator.run(repoRoot, baseBranch);
+
+    // Stop the renderer
+    renderer.stop();
+
+    if (!result.ok) {
+      renderError('Parallel execution failed', result.error.message);
+      Deno.exit(1);
+    }
+
+    // Render the summary
+    renderer.renderSummary(result.value);
+
+    // Create git tag on successful completion if all tasks passed
+    if (result.value.tasksFailed === 0 && result.value.tasksCompleted > 0) {
+      const termWidth = getTerminalWidth();
+      await createGitTag(termWidth);
+    }
+  } catch (e) {
+    renderer.stop();
+    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+    renderError('Parallel execution error', errorMsg);
+
+    // Cleanup on error
+    await orchestrator.cleanup(repoRoot);
+    Deno.exit(1);
+  } finally {
+    Deno.removeSignalListener('SIGINT', handleSignal);
+  }
+};
+
+// ============================================================================
 // Command Action
 // ============================================================================
 
@@ -635,11 +786,17 @@ async function workAction(options: WorkOptions): Promise<void> {
   // Dry run mode
   if (options.dryRun) {
     console.log();
-    renderInfo('Dry Run Mode', [
+    const dryRunDetails = [
       'Would run the build loop with these settings:',
       `Max iterations: ${maxIterations}`,
       `Plan: ${planPath}`,
-    ]);
+    ];
+
+    if (options.experimentalParallel) {
+      dryRunDetails.push(`Parallel workers: ${options.experimentalParallel}`);
+    }
+
+    renderInfo('Dry Run Mode', dryRunDetails);
     return;
   }
 
@@ -658,7 +815,14 @@ async function workAction(options: WorkOptions): Promise<void> {
     modelMode = configResult.ok ? configResult.value.work.model : 'opus';
   }
 
-  // Run the build loop
+  // Check for parallel mode
+  if (options.experimentalParallel && options.experimentalParallel > 0) {
+    const workerCount = Math.min(Math.max(1, options.experimentalParallel), 8);
+    await parallelBuildLoop(workerCount, modelMode, maxIterations);
+    return;
+  }
+
+  // Run the sequential build loop
   await buildLoop(modelMode, maxIterations);
 }
 
@@ -685,6 +849,14 @@ export function createWorkCommand(): Command<any> {
           throw new Error('Model must be "opus" or "sonnet"');
         }
         return val as 'opus' | 'sonnet';
+      },
+    })
+    .option('--experimental-parallel <workers:number>', 'Enable parallel mode with N workers (1-8)', {
+      value: (val: number) => {
+        if (val < 1 || val > 8) {
+          throw new Error('Worker count must be between 1 and 8');
+        }
+        return val;
       },
     })
     .action(workAction);

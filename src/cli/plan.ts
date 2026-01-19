@@ -34,6 +34,7 @@ import {
   enableVibeMode,
   getNextCommands,
   isVibeMode,
+  setVibeOptions,
   showVibeActivated,
 } from './vibe.ts';
 
@@ -199,6 +200,7 @@ interface PlanOptions {
   readonly fast?: boolean;
   readonly vibe?: boolean;
   readonly model?: string;
+  readonly experimentalParallel?: number;
 }
 
 /**
@@ -221,13 +223,20 @@ async function planAction(options: PlanOptions): Promise<void> {
   // Handle vibe mode
   if (options.vibe) {
     enableVibeMode();
+    // Pass through options for work command
+    setVibeOptions({
+      experimentalParallel: options.experimentalParallel,
+    });
     const nextSteps = getNextCommands('plan');
+    const workDescription = options.experimentalParallel
+      ? `Run parallel build loop (${options.experimentalParallel} workers)`
+      : 'Run autonomous build loop';
     showVibeActivated([
       'Generate implementation plan',
       ...nextSteps.map((cmd) => {
         switch (cmd) {
           case 'work':
-            return 'Run autonomous build loop';
+            return workDescription;
           default:
             return cmd;
         }
@@ -343,5 +352,13 @@ export function createPlanCommand(): Command<any> {
     .option('-f, --fast', 'Use single-stage planning with Sonnet (faster, less thorough)')
     .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
     .option('--model <model:string>', 'Not supported - see hint', { hidden: true })
+    .option('--experimental-parallel <workers:number>', 'Enable parallel mode with N workers for subsequent work step (1-8, passed through to work)', {
+      value: (val: number) => {
+        if (val < 1 || val > 8) {
+          throw new Error('Worker count must be between 1 and 8');
+        }
+        return val;
+      },
+    })
     .action(planAction);
 }

@@ -48,12 +48,27 @@ export interface WorkConfig {
 }
 
 /**
+ * Parallel execution configuration (for .ralph.json).
+ */
+export interface ParallelWorkConfig {
+  /** Default number of parallel workers */
+  readonly defaultWorkers: number;
+  /** Directory for git worktrees */
+  readonly worktreeDir: string;
+  /** Whether to auto-cleanup worktrees after completion */
+  readonly autoCleanup: boolean;
+  /** Merge strategy: sequential (safer) or parallel */
+  readonly mergeStrategy: 'sequential' | 'parallel';
+}
+
+/**
  * Complete Ralph configuration for a project.
  */
 export interface RalphConfig {
   readonly version: string;
   readonly paths: PathsConfig;
   readonly work: WorkConfig;
+  readonly parallel?: ParallelWorkConfig;
 }
 
 /**
@@ -99,6 +114,16 @@ export const DEFAULT_WORK: WorkConfig = {
 };
 
 /**
+ * Default parallel execution settings.
+ */
+export const DEFAULT_PARALLEL: ParallelWorkConfig = {
+  defaultWorkers: 2,
+  worktreeDir: '.ralph-workers',
+  autoCleanup: true,
+  mergeStrategy: 'sequential',
+};
+
+/**
  * Recommended max iterations for safety.
  * This prevents infinite loops on impossible tasks.
  */
@@ -124,7 +149,7 @@ export function isValidModel(value: unknown): value is Model {
  * Creates a new config with defaults.
  */
 export function createConfig(overrides?: DeepPartial<RalphConfig>): RalphConfig {
-  return {
+  const config: RalphConfig = {
     version: CONFIG_VERSION,
     paths: {
       ...DEFAULT_PATHS,
@@ -135,6 +160,19 @@ export function createConfig(overrides?: DeepPartial<RalphConfig>): RalphConfig 
       ...overrides?.work,
     },
   };
+
+  // Only include parallel config if overrides specify it
+  if (overrides?.parallel) {
+    return {
+      ...config,
+      parallel: {
+        ...DEFAULT_PARALLEL,
+        ...overrides.parallel,
+      },
+    };
+  }
+
+  return config;
 }
 
 /**
@@ -241,7 +279,7 @@ export function mergeConfig(
   base: RalphConfig,
   updates: DeepPartial<RalphConfig>,
 ): RalphConfig {
-  return {
+  const config: RalphConfig = {
     ...base,
     ...updates,
     paths: {
@@ -253,4 +291,18 @@ export function mergeConfig(
       ...updates.work,
     },
   };
+
+  // Handle parallel config merge
+  if (updates.parallel || base.parallel) {
+    return {
+      ...config,
+      parallel: {
+        ...DEFAULT_PARALLEL,
+        ...base.parallel,
+        ...updates.parallel,
+      },
+    };
+  }
+
+  return config;
 }

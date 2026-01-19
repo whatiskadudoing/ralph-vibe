@@ -9,3 +9,5 @@
 export * from './config.ts';
 export * from './templates.ts';
 export * from './plan.ts';
+export * from './worktree.ts';
+export * from './parallel.ts';

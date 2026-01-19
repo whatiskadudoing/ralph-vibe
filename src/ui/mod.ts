@@ -13,3 +13,4 @@ export * from './spinner.ts';
 export * from './progress.ts';
 export * from './claude_renderer.ts';
 export * from './components.ts';
+export * from './parallel_renderer.ts';

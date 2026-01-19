@@ -66,6 +66,11 @@ export function createProgram(): Command<any> {
       console.log(`  ${muted('ralph spec --vibe')}     ${dim('→ spec → plan → work')}`);
       console.log(`  ${muted('ralph plan --vibe')}     ${dim('→ plan → work')}`);
       console.log();
+      console.log(bold('Parallel Mode (Experimental):'));
+      console.log(dim('  Run multiple workers in parallel with isolated git worktrees:'));
+      console.log(`  ${muted('ralph work --experimental-parallel 3')}`);
+      console.log(`  ${muted('ralph plan --vibe --experimental-parallel 3')}`);
+      console.log();
       console.log(muted('Run `ralph <command> --help` for more information.'));
     })
     // Add subcommands

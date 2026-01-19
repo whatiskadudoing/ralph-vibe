@@ -59,6 +59,8 @@ const AUTONOMOUS_MESSAGES = [
 // ============================================================================
 
 let vibeMode = false;
+let vibeParallelWorkers: number | undefined = undefined;
+let vibeModel: 'opus' | 'sonnet' | undefined = undefined;
 
 /**
  * Enables vibe mode (autonomous continuation).
@@ -68,10 +70,31 @@ export function enableVibeMode(): void {
 }
 
 /**
+ * Sets vibe mode options to pass through to subsequent commands.
+ */
+export function setVibeOptions(options: {
+  experimentalParallel?: number;
+  model?: 'opus' | 'sonnet';
+}): void {
+  vibeParallelWorkers = options.experimentalParallel;
+  vibeModel = options.model;
+}
+
+/**
  * Checks if vibe mode is enabled.
  */
 export function isVibeMode(): boolean {
   return vibeMode;
+}
+
+/**
+ * Gets vibe mode options for passing to work command.
+ */
+export function getVibeOptions(): { experimentalParallel?: number; model?: 'opus' | 'sonnet' } {
+  return {
+    experimentalParallel: vibeParallelWorkers,
+    model: vibeModel,
+  };
 }
 
 // ============================================================================
@@ -249,8 +272,21 @@ export function getNextCommands(currentCommand: string): string[] {
  * Returns true if successful, false otherwise.
  */
 export async function runNextCommand(command: string): Promise<boolean> {
+  const args = [command];
+
+  // Pass through vibe options for work command
+  if (command === 'work') {
+    const options = getVibeOptions();
+    if (options.experimentalParallel) {
+      args.push('--experimental-parallel', String(options.experimentalParallel));
+    }
+    if (options.model) {
+      args.push('--model', options.model);
+    }
+  }
+
   const cmd = new Deno.Command('ralph', {
-    args: [command],
+    args,
     stdin: 'inherit',
     stdout: 'inherit',
     stderr: 'inherit',

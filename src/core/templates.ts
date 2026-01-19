@@ -172,18 +172,42 @@ export function renderPlanPrompt(): string {
     # Implementation Plan
 
     ## Phase 1: [Foundation] - CRITICAL
-    - [ ] Substantial task [spec: X] [file: Y]
+    - [ ] Substantial task [spec: X] [file: Y] [parallel: true]
+    - [ ] Another foundation task [spec: X] [parallel: true]
 
     ---
     <!-- CHECKPOINT: Verify Phase 1 before proceeding -->
 
     ## Phase 2: [Feature Area]
-    - [ ] Substantial task [spec: X] [file: Y]
+    - [ ] Task that depends on Phase 1 [spec: X] [depends: 1,2]
+    - [ ] Independent feature task [spec: X] [parallel: true]
     \`\`\`
 
     - **3-7 tasks per phase** typical
     - Add **CHECKPOINT** comments between phases
     - First phase = **vertical slice** (one complete end-to-end flow)
+
+    ## Task Dependency Syntax (for Parallel Execution)
+
+    When creating tasks, you can add optional dependency metadata:
+
+    - \`[parallel: true]\` - Task can run in parallel with other parallel tasks
+    - \`[depends: N,M]\` - Task must wait for tasks N and M to complete first
+
+    **Example:**
+    \`\`\`markdown
+    - [ ] Set up database schema [parallel: true]
+    - [ ] Create API structure [parallel: true]
+    - [ ] Add authentication [depends: 1,2]
+    - [ ] User endpoints [depends: 3] [parallel: true]
+    - [ ] Product endpoints [depends: 3] [parallel: true]
+    - [ ] Order endpoints [depends: 4,5]
+    \`\`\`
+
+    **Rules:**
+    - Task numbers are 1-indexed based on order in the plan
+    - Tasks default to \`[parallel: true]\` if no dependency specified
+    - Tasks with \`[depends: ...]\` automatically wait for those tasks
 
     The plan is **disposable** - if wrong or stale, regenerate it.
   `).trim();
