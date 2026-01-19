@@ -376,6 +376,7 @@ export class ParallelRenderer {
   }
 
   private renderPanelLine(contents: string[]): void {
+    const encoder = new TextEncoder();
     let line = orange(ROUNDED.vertical);
 
     for (let i = 0; i < contents.length; i++) {
