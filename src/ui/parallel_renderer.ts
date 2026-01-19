@@ -63,7 +63,10 @@ export interface ParallelRendererOptions {
 // ============================================================================
 
 const ROUNDED = BOX_ROUNDED;
-const MAX_TOOLS_PER_WORKER = 5;
+const MAX_TOOLS_PER_WORKER = 3; // Reduced from 5 to fit more workers
+const MIN_WORKER_BOX_HEIGHT = 6; // Compact mode: border + title + task + spinner + border
+const FULL_WORKER_BOX_HEIGHT = 10; // Full mode with tools
+const RENDER_THROTTLE_MS = 50; // Minimum ms between renders
 
 // Tool icons (matching Claude renderer)
 const TOOL_ICONS: Record<string, string> = {
@@ -104,12 +107,23 @@ const STATE_COLORS: Record<WorkerState, (s: string) => string> = {
 // Utility Functions
 // ============================================================================
 
-function getTerminalWidth(): number {
+function isTTY(): boolean {
   try {
-    const { columns } = Deno.consoleSize();
-    return Math.max(60, columns);
+    return Deno.stdout.isTerminal();
   } catch {
-    return 100;
+    return false;
+  }
+}
+
+function getTerminalSize(): { width: number; height: number } {
+  try {
+    const { columns, rows } = Deno.consoleSize();
+    return {
+      width: Math.max(60, columns),
+      height: Math.max(20, rows),
+    };
+  } catch {
+    return { width: 100, height: 40 };
   }
 }
 
@@ -120,10 +134,12 @@ function getTerminalWidth(): number {
 /**
  * Renders a vertical terminal UI for parallel execution.
  * Each worker gets a full-width box matching the regular iteration style.
+ * Automatically adapts to terminal size and falls back to simple output for non-TTY.
  */
 export class ParallelRenderer {
   private workerCount: number;
   private terminalWidth: number;
+  private terminalHeight: number;
   private boxWidth: number;
   private contentWidth: number;
   private panels: WorkerPanel[];
@@ -133,22 +149,19 @@ export class ParallelRenderer {
   private intervalId: number | null;
   private initialized: boolean;
   private fixedHeight: number;
-
-  // Each worker box:
-  // - Top border (1)
-  // - [Worker N] Title (1)
-  // - Task description (1)
-  // - Empty line (1)
-  // - Spinner line (1)
-  // - Separator (1)
-  // - Tools (MAX_TOOLS_PER_WORKER = 5)
-  // - Bottom border (1)
-  // Total: 12 lines per worker
-  private readonly workerBoxHeight = 12;
+  private workerBoxHeight: number;
+  private compactMode: boolean;
+  private isTTY: boolean;
+  private lastRenderTime: number;
+  private pendingRender: boolean;
 
   constructor(options: ParallelRendererOptions) {
     this.workerCount = options.workerCount;
-    this.terminalWidth = options.terminalWidth ?? getTerminalWidth();
+    this.isTTY = isTTY();
+
+    const termSize = getTerminalSize();
+    this.terminalWidth = options.terminalWidth ?? termSize.width;
+    this.terminalHeight = termSize.height;
     this.boxWidth = this.terminalWidth - 2;
     this.contentWidth = this.boxWidth - 4;
     this.panels = [];
@@ -157,9 +170,33 @@ export class ParallelRenderer {
     this.frameIndex = 0;
     this.intervalId = null;
     this.initialized = false;
+    this.lastRenderTime = 0;
+    this.pendingRender = false;
 
-    // Header (3) + workers (12 each) + footer (2)
-    this.fixedHeight = 3 + (this.workerCount * this.workerBoxHeight) + 2;
+    // Calculate available height for workers
+    // Reserve: 3 for header, 2 for footer, 2 for safety margin
+    const reservedLines = 7;
+    const availableHeight = this.terminalHeight - reservedLines;
+
+    // Determine if we need compact mode
+    const fullModeHeight = this.workerCount * FULL_WORKER_BOX_HEIGHT;
+    const compactModeHeight = this.workerCount * MIN_WORKER_BOX_HEIGHT;
+
+    if (fullModeHeight <= availableHeight) {
+      this.compactMode = false;
+      this.workerBoxHeight = FULL_WORKER_BOX_HEIGHT;
+    } else if (compactModeHeight <= availableHeight) {
+      this.compactMode = true;
+      this.workerBoxHeight = MIN_WORKER_BOX_HEIGHT;
+    } else {
+      // Still too many workers - use minimum and let it scroll
+      this.compactMode = true;
+      this.workerBoxHeight = MIN_WORKER_BOX_HEIGHT;
+    }
+
+    // Calculate fixed height, but cap it to available terminal height
+    const calculatedHeight = 3 + (this.workerCount * this.workerBoxHeight) + 2;
+    this.fixedHeight = Math.min(calculatedHeight, this.terminalHeight - 2);
 
     // Initialize panels
     for (let i = 1; i <= this.workerCount; i++) {
@@ -185,17 +222,24 @@ export class ParallelRenderer {
     this.frameIndex = 0;
     this.initialized = false;
 
-    // Allocate fixed space
+    // Non-TTY mode: just print header and return
+    if (!this.isTTY) {
+      console.log(`\n🔀 Ralph Parallel Mode · ${this.workerCount} workers`);
+      this.initialized = true;
+      return;
+    }
+
+    // Allocate fixed space (capped to terminal height)
     for (let i = 0; i < this.fixedHeight; i++) {
       console.log('');
     }
     this.initialized = true;
 
-    this.render();
+    this.renderNow();
     this.intervalId = setInterval(() => {
       this.frameIndex = (this.frameIndex + 1) % SPINNER_DOTS.length;
       this.globalStatus.elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
-      this.render();
+      this.renderNow();
     }, 100);
   }
 
@@ -209,6 +253,11 @@ export class ParallelRenderer {
     }
 
     if (!this.initialized) return;
+
+    // Non-TTY mode: just print completion
+    if (!this.isTTY) {
+      return;
+    }
 
     // Clear the render area
     const encoder = new TextEncoder();
@@ -226,6 +275,7 @@ export class ParallelRenderer {
     const panel = this.panels.find((p) => p.workerId === worker.id);
     if (!panel) return;
 
+    const oldState = panel.state;
     panel.state = worker.state;
     panel.currentTask = worker.currentTask?.displayText;
     panel.tasksCompleted = worker.stats.tasksCompleted;
@@ -245,7 +295,16 @@ export class ParallelRenderer {
       panel.status = 'Waiting...';
     }
 
-    this.render();
+    // Non-TTY: print state changes
+    if (!this.isTTY && oldState !== panel.state) {
+      console.log(
+        `  Worker ${worker.id}: ${panel.state}${
+          panel.currentTask ? ` - ${panel.currentTask}` : ''
+        }`,
+      );
+    }
+
+    this.scheduleRender();
   }
 
   /**
@@ -260,7 +319,7 @@ export class ParallelRenderer {
       panel.recentTools.shift();
     }
 
-    this.render();
+    this.scheduleRender();
   }
 
   /**
@@ -277,6 +336,35 @@ export class ParallelRenderer {
       }
     }
 
+    this.scheduleRender();
+  }
+
+  /**
+   * Schedules a render with throttling to prevent render thrashing.
+   */
+  private scheduleRender(): void {
+    if (!this.isTTY || !this.initialized) return;
+
+    const now = Date.now();
+    const timeSinceLastRender = now - this.lastRenderTime;
+
+    if (timeSinceLastRender >= RENDER_THROTTLE_MS) {
+      this.renderNow();
+    } else if (!this.pendingRender) {
+      this.pendingRender = true;
+      setTimeout(() => {
+        this.pendingRender = false;
+        this.renderNow();
+      }, RENDER_THROTTLE_MS - timeSinceLastRender);
+    }
+  }
+
+  /**
+   * Immediately renders the UI.
+   */
+  private renderNow(): void {
+    if (!this.isTTY || !this.initialized) return;
+    this.lastRenderTime = Date.now();
     this.render();
   }
 
@@ -310,11 +398,11 @@ export class ParallelRenderer {
       : dim('◆');
 
     // Header line (no box, just info)
-    const header = `${frame} ${bold('Ralph Parallel Mode')} · ${
-      this.workerCount
-    } workers · Tasks: ${successColor(String(this.globalStatus.completed))}/${
-      this.globalStatus.tasksTotal
-    } · ${dim(elapsed)}`;
+    const header = `${frame} ${
+      bold('Ralph Parallel Mode')
+    } · ${this.workerCount} workers · Tasks: ${
+      successColor(String(this.globalStatus.completed))
+    }/${this.globalStatus.tasksTotal} · ${dim(elapsed)}`;
     Deno.stdout.writeSync(encoder.encode(`\x1b[2K${header}\n`));
 
     // Empty line
@@ -361,9 +449,9 @@ export class ParallelRenderer {
     const failedStr = panel.tasksFailed > 0
       ? ` · ${errorColor('✗')} ${panel.tasksFailed} fail`
       : '';
-    const titleLine = `${amber(`[Worker ${panel.workerId}]`)} ${
-      stateColor(stateIcon)
-    } ${this.getStateLabel(panel.state)}${taskCount}${completedStr}${failedStr}`;
+    const titleLine = `${amber(`[Worker ${panel.workerId}]`)} ${stateColor(stateIcon)} ${
+      this.getStateLabel(panel.state)
+    }${taskCount}${completedStr}${failedStr}`;
     this.renderContentLine(titleLine, borderColor, encoder);
 
     // Line 2: Task description
@@ -372,31 +460,31 @@ export class ParallelRenderer {
       : dim('No task assigned');
     this.renderContentLine(taskDesc, borderColor, encoder);
 
-    // Line 3: Empty
-    this.renderContentLine('', borderColor, encoder);
-
-    // Line 4: Spinner/status line
+    // Line 3: Spinner/status line
     const frame = panel.state === 'running' || panel.state === 'merging'
       ? orange(SPINNER_DOTS[this.frameIndex] ?? '◆')
       : dim('◆');
     const statusLine = `${frame} ${this.truncate(panel.status, this.contentWidth - 4)}`;
     this.renderContentLine(statusLine, borderColor, encoder);
 
-    // Line 5: Separator
-    this.renderContentLine(dim('│'), borderColor, encoder);
+    // Compact mode: skip tools section
+    if (!this.compactMode) {
+      // Line 4: Separator
+      this.renderContentLine(dim('─'.repeat(this.contentWidth)), borderColor, encoder);
 
-    // Lines 6-10: Tool slots
-    for (let i = 0; i < MAX_TOOLS_PER_WORKER; i++) {
-      const tool = panel.recentTools[i];
-      if (tool) {
-        const formatted = this.formatTool(tool, this.contentWidth - 4);
-        this.renderContentLine(`${dim('│')}  ${formatted}`, borderColor, encoder);
-      } else {
-        this.renderContentLine(dim('│'), borderColor, encoder);
+      // Lines 5-7: Tool slots (reduced from 5 to 3)
+      for (let i = 0; i < MAX_TOOLS_PER_WORKER; i++) {
+        const tool = panel.recentTools[panel.recentTools.length - MAX_TOOLS_PER_WORKER + i];
+        if (tool) {
+          const formatted = this.formatTool(tool, this.contentWidth - 2);
+          this.renderContentLine(`  ${formatted}`, borderColor, encoder);
+        } else {
+          this.renderContentLine('', borderColor, encoder);
+        }
       }
     }
 
-    // Line 11: Bottom border
+    // Bottom border
     const bottomBorder = borderColor(
       BOX.bottomLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.bottomRight,
     );
@@ -464,21 +552,17 @@ export class ParallelRenderer {
 
   private truncate(str: string, maxLen: number): string {
     if (maxLen < 4) return '...';
-    if (visibleLength(str) <= maxLen) return str;
+    const visLen = visibleLength(str);
+    if (visLen <= maxLen) return str;
 
-    let result = '';
-    let len = 0;
-    for (const char of str) {
-      if (len >= maxLen - 3) {
-        result += '...';
-        break;
-      }
-      result += char;
-      if (char !== '\x1b' && !result.endsWith('m')) {
-        len++;
-      }
+    // Strip ANSI codes, truncate, then we lose formatting but it's safe
+    // deno-lint-ignore no-control-regex
+    const ansiRegex = /\x1b\[[0-9;]*m/g;
+    const plainText = str.replace(ansiRegex, '');
+    if (plainText.length <= maxLen - 3) {
+      return plainText + '...';
     }
-    return result;
+    return plainText.slice(0, maxLen - 3) + '...';
   }
 
   private formatDuration(seconds: number): string {
