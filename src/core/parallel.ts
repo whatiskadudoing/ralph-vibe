@@ -26,6 +26,97 @@ import {
 import type { Task } from './plan.ts';
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Formats a tool call with its relevant detail for UI display.
+ * Returns format like "Read: filename.ts" or "Bash: npm test".
+ */
+function formatToolCallForDisplay(
+  name: string,
+  input: Record<string, unknown> | undefined,
+): string {
+  if (!input) return name;
+
+  let detail = '';
+
+  switch (name) {
+    case 'Read':
+    case 'Write':
+    case 'Edit':
+    case 'NotebookEdit': {
+      const filePath = input.file_path ?? input.notebook_path;
+      if (typeof filePath === 'string') {
+        // Get just the filename from the path
+        detail = filePath.split('/').pop() ?? filePath;
+      }
+      break;
+    }
+    case 'Glob': {
+      if (typeof input.pattern === 'string') {
+        detail = input.pattern;
+      }
+      break;
+    }
+    case 'Grep': {
+      if (typeof input.pattern === 'string') {
+        detail = input.pattern.slice(0, 30);
+      }
+      break;
+    }
+    case 'Bash': {
+      if (typeof input.command === 'string') {
+        // Take first part of command, truncate if long
+        const cmd = input.command.split('\n')[0] ?? '';
+        detail = cmd.slice(0, 30);
+      }
+      break;
+    }
+    case 'Task': {
+      if (typeof input.description === 'string') {
+        detail = input.description.slice(0, 30);
+      }
+      break;
+    }
+    case 'WebSearch': {
+      if (typeof input.query === 'string') {
+        detail = input.query.slice(0, 30);
+      }
+      break;
+    }
+    case 'WebFetch': {
+      if (typeof input.url === 'string') {
+        // Extract domain from URL
+        try {
+          const url = new URL(input.url);
+          detail = url.hostname;
+        } catch {
+          detail = input.url.slice(0, 30);
+        }
+      }
+      break;
+    }
+    case 'TodoWrite': {
+      const todos = input.todos;
+      if (Array.isArray(todos) && todos.length > 0) {
+        detail = `${todos.length} items`;
+      }
+      break;
+    }
+    default:
+      // For other tools, try common parameter names
+      if (typeof input.path === 'string') {
+        detail = input.path.split('/').pop() ?? '';
+      } else if (typeof input.file === 'string') {
+        detail = input.file.split('/').pop() ?? '';
+      }
+  }
+
+  return detail ? `${name}: ${detail}` : name;
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -908,7 +999,8 @@ EXIT_SIGNAL: true
             if (data.type === 'assistant' && data.message?.content) {
               for (const content of data.message.content) {
                 if (content.type === 'tool_use') {
-                  this.onToolCall?.(this.id, content.name);
+                  const toolDisplay = formatToolCallForDisplay(content.name, content.input);
+                  this.onToolCall?.(this.id, toolDisplay);
                 }
               }
             }
