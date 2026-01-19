@@ -11,6 +11,7 @@ import { Command } from '@cliffy/command';
 import { amber, bold, dim, error, muted, orange, success as successColor } from '@/ui/colors.ts';
 import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
+import { DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { renderBuildPrompt } from '@/core/templates.ts';
@@ -599,7 +600,15 @@ const buildLoop = async (
  * The work command action.
  */
 async function workAction(options: WorkOptions): Promise<void> {
-  const maxIterations = options.maxIterations ?? 50;
+  // Use config default (25) if not specified
+  const maxIterations = options.maxIterations ?? DEFAULT_WORK.maxIterations;
+
+  // Warn if max iterations is very high (potential runaway)
+  if (maxIterations > 50) {
+    console.log();
+    console.log(amber(`  ${INFO} High iteration limit (${maxIterations}). Consider using ${RECOMMENDED_MAX_ITERATIONS} for safety.`));
+    console.log(muted('     High limits can lead to runaway loops on impossible tasks.'));
+  }
 
   // Check if initialized
   if (!(await isRalphProject())) {
@@ -664,8 +673,8 @@ async function workAction(options: WorkOptions): Promise<void> {
 export function createWorkCommand(): Command<any> {
   return new Command()
     .description('Run the autonomous build loop (implements tasks one by one)')
-    .option('-n, --max-iterations <count:number>', 'Maximum iterations before stopping', {
-      default: 50,
+    .option('-n, --max-iterations <count:number>', 'Maximum iterations before stopping (default: 25 for safety)', {
+      default: DEFAULT_WORK.maxIterations,
     })
     .option('--dry-run', 'Show what would happen without running')
     .option('--vibe', 'Vibe mode (no effect on work - already the last step)')

@@ -86,14 +86,23 @@ export const DEFAULT_PATHS: PathsConfig = {
 
 /**
  * Default work loop settings.
+ *
+ * maxIterations: 25 is the recommended safety limit to prevent infinite loops
+ * on impossible tasks. Users can increase if needed, but should always have a limit.
  */
 export const DEFAULT_WORK: WorkConfig = {
   model: 'opus',
-  maxIterations: 50,
+  maxIterations: 25,
   autoPush: true,
   stopOnFailure: false,
   cooldown: 5,
 };
+
+/**
+ * Recommended max iterations for safety.
+ * This prevents infinite loops on impossible tasks.
+ */
+export const RECOMMENDED_MAX_ITERATIONS = 25;
 
 /**
  * Valid model values.
