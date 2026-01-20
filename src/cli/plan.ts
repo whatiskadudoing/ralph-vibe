@@ -10,9 +10,10 @@
 import { Command } from '@cliffy/command';
 import { amber, dim, error, muted } from '@/ui/colors.ts';
 import { CROSS, INFO } from '@/ui/symbols.ts';
-import { isRalphProject, readConfig } from '@/services/project_service.ts';
+import { readConfig } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { exists, getPlanPath, getPlanPromptPath, getSpecsDir } from '@/services/file_service.ts';
+import { exists } from '@/services/file_service.ts';
+import { resolvePaths } from '@/services/path_resolver.ts';
 import { getTerminalWidth, runAndRender } from '@/ui/claude_renderer.ts';
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
@@ -37,16 +38,15 @@ import {
 
 /**
  * Checks if there are any spec files in the specs directory.
+ * Uses paths from config.
  */
-async function hasSpecs(cwd?: string): Promise<boolean> {
-  const specsDir = getSpecsDir(cwd);
-
-  if (!(await exists(specsDir))) {
+async function hasSpecs(paths: { specs: string }): Promise<boolean> {
+  if (!(await exists(paths.specs))) {
     return false;
   }
 
   // Check for any .md files (excluding .gitkeep)
-  for await (const entry of Deno.readDir(specsDir)) {
+  for await (const entry of Deno.readDir(paths.specs)) {
     if (entry.isFile && entry.name.endsWith('.md')) {
       return true;
     }
@@ -57,10 +57,10 @@ async function hasSpecs(cwd?: string): Promise<boolean> {
 
 /**
  * Checks if implementation plan already exists.
+ * Uses paths from config.
  */
-async function hasPlan(cwd?: string): Promise<boolean> {
-  const planPath = getPlanPath(cwd);
-  return await exists(planPath);
+async function hasPlan(paths: { plan: string }): Promise<boolean> {
+  return await exists(paths.plan);
 }
 
 // ============================================================================
@@ -68,12 +68,12 @@ async function hasPlan(cwd?: string): Promise<boolean> {
 // ============================================================================
 
 /**
- * Reads the planning prompt from the project's PROMPT_plan.md file.
+ * Reads the planning prompt from the project's configured plan prompt file.
+ * Path is resolved from .ralph.json config.
  */
-async function readPlanPrompt(): Promise<string | null> {
-  const promptPath = getPlanPromptPath();
+async function readPlanPrompt(paths: { planPrompt: string }): Promise<string | null> {
   try {
-    return await Deno.readTextFile(promptPath);
+    return await Deno.readTextFile(paths.planPrompt);
   } catch {
     return null;
   }
@@ -85,16 +85,17 @@ async function readPlanPrompt(): Promise<string | null> {
  */
 const runPlan = async (
   model: 'opus' | 'sonnet',
+  paths: { planPrompt: string },
 ): Promise<{ success: boolean; usage: { before: number | null; after: number | null } }> => {
   const usageBefore = await getSubscriptionUsage();
   const beforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
 
-  // Read prompt from project's PROMPT_plan.md
-  const prompt = await readPlanPrompt();
+  // Read prompt from project's configured plan prompt file
+  const prompt = await readPlanPrompt(paths);
   if (!prompt) {
     console.log(errorBox({
-      title: 'PROMPT_plan.md not found',
-      description: 'Run `ralph init` to create the prompt file.',
+      title: 'Plan prompt file not found',
+      description: `Expected: ${paths.planPrompt}\nRun \`ralph init\` to create the prompt file.`,
     }));
     return { success: false, usage: { before: beforeVal, after: null } };
   }
@@ -156,8 +157,11 @@ async function planAction(options: PlanOptions): Promise<void> {
     ]);
   }
 
-  // Check if initialized
-  if (!(await isRalphProject())) {
+  // Resolve paths from config (finds nearest .ralph.json)
+  let paths;
+  try {
+    paths = await resolvePaths();
+  } catch {
     console.log(error(`${CROSS} Not a Ralph project.`));
     console.log(muted('  Run `ralph init` first to initialize.'));
     Deno.exit(1);
@@ -171,7 +175,7 @@ async function planAction(options: PlanOptions): Promise<void> {
   }
 
   // Check for specs
-  if (!(await hasSpecs())) {
+  if (!(await hasSpecs(paths))) {
     console.log();
     console.log(infoBox({
       title: 'No specs found',
@@ -215,7 +219,7 @@ async function planAction(options: PlanOptions): Promise<void> {
   console.log();
 
   // Check if plan already exists
-  if (await hasPlan()) {
+  if (await hasPlan(paths)) {
     const termWidth = getTerminalWidth();
     console.log(createBox(
       `${dim(INFO)} Existing plan found - will regenerate from current specs`,
@@ -225,7 +229,7 @@ async function planAction(options: PlanOptions): Promise<void> {
   }
 
   // Run planning
-  const result = await runPlan(model);
+  const result = await runPlan(model, paths);
 
   console.log();
 

@@ -14,7 +14,6 @@ import { withSpinner } from '@/ui/spinner.ts';
 import {
   createProjectFiles,
   getProjectFiles,
-  initProject,
   isRalphProject,
   type ProjectFile,
 } from '@/services/project_service.ts';

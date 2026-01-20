@@ -20,9 +20,9 @@ import {
 } from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { assessComplexity } from '@/core/complexity.ts';
-import { exists, getBuildPromptPath, getPlanPath, readTextFile } from '@/services/file_service.ts';
+import { exists, readTextFile } from '@/services/file_service.ts';
+import { resolvePaths } from '@/services/path_resolver.ts';
 import {
-  formatUsageStats,
   getTerminalWidth,
   renderError,
   renderInfo,
@@ -32,18 +32,19 @@ import {
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, detailBox } from '@/ui/components.ts';
-import { formatSessionSummary, SessionTracker } from '@/services/session_tracker.ts';
+import { SessionTracker } from '@/services/session_tracker.ts';
 
 // ============================================================================
 // Prompt Reading
 // ============================================================================
 
 /**
- * Reads the build prompt from the project's PROMPT_build.md file.
+ * Reads the build prompt from the project's configured build prompt file.
+ * Path is resolved from .ralph.json config.
  */
 async function readBuildPrompt(): Promise<string | null> {
-  const promptPath = getBuildPromptPath();
-  const result = await readTextFile(promptPath);
+  const paths = await resolvePaths();
+  const result = await readTextFile(paths.buildPrompt);
   if (!result.ok) {
     return null;
   }
@@ -154,8 +155,8 @@ interface PhaseInfo {
  * 3. Fall back to first unchecked task in sequential flow
  */
 const getNextTaskFromPlan = async (): Promise<NextTask | null> => {
-  const planPath = getPlanPath();
-  const result = await readTextFile(planPath);
+  const paths = await resolvePaths();
+  const result = await readTextFile(paths.plan);
   if (!result.ok) return null;
 
   const lines = result.value.split('\n');
@@ -501,7 +502,9 @@ const COMPLETION_MESSAGES = [
  */
 const getCompletionMessage = () => {
   const idx = Math.floor(Math.random() * COMPLETION_MESSAGES.length);
-  return COMPLETION_MESSAGES[idx] ?? COMPLETION_MESSAGES[0]!;
+  const message = COMPLETION_MESSAGES[idx];
+  // Use default message if somehow out of bounds
+  return message ?? { icon: '🎉', title: 'All done!', subtitle: 'Work complete.' };
 };
 
 /**
@@ -978,8 +981,8 @@ async function workAction(options: WorkOptions): Promise<void> {
   }
 
   // Check for implementation plan
-  const planPath = getPlanPath();
-  if (!(await exists(planPath))) {
+  const paths = await resolvePaths();
+  if (!(await exists(paths.plan))) {
     console.log(error(`${CROSS} No implementation plan found.`));
     console.log(muted('  Run `ralph plan` first to generate a plan.'));
     Deno.exit(1);
@@ -1004,10 +1007,9 @@ async function workAction(options: WorkOptions): Promise<void> {
     const nextTask = await getNextTaskFromPlan();
 
     // Check for specs (would enable fork mode)
-    const specsDir = `${Deno.cwd()}/specs`;
-    let specFiles: string[] = [];
+    const specFiles: string[] = [];
     try {
-      for await (const entry of Deno.readDir(specsDir)) {
+      for await (const entry of Deno.readDir(paths.specs)) {
         if (entry.isFile && entry.name.endsWith('.md')) {
           specFiles.push(entry.name);
         }
@@ -1040,7 +1042,7 @@ async function workAction(options: WorkOptions): Promise<void> {
       '',
       `${bold('Next task:')}   ${taskDisplay}`,
       '',
-      `${bold('Plan:')}        ${dim(planPath)}`,
+      `${bold('Plan:')}        ${dim(paths.plan)}`,
     ];
 
     if (specFiles.length > 0) {

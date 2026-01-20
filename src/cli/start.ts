@@ -10,20 +10,14 @@
 import { Command } from '@cliffy/command';
 import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
 import { CHECK, CROSS } from '@/ui/symbols.ts';
-import { isRalphProject } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, errorBox } from '@/ui/components.ts';
 import { createBox } from '@/ui/box.ts';
 import { getTerminalWidth } from '@/ui/claude_renderer.ts';
-import {
-  exists,
-  getAudienceJtbdPath,
-  getAudiencePromptPath,
-  getStartPromptPath,
-  readTextFile,
-} from '@/services/file_service.ts';
+import { exists, readTextFile } from '@/services/file_service.ts';
+import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
 import {
   continueVibeFlow,
   enableVibeMode,
@@ -37,11 +31,10 @@ import {
 // ============================================================================
 
 /**
- * Reads the audience prompt from the project's PROMPT_audience.md file.
+ * Reads the audience prompt from the project's configured audience prompt file.
  */
-async function readAudiencePrompt(): Promise<string | null> {
-  const promptPath = getAudiencePromptPath();
-  const result = await readTextFile(promptPath);
+async function readAudiencePrompt(paths: ResolvedPaths): Promise<string | null> {
+  const result = await readTextFile(paths.audiencePrompt);
   if (!result.ok) {
     return null;
   }
@@ -49,11 +42,10 @@ async function readAudiencePrompt(): Promise<string | null> {
 }
 
 /**
- * Reads the start prompt from the project's PROMPT_start.md file.
+ * Reads the start prompt from the project's configured start prompt file.
  */
-async function readStartPrompt(): Promise<string | null> {
-  const promptPath = getStartPromptPath();
-  const result = await readTextFile(promptPath);
+async function readStartPrompt(paths: ResolvedPaths): Promise<string | null> {
+  const result = await readTextFile(paths.startPrompt);
   if (!result.ok) {
     return null;
   }
@@ -68,14 +60,12 @@ async function readStartPrompt(): Promise<string | null> {
  * Checks if AUDIENCE_JTBD.md has been populated (not just the template).
  * Returns true if audience discovery has been done.
  */
-async function hasAudienceDiscovery(): Promise<boolean> {
-  const audiencePath = getAudienceJtbdPath();
-
-  if (!(await exists(audiencePath))) {
+async function hasAudienceDiscovery(paths: ResolvedPaths): Promise<boolean> {
+  if (!(await exists(paths.audienceJtbd))) {
     return false;
   }
 
-  const result = await readTextFile(audiencePath);
+  const result = await readTextFile(paths.audienceJtbd);
   if (!result.ok) {
     return false;
   }
@@ -186,8 +176,11 @@ async function startAction(options: StartOptions): Promise<void> {
     ]);
   }
 
-  // Check if initialized
-  if (!(await isRalphProject())) {
+  // Resolve paths from config (finds nearest .ralph.json)
+  let paths;
+  try {
+    paths = await resolvePaths();
+  } catch {
     console.log(error(`${CROSS} Not a Ralph project.`));
     console.log(muted('  Run `ralph init` first to initialize.'));
     Deno.exit(1);
@@ -205,7 +198,7 @@ async function startAction(options: StartOptions): Promise<void> {
   const termWidth = getTerminalWidth();
 
   // Check if audience discovery is needed
-  const hasAudience = options.skipAudience || (await hasAudienceDiscovery());
+  const hasAudience = options.skipAudience || (await hasAudienceDiscovery(paths));
 
   if (!hasAudience) {
     // Show header for audience interview
@@ -239,11 +232,11 @@ async function startAction(options: StartOptions): Promise<void> {
     console.log();
 
     // Run audience interview - read prompt from project file
-    const audiencePrompt = await readAudiencePrompt();
+    const audiencePrompt = await readAudiencePrompt(paths);
     if (!audiencePrompt) {
       console.log(errorBox({
-        title: 'PROMPT_audience.md not found',
-        description: 'Run `ralph init` to create the prompt file.',
+        title: 'Audience prompt file not found',
+        description: `Expected: ${paths.audiencePrompt}\nRun \`ralph init\` to create the prompt file.`,
       }));
       Deno.exit(1);
     }
@@ -309,11 +302,11 @@ async function startAction(options: StartOptions): Promise<void> {
   console.log();
 
   // Get the start prompt from project file and run spec interview
-  const prompt = await readStartPrompt();
+  const prompt = await readStartPrompt(paths);
   if (!prompt) {
     console.log(errorBox({
-      title: 'PROMPT_start.md not found',
-      description: 'Run `ralph init` to create the prompt file.',
+      title: 'Start prompt file not found',
+      description: `Expected: ${paths.startPrompt}\nRun \`ralph init\` to create the prompt file.`,
     }));
     Deno.exit(1);
   }

@@ -32,8 +32,12 @@ export interface PathsConfig {
   readonly specs: string;
   readonly plan: string;
   readonly agents: string;
+  readonly audienceJtbd: string;
   readonly buildPrompt: string;
   readonly planPrompt: string;
+  readonly startPrompt: string;
+  readonly specPrompt: string;
+  readonly audiencePrompt: string;
 }
 
 /**
@@ -80,8 +84,12 @@ export const DEFAULT_PATHS: PathsConfig = {
   specs: 'specs',
   plan: 'IMPLEMENTATION_PLAN.md',
   agents: 'AGENTS.md',
+  audienceJtbd: 'AUDIENCE_JTBD.md',
   buildPrompt: 'PROMPT_build.md',
   planPrompt: 'PROMPT_plan.md',
+  startPrompt: 'PROMPT_start.md',
+  specPrompt: 'PROMPT_spec.md',
+  audiencePrompt: 'PROMPT_audience.md',
 };
 
 /**
@@ -159,7 +167,17 @@ export function validateConfig(config: unknown): readonly ValidationError[] {
     errors.push({ path: 'paths', message: 'Paths must be an object' });
   } else {
     const paths = c.paths as Record<string, unknown>;
-    const requiredPaths = ['specs', 'plan', 'agents', 'buildPrompt', 'planPrompt'];
+    const requiredPaths = [
+      'specs',
+      'plan',
+      'agents',
+      'audienceJtbd',
+      'buildPrompt',
+      'planPrompt',
+      'startPrompt',
+      'specPrompt',
+      'audiencePrompt',
+    ];
     for (const key of requiredPaths) {
       if (typeof paths[key] !== 'string') {
         errors.push({ path: `paths.${key}`, message: `paths.${key} must be a string` });

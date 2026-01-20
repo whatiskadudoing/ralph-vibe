@@ -10,9 +10,9 @@
 import { Command } from '@cliffy/command';
 import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
 import { CHECK, CROSS } from '@/ui/symbols.ts';
-import { isRalphProject } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { getSpecPromptPath, readTextFile } from '@/services/file_service.ts';
+import { readTextFile } from '@/services/file_service.ts';
+import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, errorBox } from '@/ui/components.ts';
@@ -31,12 +31,11 @@ import {
 // ============================================================================
 
 /**
- * Reads the spec prompt from the project's PROMPT_spec.md file.
+ * Reads the spec prompt from the project's configured spec prompt file.
  * If a feature hint is provided, it's prepended to help start the interview.
  */
-async function readSpecPrompt(featureHint?: string): Promise<string | null> {
-  const promptPath = getSpecPromptPath();
-  const result = await readTextFile(promptPath);
+async function readSpecPrompt(paths: ResolvedPaths, featureHint?: string): Promise<string | null> {
+  const result = await readTextFile(paths.specPrompt);
   if (!result.ok) {
     return null;
   }
@@ -83,8 +82,11 @@ async function specAction(options: SpecOptions): Promise<void> {
     ]);
   }
 
-  // Check if initialized
-  if (!(await isRalphProject())) {
+  // Resolve paths from config (finds nearest .ralph.json)
+  let paths;
+  try {
+    paths = await resolvePaths();
+  } catch {
     console.log(error(`${CROSS} Not a Ralph project.`));
     console.log(muted('  Run `ralph init` first to initialize.'));
     Deno.exit(1);
@@ -136,12 +138,12 @@ async function specAction(options: SpecOptions): Promise<void> {
   console.log();
 
   // Get the spec interview prompt from project file
-  const prompt = await readSpecPrompt(options.feature);
+  const prompt = await readSpecPrompt(paths, options.feature);
 
   if (!prompt) {
     console.log(errorBox({
-      title: 'PROMPT_spec.md not found',
-      description: 'Run `ralph init` to create the prompt file.',
+      title: 'Spec prompt file not found',
+      description: `Expected: ${paths.specPrompt}\nRun \`ralph init\` to create the prompt file.`,
     }));
     Deno.exit(1);
   }
