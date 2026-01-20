@@ -56,6 +56,10 @@ export interface UsageStats {
   readonly inputTokens?: number;
   /** Output tokens used. */
   readonly outputTokens?: number;
+  /** Cache read tokens (prompt caching). */
+  readonly cacheReadTokens?: number;
+  /** Cache write tokens (prompt caching). */
+  readonly cacheWriteTokens?: number;
   /** Total cost in dollars (estimated). */
   readonly costUsd?: number;
   /** Duration in seconds. */
@@ -504,6 +508,10 @@ function extractUsage(
   const inputTokens = usage?.input_tokens ?? resultUsage?.input_tokens;
   const outputTokens = usage?.output_tokens ?? resultUsage?.output_tokens;
 
+  // Cache tokens (from Anthropic API prompt caching)
+  const cacheReadTokens = usage?.cache_read_input_tokens ?? resultUsage?.cache_read_input_tokens;
+  const cacheWriteTokens = usage?.cache_creation_input_tokens ?? resultUsage?.cache_creation_input_tokens;
+
   // Estimate cost (Opus pricing: $15/M input, $75/M output as of 2024)
   let costUsd: number | undefined;
   if (inputTokens !== undefined && outputTokens !== undefined) {
@@ -513,6 +521,8 @@ function extractUsage(
   return {
     inputTokens,
     outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
     costUsd,
     durationSec: stats.elapsed,
     operations: stats.total,
@@ -709,12 +719,13 @@ class BoxedIterationRenderer {
     const taskLine = dim(truncate(this.task, contentWidth));
     this.renderContentLine(taskLine, contentWidth);
 
-    // Line 3: Empty line
-    this.renderContentLine('', contentWidth);
+    // Line 3: Stats line (model, ops, time)
+    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+    const statsLine = this.formatStatsLine(elapsed);
+    this.renderContentLine(statsLine, contentWidth);
 
     // Line 4: Spinner line
     const frame = orange(SPINNER_DOTS[this.frameIndex] ?? '◆');
-    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
     const time = elapsed > 0 ? dim(` (${elapsed}s)`) : '';
     const maxStatusLen = contentWidth - 12; // Leave room for spinner and time
     const spinnerLine = `${frame} ${truncate(this.status, maxStatusLen)}${time}`;
@@ -791,6 +802,46 @@ class BoxedIterationRenderer {
       default:
         return '▸';
     }
+  }
+
+  private formatStatsLine(elapsed: number): string {
+    const parts: string[] = [];
+
+    // Model
+    parts.push(`${dim('model:')} ${amber(this.mainModel)}`);
+
+    // Operations count
+    parts.push(`${dim('ops:')} ${this.totalTools}`);
+
+    // Time
+    if (elapsed > 0) {
+      parts.push(`${dim('time:')} ${this.formatTime(elapsed)}`);
+    }
+
+    // Model breakdown if subagents used
+    const mainModelOps = this.opsByModel[this.mainModel as 'opus' | 'sonnet' | 'haiku'] || 0;
+    const subagentOps = this.totalTools - mainModelOps;
+    if (subagentOps > 0) {
+      const breakdown: string[] = [];
+      if (this.opsByModel.opus > 0 && this.mainModel !== 'opus') {
+        breakdown.push(`opus:${this.opsByModel.opus}`);
+      }
+      if (this.opsByModel.sonnet > 0 && this.mainModel !== 'sonnet') {
+        breakdown.push(`sonnet:${this.opsByModel.sonnet}`);
+      }
+      if (breakdown.length > 0) {
+        parts.push(`${dim('subagents:')} ${breakdown.join(' ')}`);
+      }
+    }
+
+    return parts.join('  ·  ');
+  }
+
+  private formatTime(seconds: number): string {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m${secs}s`;
   }
 
   stop(): void {

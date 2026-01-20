@@ -33,6 +33,7 @@ import {
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, detailBox } from '@/ui/components.ts';
+import { formatSessionSummary, SessionTracker } from '@/services/session_tracker.ts';
 
 // ============================================================================
 // Types
@@ -578,6 +579,12 @@ const buildLoop = async (
     console.log();
   }
 
+  // Initialize session tracker for detailed stats
+  const sessionTracker = new SessionTracker(
+    baseSession !== null,
+    baseSession?.specs.length ?? 0,
+  );
+
   while (sessionStats.totalIterations < maxIterations) {
     sessionStats.totalIterations++;
     const iteration = sessionStats.totalIterations;
@@ -621,6 +628,20 @@ const buildLoop = async (
     sessionStats.totalDurationSec += result.usage.durationSec;
     sessionStats.totalInputTokens += result.usage.inputTokens ?? 0;
     sessionStats.totalOutputTokens += result.usage.outputTokens ?? 0;
+
+    // Record iteration to session tracker
+    await sessionTracker.recordIteration({
+      iteration,
+      task: result.status?.task ?? 'Unknown task',
+      model: result.modelUsed,
+      durationSec: result.usage.durationSec,
+      operations: result.usage.operations,
+      inputTokens: result.usage.inputTokens ?? 0,
+      outputTokens: result.usage.outputTokens ?? 0,
+      cacheReadTokens: result.usage.cacheReadTokens,
+      cacheWriteTokens: result.usage.cacheWriteTokens,
+      success: result.success,
+    });
 
     if (!result.success) {
       // Show error summary box
