@@ -623,6 +623,10 @@ class BoxedIterationRenderer {
   private totalTools = 0;
   private initialized = false;
 
+  // Capture dimensions at start to prevent resize corruption
+  private boxWidth = 0;
+  private contentWidth = 0;
+
   // Track operations by model
   private opsByModel = {
     opus: 0,
@@ -661,6 +665,10 @@ class BoxedIterationRenderer {
     this.recentTools = [];
     this.totalTools = 0;
     this.initialized = false;
+
+    // Capture dimensions once at start to prevent resize corruption
+    this.boxWidth = getBoxWidth();
+    this.contentWidth = this.boxWidth - 4; // Account for borders and padding
 
     // Allocate fixed space
     for (let i = 0; i < this.fixedHeight; i++) {
@@ -701,84 +709,81 @@ class BoxedIterationRenderer {
     if (!this.initialized) return;
 
     const bc = this.borderColor;
-    const boxWidth = getBoxWidth();
-    const contentWidth = getContentWidth();
 
     // Move cursor to top of our render area
     Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
 
     // Line 0: Top border
-    const topBorder = bc(BOX.topLeft + BOX.horizontal.repeat(boxWidth - 2) + BOX.topRight);
+    const topBorder = bc(BOX.topLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.topRight);
     Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${topBorder}\n`));
 
     // Line 1: [#N] Title
     const titleLine = `${amber(`[#${this.iteration}]`)} ${
-      bold(truncate(this.title, contentWidth - 6))
+      bold(truncate(this.title, this.contentWidth - 6))
     }`;
-    this.renderContentLine(titleLine, contentWidth);
+    this.renderContentLine(titleLine);
 
     // Line 2: Task description
-    const taskLine = dim(truncate(this.task, contentWidth));
-    this.renderContentLine(taskLine, contentWidth);
+    const taskLine = dim(truncate(this.task, this.contentWidth));
+    this.renderContentLine(taskLine);
 
     // Line 3: Stats line (model, ops, time)
     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
     const statsLine = this.formatStatsLine(elapsed);
-    this.renderContentLine(statsLine, contentWidth);
+    this.renderContentLine(statsLine);
 
     // Line 4: Spinner line
     const frame = orange(SPINNER_DOTS[this.frameIndex] ?? '◆');
     const time = elapsed > 0 ? dim(` (${elapsed}s)`) : '';
-    const maxStatusLen = contentWidth - 12; // Leave room for spinner and time
+    const maxStatusLen = this.contentWidth - 12; // Leave room for spinner and time
     const spinnerLine = `${frame} ${truncate(this.status, maxStatusLen)}${time}`;
-    this.renderContentLine(spinnerLine, contentWidth);
+    this.renderContentLine(spinnerLine);
 
     // Line 5: Separator
-    this.renderContentLine(dim('│'), contentWidth);
+    this.renderContentLine(dim('│'));
 
     // Lines 6-11: Tool slots
     for (let i = 0; i < 6; i++) {
       const tool = this.recentTools[i];
       if (tool) {
-        const formatted = this.formatTool(tool, contentWidth);
-        this.renderContentLine(`${dim('│')}  ${formatted}`, contentWidth);
+        const formatted = this.formatTool(tool);
+        this.renderContentLine(`${dim('│')}  ${formatted}`);
       } else {
-        this.renderContentLine(dim('│'), contentWidth);
+        this.renderContentLine(dim('│'));
       }
     }
 
     // Line 12: Bottom border
-    const bottomBorder = bc(BOX.bottomLeft + BOX.horizontal.repeat(boxWidth - 2) + BOX.bottomRight);
+    const bottomBorder = bc(BOX.bottomLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.bottomRight);
     Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${bottomBorder}\n`));
   }
 
-  private renderContentLine(content: string, contentWidth: number): void {
+  private renderContentLine(content: string): void {
     const bc = this.borderColor;
-    const boxWidth = getBoxWidth();
 
     // Truncate content if too long, then pad to exact width
     const visLen = visibleLength(content);
     let finalContent = content;
-    if (visLen > contentWidth) {
+    if (visLen > this.contentWidth) {
       // Need to truncate - this is tricky with ANSI codes
-      finalContent = truncate(content, contentWidth);
+      finalContent = truncate(content, this.contentWidth);
     }
     const finalVisLen = visibleLength(finalContent);
-    const padding = ' '.repeat(Math.max(0, contentWidth - finalVisLen));
+    const padding = ' '.repeat(Math.max(0, this.contentWidth - finalVisLen));
 
     // Use cursor positioning to ensure right border is always in correct place
     // Clear line, write content, then position cursor at end for right border
     const leftPart = `${bc(BOX.vertical)} ${finalContent}${padding} `;
     Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${leftPart}`));
     // Move to column boxWidth and write right border
-    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${boxWidth}G${bc(BOX.vertical)}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.boxWidth}G${bc(BOX.vertical)}\n`));
   }
 
-  private formatTool(toolDisplay: string, contentWidth: number): string {
+  private formatTool(toolDisplay: string): string {
     const [toolName, ...rest] = toolDisplay.split(': ');
     const detail = rest.join(': ');
     const icon = this.getIcon(toolName ?? '');
-    const maxDetailLen = contentWidth - 20; // Leave room for icon, tool name, padding
+    const maxDetailLen = this.contentWidth - 20; // Leave room for icon, tool name, padding
 
     if (detail) {
       return `${amber(icon)} ${dim(toolName + ':')} ${muted(truncate(detail, maxDetailLen))}`;
