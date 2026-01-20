@@ -219,16 +219,16 @@ export function formatToolUse(toolUse: ToolUse): string {
   switch (name) {
     case 'Read': {
       const path = input.file_path as string | undefined;
-      return path ? `Read: ${getFileName(path)}` : 'Read';
+      return path ? `Read: ${formatPath(path)}` : 'Read';
     }
     case 'Edit':
     case 'Write': {
       const path = input.file_path as string | undefined;
-      return path ? `${name}: ${getFileName(path)}` : name;
+      return path ? `${name}: ${formatPath(path)}` : name;
     }
     case 'Bash': {
       const cmd = input.command as string | undefined;
-      return cmd ? `Bash: ${truncate(cmd, 40)}` : 'Bash';
+      return cmd ? `Bash: ${formatBashCommand(cmd)}` : 'Bash';
     }
     case 'Glob': {
       const pattern = input.pattern as string | undefined;
@@ -252,6 +252,37 @@ export function formatToolUse(toolUse: ToolUse): string {
  */
 function getFileName(path: string): string {
   return path.split('/').pop() ?? path;
+}
+
+/**
+ * Formats a path for display - converts absolute paths to relative.
+ */
+function formatPath(path: string): string {
+  const cwd = Deno.cwd();
+  if (path.startsWith(cwd + '/')) {
+    return path.slice(cwd.length + 1); // Remove cwd prefix + slash
+  }
+  if (path.startsWith(cwd)) {
+    return path.slice(cwd.length);
+  }
+  // For paths outside cwd, show just filename
+  return getFileName(path);
+}
+
+/**
+ * Formats a bash command for display - makes paths relative.
+ */
+function formatBashCommand(cmd: string): string {
+  const cwd = Deno.cwd();
+  // Replace absolute cwd paths with relative ones
+  let formatted = cmd.replace(new RegExp(cwd + '/', 'g'), '');
+  formatted = formatted.replace(new RegExp(cwd, 'g'), '.');
+  // Also handle common home directory paths
+  const home = Deno.env.get('HOME');
+  if (home && formatted.includes(home)) {
+    formatted = formatted.replace(new RegExp(home, 'g'), '~');
+  }
+  return truncate(formatted, 45);
 }
 
 /**

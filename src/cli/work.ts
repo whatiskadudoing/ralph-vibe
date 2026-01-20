@@ -32,7 +32,7 @@ import {
 } from '@/ui/claude_renderer.ts';
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
-import { commandHeader } from '@/ui/components.ts';
+import { commandHeader, detailBox } from '@/ui/components.ts';
 
 // ============================================================================
 // Types
@@ -490,34 +490,26 @@ const createGitTag = async (termWidth: number): Promise<void> => {
  * Renders the cached context box with vibe icons.
  */
 const renderCachedContextBox = (context: BaseSessionContext): void => {
-  const termWidth = getTerminalWidth();
+  const specItems = context.specs.length > 0
+    ? context.specs.map((s) => `specs/${s}`)
+    : ['(none)'];
 
-  const lines = [
-    `${cyan('🍺')} ${bold('Context Cached')} ${dim('— forking enabled')}`,
-    '',
-    `${dim('Cached specs:')}`,
-  ];
-
-  // Show specs as bullet list
-  if (context.specs.length > 0) {
-    for (const spec of context.specs) {
-      lines.push(`  ${cyan('•')} ${dim(`specs/${spec}`)}`);
-    }
-  } else {
-    lines.push(`  ${dim('(none)')}`);
-  }
-
-  lines.push('');
-  lines.push(`${dim('Fresh each iteration:')} IMPLEMENTATION_PLAN.md, AGENTS.md`);
-  lines.push('');
-  lines.push(dim('If specs change mid-session, cache auto-refreshes.'));
-
-  console.log(createBox(lines.join('\n'), {
-    style: 'rounded',
-    padding: 1,
-    paddingY: 0,
+  console.log(detailBox({
+    icon: '🍺',
+    title: 'Context Cached',
+    subtitle: 'forking enabled',
+    sections: [
+      {
+        label: 'Cached specs:',
+        items: specItems,
+      },
+      {
+        label: 'Fresh each iteration:',
+        items: ['IMPLEMENTATION_PLAN.md', 'AGENTS.md'],
+      },
+    ],
+    footer: 'If specs change mid-session, cache auto-refreshes.',
     borderColor: cyan,
-    minWidth: termWidth - 6,
   }));
   console.log();
 };
@@ -526,21 +518,18 @@ const renderCachedContextBox = (context: BaseSessionContext): void => {
  * Renders a notification that specs changed and cache was refreshed.
  */
 const renderCacheRefreshBox = (context: BaseSessionContext): void => {
-  const termWidth = getTerminalWidth();
-
-  const lines = [
-    `${amber('🔄')} ${bold('Specs Modified')} ${dim('— refreshing cache')}`,
-    '',
-    `${dim('📚')} Updated specs: ${cyan(context.specs.length.toString())} files`,
-    dim('New base session created with fresh specs'),
-  ];
-
-  console.log(createBox(lines.join('\n'), {
-    style: 'rounded',
-    padding: 1,
-    paddingY: 0,
+  console.log(detailBox({
+    icon: '🔄',
+    title: 'Specs Modified',
+    subtitle: 'cache refreshed',
+    sections: [
+      {
+        label: 'Updated specs:',
+        items: context.specs.map((s) => `specs/${s}`),
+      },
+    ],
+    footer: 'New base session created with fresh specs.',
     borderColor: amber,
-    minWidth: termWidth - 6,
   }));
   console.log();
 };

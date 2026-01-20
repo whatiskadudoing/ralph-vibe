@@ -254,3 +254,79 @@ export function checkSuccess(message: string, detail?: string): string {
 export function checkInfo(message: string, hint?: string): string {
   return hint ? `  ${amber(INFO)} ${message} ${dim(`(${hint})`)}` : `  ${amber(INFO)} ${message}`;
 }
+
+// ============================================================================
+// Detail Boxes (with bullet lists)
+// ============================================================================
+
+export interface DetailBoxOptions {
+  /** Icon emoji (e.g., "🍺", "🔄") */
+  readonly icon: string;
+  /** Main title text */
+  readonly title: string;
+  /** Subtitle shown after title (dimmed) */
+  readonly subtitle?: string;
+  /** Section with label and bullet items */
+  readonly sections?: DetailSection[];
+  /** Footer note (dimmed) */
+  readonly footer?: string;
+  /** Border color function (default: cyan) */
+  readonly borderColor?: (s: string) => string;
+}
+
+export interface DetailSection {
+  /** Section label (e.g., "Cached specs:") */
+  readonly label: string;
+  /** Items to show as bullet points */
+  readonly items: string[];
+  /** Color for bullets (default: cyan) */
+  readonly bulletColor?: (s: string) => string;
+}
+
+/**
+ * Creates a detail box with sections and bullet lists.
+ * Useful for showing cached context, configuration, etc.
+ */
+export function detailBox(options: DetailBoxOptions): string {
+  const termWidth = getTerminalWidth();
+  const borderColor = options.borderColor ?? cyan;
+  const bulletColor = cyan;
+
+  const lines: string[] = [];
+
+  // Title line
+  if (options.subtitle) {
+    lines.push(`${options.icon} ${bold(options.title)} ${dim(`— ${options.subtitle}`)}`);
+  } else {
+    lines.push(`${options.icon} ${bold(options.title)}`);
+  }
+
+  // Sections
+  if (options.sections) {
+    for (const section of options.sections) {
+      lines.push('');
+      lines.push(dim(section.label));
+      const sectionBullet = section.bulletColor ?? bulletColor;
+      for (const item of section.items) {
+        lines.push(`  ${sectionBullet('•')} ${dim(item)}`);
+      }
+    }
+  }
+
+  // Footer
+  if (options.footer) {
+    lines.push('');
+    lines.push(dim(options.footer));
+  }
+
+  return createBox(lines.join('\n'), {
+    style: 'rounded',
+    padding: 1,
+    paddingY: 0,
+    borderColor,
+    minWidth: termWidth - 6,
+  });
+}
+
+// Re-export cyan for use with detailBox
+import { cyan } from './colors.ts';
