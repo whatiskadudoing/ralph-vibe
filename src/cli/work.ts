@@ -19,9 +19,8 @@ import {
   isClaudeInstalled,
 } from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
-import { renderBuildPrompt, renderBuildPromptForked } from '@/core/templates.ts';
 import { assessComplexity } from '@/core/complexity.ts';
-import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
+import { exists, getBuildPromptPath, getPlanPath, readTextFile } from '@/services/file_service.ts';
 import {
   formatUsageStats,
   getTerminalWidth,
@@ -34,6 +33,22 @@ import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, detailBox } from '@/ui/components.ts';
 import { formatSessionSummary, SessionTracker } from '@/services/session_tracker.ts';
+
+// ============================================================================
+// Prompt Reading
+// ============================================================================
+
+/**
+ * Reads the build prompt from the project's PROMPT_build.md file.
+ */
+async function readBuildPrompt(): Promise<string | null> {
+  const promptPath = getBuildPromptPath();
+  const result = await readTextFile(promptPath);
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
 
 // ============================================================================
 // Types
@@ -252,8 +267,17 @@ const runIteration = async (
     model = modelMode;
   }
 
-  // Use slimmer prompt if we have a base session (specs already cached)
-  const prompt = baseSession ? renderBuildPromptForked() : renderBuildPrompt();
+  // Read prompt from project's PROMPT_build.md
+  const prompt = await readBuildPrompt();
+  if (!prompt) {
+    return {
+      success: false,
+      status: null,
+      usage: { operations: 0, durationSec: 0, inputTokens: 0, outputTokens: 0 },
+      error: 'PROMPT_build.md not found. Run `ralph init` to create it.',
+      modelUsed: model,
+    };
+  }
 
   // Run Claude with progress displayed inside an orange-bordered box
   // If base session exists, fork from it for prompt caching benefits

@@ -12,13 +12,18 @@ import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
 import { CHECK, CROSS } from '@/ui/symbols.ts';
 import { isRalphProject } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { renderAudiencePrompt, renderStartPrompt } from '@/core/templates.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, errorBox } from '@/ui/components.ts';
 import { createBox } from '@/ui/box.ts';
 import { getTerminalWidth } from '@/ui/claude_renderer.ts';
-import { exists, getAudienceJtbdPath, readTextFile } from '@/services/file_service.ts';
+import {
+  exists,
+  getAudienceJtbdPath,
+  getAudiencePromptPath,
+  getStartPromptPath,
+  readTextFile,
+} from '@/services/file_service.ts';
 import {
   continueVibeFlow,
   enableVibeMode,
@@ -26,6 +31,34 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
+
+// ============================================================================
+// Prompt Reading
+// ============================================================================
+
+/**
+ * Reads the audience prompt from the project's PROMPT_audience.md file.
+ */
+async function readAudiencePrompt(): Promise<string | null> {
+  const promptPath = getAudiencePromptPath();
+  const result = await readTextFile(promptPath);
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
+
+/**
+ * Reads the start prompt from the project's PROMPT_start.md file.
+ */
+async function readStartPrompt(): Promise<string | null> {
+  const promptPath = getStartPromptPath();
+  const result = await readTextFile(promptPath);
+  if (!result.ok) {
+    return null;
+  }
+  return result.value;
+}
 
 // ============================================================================
 // Helpers
@@ -205,8 +238,15 @@ async function startAction(options: StartOptions): Promise<void> {
     }));
     console.log();
 
-    // Run audience interview
-    const audiencePrompt = renderAudiencePrompt();
+    // Run audience interview - read prompt from project file
+    const audiencePrompt = await readAudiencePrompt();
+    if (!audiencePrompt) {
+      console.log(errorBox({
+        title: 'PROMPT_audience.md not found',
+        description: 'Run `ralph init` to create the prompt file.',
+      }));
+      Deno.exit(1);
+    }
     const audienceSuccess = await runInteractiveSession(audiencePrompt);
 
     if (!audienceSuccess) {
@@ -268,8 +308,15 @@ async function startAction(options: StartOptions): Promise<void> {
   }));
   console.log();
 
-  // Get the start prompt and run spec interview
-  const prompt = renderStartPrompt();
+  // Get the start prompt from project file and run spec interview
+  const prompt = await readStartPrompt();
+  if (!prompt) {
+    console.log(errorBox({
+      title: 'PROMPT_start.md not found',
+      description: 'Run `ralph init` to create the prompt file.',
+    }));
+    Deno.exit(1);
+  }
   const success = await runInteractiveSession(prompt);
 
   console.log();

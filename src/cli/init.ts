@@ -8,9 +8,16 @@
  */
 
 import { Command } from '@cliffy/command';
-import { amber, dim } from '@/ui/colors.ts';
+import { Checkbox } from '@cliffy/prompt';
+import { amber, dim, muted } from '@/ui/colors.ts';
 import { withSpinner } from '@/ui/spinner.ts';
-import { initProject, isRalphProject } from '@/services/project_service.ts';
+import {
+  createProjectFiles,
+  getProjectFiles,
+  initProject,
+  isRalphProject,
+  type ProjectFile,
+} from '@/services/project_service.ts';
 import { isGitRepo } from '@/services/git_service.ts';
 import { getClaudeVersion, isClaudeInstalled } from '@/services/claude_service.ts';
 import { getSubscriptionUsage } from '@/services/usage_service.ts';
@@ -19,6 +26,7 @@ import {
   checkSuccess,
   commandHeader,
   errorBox,
+  infoBox,
   prerequisiteHeader,
   successBox,
 } from '@/ui/components.ts';
@@ -79,15 +87,16 @@ async function initAction(options: InitOptions): Promise<void> {
   console.log(prerequisiteHeader());
   console.log();
 
-  // Check if already initialized
-  if (await isRalphProject()) {
-    console.log(errorBox({
-      title: 'Already initialized',
-      description: 'Ralph project already exists in this directory.',
-    }));
-    Deno.exit(1);
+  // Check if already initialized - but allow re-init with file selection
+  const projectFiles = await getProjectFiles();
+  const existingFiles = projectFiles.filter((f) => f.exists);
+  const isAlreadyInit = await isRalphProject();
+
+  if (isAlreadyInit && existingFiles.length > 0) {
+    console.log(checkInfo('Project already initialized', 'checking for updates'));
+  } else {
+    console.log(checkSuccess('Not already initialized'));
   }
-  console.log(checkSuccess('Not already initialized'));
 
   // Check git
   if (await isGitRepo()) {
@@ -112,9 +121,63 @@ async function initAction(options: InitOptions): Promise<void> {
 
   console.log();
 
-  // Initialize project
+  // Determine which files to create
+  let filesToCreate: Set<ProjectFile>;
+
+  if (isAlreadyInit && existingFiles.length > 0) {
+    // Project exists - show checkbox for files to overwrite
+    console.log(infoBox({
+      title: 'Existing files detected',
+      description: 'Select which files to overwrite (new files will be created automatically)',
+    }));
+    console.log();
+
+    // Separate existing and missing files
+    const missingFiles = projectFiles.filter((f) => !f.exists);
+
+    // Show checkbox for existing files
+    const selectedToOverwrite = await Checkbox.prompt({
+      message: 'Select files to overwrite:',
+      options: existingFiles.map((f) => ({
+        name: `${f.name} ${muted(`- ${f.description}`)}`,
+        value: f.key,
+        checked: false, // Default to not overwriting
+      })),
+    }) as ProjectFile[];
+
+    // Combine: selected existing files + all missing files
+    const missingFileKeys = missingFiles.map((f) => f.key);
+    filesToCreate = new Set<ProjectFile>([...selectedToOverwrite, ...missingFileKeys]);
+
+    if (filesToCreate.size === 0) {
+      console.log();
+      console.log(infoBox({
+        title: 'Nothing to do',
+        description: 'No files selected for update. All files already exist.',
+      }));
+      Deno.exit(0);
+    }
+
+    console.log();
+  } else {
+    // New project - create all files
+    filesToCreate = new Set<ProjectFile>([
+      'config',
+      'specs',
+      'agents',
+      'plan',
+      'audience_jtbd',
+      'prompt_build',
+      'prompt_plan',
+      'prompt_start',
+      'prompt_spec',
+      'prompt_audience',
+    ]);
+  }
+
+  // Initialize project with selected files
   const result = await withSpinner('Creating Ralph project...', async () => {
-    return await initProject();
+    return await createProjectFiles(filesToCreate);
   });
 
   if (!result.ok) {
@@ -125,31 +188,49 @@ async function initAction(options: InitOptions): Promise<void> {
     Deno.exit(1);
   }
 
+  // Build list of created/updated files
+  const createdFileDetails: string[] = [`${dim('Created/updated files:')}`];
+  if (filesToCreate.has('specs')) {
+    createdFileDetails.push(`  ${amber('specs/')}                 ${dim('Feature specifications')}`);
+  }
+  if (filesToCreate.has('audience_jtbd')) {
+    createdFileDetails.push(`  ${amber('AUDIENCE_JTBD.md')}       ${dim('Audience & jobs-to-be-done')}`);
+  }
+  if (filesToCreate.has('plan')) {
+    createdFileDetails.push(`  ${amber('IMPLEMENTATION_PLAN.md')} ${dim('Task checklist')}`);
+  }
+  if (filesToCreate.has('agents')) {
+    createdFileDetails.push(`  ${amber('AGENTS.md')}              ${dim('Build/test commands')}`);
+  }
+  if (filesToCreate.has('prompt_build')) {
+    createdFileDetails.push(`  ${dim('PROMPT_build.md')}         ${dim('Build instructions')}`);
+  }
+  if (filesToCreate.has('prompt_plan')) {
+    createdFileDetails.push(`  ${dim('PROMPT_plan.md')}          ${dim('Planning instructions')}`);
+  }
+  if (filesToCreate.has('prompt_start')) {
+    createdFileDetails.push(`  ${dim('PROMPT_start.md')}         ${dim('Start interview instructions')}`);
+  }
+  if (filesToCreate.has('prompt_spec')) {
+    createdFileDetails.push(`  ${dim('PROMPT_spec.md')}          ${dim('Spec interview instructions')}`);
+  }
+  if (filesToCreate.has('prompt_audience')) {
+    createdFileDetails.push(`  ${dim('PROMPT_audience.md')}      ${dim('Audience interview instructions')}`);
+  }
+  if (filesToCreate.has('config')) {
+    createdFileDetails.push(`  ${dim('.ralph.json')}             ${dim('Configuration')}`);
+  }
+
   // Success box (skip next steps in vibe mode - they'll be done automatically)
   if (isVibeMode()) {
     console.log(successBox({
       title: 'Project Initialized!',
-      details: [
-        `${dim('Created files:')}`,
-        `  ${amber('specs/')}                ${dim('Feature specifications')}`,
-        `  ${amber('AUDIENCE_JTBD.md')}      ${dim('Audience & jobs-to-be-done')}`,
-        `  ${amber('IMPLEMENTATION_PLAN.md')} ${dim('Task checklist')}`,
-        `  ${amber('AGENTS.md')}             ${dim('Build/test commands')}`,
-      ],
+      details: createdFileDetails,
     }));
   } else {
     console.log(successBox({
       title: 'Project Initialized!',
-      details: [
-        `${dim('Created files:')}`,
-        `  ${amber('specs/')}                ${dim('Feature specifications')}`,
-        `  ${amber('AUDIENCE_JTBD.md')}      ${dim('Audience & jobs-to-be-done')}`,
-        `  ${amber('IMPLEMENTATION_PLAN.md')} ${dim('Task checklist')}`,
-        `  ${amber('AGENTS.md')}             ${dim('Build/test commands')}`,
-        `  ${dim('PROMPT_build.md')}        ${dim('Build instructions')}`,
-        `  ${dim('PROMPT_plan.md')}         ${dim('Planning instructions')}`,
-        `  ${dim('.ralph.json')}            ${dim('Configuration')}`,
-      ],
+      details: createdFileDetails,
       nextSteps: [
         { text: 'Run', command: 'ralph start' },
         { text: 'Or write specs manually in', command: 'specs/' },

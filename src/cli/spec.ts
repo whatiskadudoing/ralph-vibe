@@ -12,7 +12,7 @@ import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
 import { CHECK, CROSS } from '@/ui/symbols.ts';
 import { isRalphProject } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { renderSpecInterviewPrompt } from '@/core/templates.ts';
+import { getSpecPromptPath, readTextFile } from '@/services/file_service.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { commandHeader, errorBox } from '@/ui/components.ts';
@@ -25,6 +25,31 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
+
+// ============================================================================
+// Prompt Reading
+// ============================================================================
+
+/**
+ * Reads the spec prompt from the project's PROMPT_spec.md file.
+ * If a feature hint is provided, it's prepended to help start the interview.
+ */
+async function readSpecPrompt(featureHint?: string): Promise<string | null> {
+  const promptPath = getSpecPromptPath();
+  const result = await readTextFile(promptPath);
+  if (!result.ok) {
+    return null;
+  }
+
+  let prompt = result.value;
+
+  // If a feature hint is provided, prepend it to the prompt
+  if (featureHint) {
+    prompt = `The user wants to add a new activity: "${featureHint}"\n\n${prompt}`;
+  }
+
+  return prompt;
+}
 
 // ============================================================================
 // Command
@@ -110,8 +135,16 @@ async function specAction(options: SpecOptions): Promise<void> {
   }));
   console.log();
 
-  // Get the spec interview prompt
-  const prompt = renderSpecInterviewPrompt(options.feature);
+  // Get the spec interview prompt from project file
+  const prompt = await readSpecPrompt(options.feature);
+
+  if (!prompt) {
+    console.log(errorBox({
+      title: 'PROMPT_spec.md not found',
+      description: 'Run `ralph init` to create the prompt file.',
+    }));
+    Deno.exit(1);
+  }
 
   // Marker file path - use absolute path in current working directory
   const markerPath = `${Deno.cwd()}/${RALPH_DONE_MARKER}`;

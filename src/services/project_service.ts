@@ -12,11 +12,14 @@ import {
   type FileError,
   getAgentsMdPath,
   getAudienceJtbdPath,
+  getAudiencePromptPath,
   getBuildPromptPath,
   getConfigPath,
   getPlanPath,
   getPlanPromptPath,
+  getSpecPromptPath,
   getSpecsDir,
+  getStartPromptPath,
   readTextFile,
   writeTextFile,
 } from './file_service.ts';
@@ -30,10 +33,13 @@ import {
 } from '@/core/config.ts';
 import {
   renderAgentsMd,
+  renderAudiencePrompt,
   renderBuildPrompt,
   renderInitialAudienceJtbd,
   renderInitialPlan,
   renderPlanPrompt,
+  renderSpecInterviewPrompt,
+  renderStartPrompt,
 } from '@/core/templates.ts';
 
 // ============================================================================
@@ -199,6 +205,239 @@ export async function initProject(
   const writeAudienceResult = await writeTextFile(audienceJtbdPath, audienceJtbd);
   if (!writeAudienceResult.ok) {
     return err(fromFileError(writeAudienceResult.error));
+  }
+
+  // Write PROMPT_start.md
+  const startPromptPath = getStartPromptPath(root);
+  const startPrompt = renderStartPrompt();
+  const writeStartResult = await writeTextFile(startPromptPath, startPrompt);
+  if (!writeStartResult.ok) {
+    return err(fromFileError(writeStartResult.error));
+  }
+
+  // Write PROMPT_spec.md
+  const specPromptPath = getSpecPromptPath(root);
+  const specPrompt = renderSpecInterviewPrompt();
+  const writeSpecResult = await writeTextFile(specPromptPath, specPrompt);
+  if (!writeSpecResult.ok) {
+    return err(fromFileError(writeSpecResult.error));
+  }
+
+  // Write PROMPT_audience.md
+  const audiencePromptPath = getAudiencePromptPath(root);
+  const audiencePrompt = renderAudiencePrompt();
+  const writeAudiencePromptResult = await writeTextFile(audiencePromptPath, audiencePrompt);
+  if (!writeAudiencePromptResult.ok) {
+    return err(fromFileError(writeAudiencePromptResult.error));
+  }
+
+  return ok(undefined);
+}
+
+// ============================================================================
+// Project File Types
+// ============================================================================
+
+/**
+ * All project files that can be created/overwritten during init.
+ */
+export type ProjectFile =
+  | 'config'
+  | 'specs'
+  | 'agents'
+  | 'plan'
+  | 'audience_jtbd'
+  | 'prompt_build'
+  | 'prompt_plan'
+  | 'prompt_start'
+  | 'prompt_spec'
+  | 'prompt_audience';
+
+/**
+ * Information about a project file.
+ */
+export interface ProjectFileInfo {
+  readonly key: ProjectFile;
+  readonly path: string;
+  readonly name: string;
+  readonly description: string;
+  readonly exists: boolean;
+}
+
+/**
+ * Gets information about all project files.
+ */
+export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> {
+  const root = cwd ?? Deno.cwd();
+
+  const files: Array<Omit<ProjectFileInfo, 'exists'>> = [
+    { key: 'config', path: getConfigPath(root), name: '.ralph.json', description: 'Configuration' },
+    { key: 'specs', path: getSpecsDir(root), name: 'specs/', description: 'Feature specifications' },
+    { key: 'agents', path: getAgentsMdPath(root), name: 'AGENTS.md', description: 'Build/test commands' },
+    { key: 'plan', path: getPlanPath(root), name: 'IMPLEMENTATION_PLAN.md', description: 'Task checklist' },
+    {
+      key: 'audience_jtbd',
+      path: getAudienceJtbdPath(root),
+      name: 'AUDIENCE_JTBD.md',
+      description: 'Audience & jobs-to-be-done',
+    },
+    {
+      key: 'prompt_build',
+      path: getBuildPromptPath(root),
+      name: 'PROMPT_build.md',
+      description: 'Build instructions',
+    },
+    {
+      key: 'prompt_plan',
+      path: getPlanPromptPath(root),
+      name: 'PROMPT_plan.md',
+      description: 'Planning instructions',
+    },
+    {
+      key: 'prompt_start',
+      path: getStartPromptPath(root),
+      name: 'PROMPT_start.md',
+      description: 'Start interview instructions',
+    },
+    {
+      key: 'prompt_spec',
+      path: getSpecPromptPath(root),
+      name: 'PROMPT_spec.md',
+      description: 'Spec interview instructions',
+    },
+    {
+      key: 'prompt_audience',
+      path: getAudiencePromptPath(root),
+      name: 'PROMPT_audience.md',
+      description: 'Audience interview instructions',
+    },
+  ];
+
+  const results = await Promise.all(
+    files.map(async (file) => ({
+      ...file,
+      exists: await exists(file.path),
+    })),
+  );
+
+  return results;
+}
+
+/**
+ * Creates project files selectively.
+ * Only creates files that are in the `filesToCreate` set.
+ */
+export async function createProjectFiles(
+  filesToCreate: Set<ProjectFile>,
+  cwd?: string,
+  configOverrides?: DeepPartial<RalphConfig>,
+): Promise<Result<void, ProjectError>> {
+  const root = cwd ?? Deno.cwd();
+
+  // Create specs directory
+  if (filesToCreate.has('specs')) {
+    const specsDir = getSpecsDir(root);
+    const createDirResult = await createDirectory(specsDir);
+    if (!createDirResult.ok) {
+      return err(fromFileError(createDirResult.error));
+    }
+    // Create .gitkeep
+    const gitkeepPath = `${specsDir}/.gitkeep`;
+    const writeGitkeepResult = await writeTextFile(gitkeepPath, '');
+    if (!writeGitkeepResult.ok) {
+      return err(fromFileError(writeGitkeepResult.error));
+    }
+  }
+
+  // Write config file
+  if (filesToCreate.has('config')) {
+    const configPath = getConfigPath(root);
+    const config = createConfig(configOverrides);
+    const configContent = serializeConfig(config);
+    const writeResult = await writeTextFile(configPath, configContent);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_build.md
+  if (filesToCreate.has('prompt_build')) {
+    const buildPromptPath = getBuildPromptPath(root);
+    const buildPrompt = renderBuildPrompt();
+    const writeResult = await writeTextFile(buildPromptPath, buildPrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_plan.md
+  if (filesToCreate.has('prompt_plan')) {
+    const planPromptPath = getPlanPromptPath(root);
+    const planPrompt = renderPlanPrompt();
+    const writeResult = await writeTextFile(planPromptPath, planPrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_start.md
+  if (filesToCreate.has('prompt_start')) {
+    const startPromptPath = getStartPromptPath(root);
+    const startPrompt = renderStartPrompt();
+    const writeResult = await writeTextFile(startPromptPath, startPrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_spec.md
+  if (filesToCreate.has('prompt_spec')) {
+    const specPromptPath = getSpecPromptPath(root);
+    const specPrompt = renderSpecInterviewPrompt();
+    const writeResult = await writeTextFile(specPromptPath, specPrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_audience.md
+  if (filesToCreate.has('prompt_audience')) {
+    const audiencePromptPath = getAudiencePromptPath(root);
+    const audiencePrompt = renderAudiencePrompt();
+    const writeResult = await writeTextFile(audiencePromptPath, audiencePrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write AGENTS.md
+  if (filesToCreate.has('agents')) {
+    const agentsMdPath = getAgentsMdPath(root);
+    const agentsMd = renderAgentsMd();
+    const writeResult = await writeTextFile(agentsMdPath, agentsMd);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write IMPLEMENTATION_PLAN.md
+  if (filesToCreate.has('plan')) {
+    const planPath = getPlanPath(root);
+    const initialPlan = renderInitialPlan();
+    const writeResult = await writeTextFile(planPath, initialPlan);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write AUDIENCE_JTBD.md
+  if (filesToCreate.has('audience_jtbd')) {
+    const audienceJtbdPath = getAudienceJtbdPath(root);
+    const audienceJtbd = renderInitialAudienceJtbd();
+    const writeResult = await writeTextFile(audienceJtbdPath, audienceJtbd);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
   }
 
   return ok(undefined);

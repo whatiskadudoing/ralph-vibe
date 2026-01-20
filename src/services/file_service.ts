@@ -244,6 +244,27 @@ export function getPlanPromptPath(projectDir?: string): string {
 }
 
 /**
+ * Gets the start prompt file path.
+ */
+export function getStartPromptPath(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'PROMPT_start.md');
+}
+
+/**
+ * Gets the spec prompt file path.
+ */
+export function getSpecPromptPath(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'PROMPT_spec.md');
+}
+
+/**
+ * Gets the audience prompt file path.
+ */
+export function getAudiencePromptPath(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'PROMPT_audience.md');
+}
+
+/**
  * Gets the AGENTS.md file path.
  */
 export function getAgentsMdPath(projectDir?: string): string {
