@@ -818,7 +818,7 @@ const buildLoop = async (
       const currentUsage = await getSubscriptionUsage();
       if (currentUsage.ok) {
         const pct = Math.round(currentUsage.value.fiveHour.utilization);
-        pauseLines.push(`${dim('5h quota:')} ${formatUsageBar(pct, 15)} ${dim('remaining')}`);
+        pauseLines.push(`${dim('5h:')} ${formatUsageBar(pct, 20)}`);
       }
 
       console.log(

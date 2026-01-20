@@ -294,18 +294,19 @@ export function detailBox(options: DetailBoxOptions): string {
 
   const lines: string[] = [];
 
-  // Title line
+  // Title line with spacing
+  lines.push('');
   if (options.subtitle) {
     lines.push(`${options.icon} ${bold(options.title)} ${dim(`— ${options.subtitle}`)}`);
   } else {
     lines.push(`${options.icon} ${bold(options.title)}`);
   }
 
-  // Sections
+  // Sections with better spacing
   if (options.sections) {
     for (const section of options.sections) {
       lines.push('');
-      lines.push(dim(section.label));
+      lines.push(`${dim(section.label)}`);
       const sectionBullet = section.bulletColor ?? bulletColor;
       for (const item of section.items) {
         lines.push(`  ${sectionBullet('•')} ${dim(item)}`);
@@ -313,11 +314,12 @@ export function detailBox(options: DetailBoxOptions): string {
     }
   }
 
-  // Footer
+  // Footer with spacing
   if (options.footer) {
     lines.push('');
     lines.push(dim(options.footer));
   }
+  lines.push('');
 
   return createBox(lines.join('\n'), {
     style: 'rounded',
