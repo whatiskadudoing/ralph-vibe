@@ -32,11 +32,20 @@ export function formatUsageProgressBars(usage: SubscriptionUsage): string[] {
   const termWidth = getTerminalWidth();
   const barWidth = termWidth - 22;
 
-  return [
-    `5h:  ${amber(progressBar(fiveHr, barWidth))}`,
+  const lines = [
+    `5h:      ${amber(progressBar(fiveHr, barWidth))}`,
     '',
-    `7d:  ${dim(progressBar(sevenDay, barWidth))}`,
+    `7d:      ${dim(progressBar(sevenDay, barWidth))}`,
   ];
+
+  // Add Sonnet-specific usage if available
+  if (usage.sevenDaySonnet) {
+    const sonnetUsage = usage.sevenDaySonnet.utilization;
+    lines.push('');
+    lines.push(`sonnet:  ${cyan(progressBar(sonnetUsage, barWidth))}`);
+  }
+
+  return lines;
 }
 
 // ============================================================================

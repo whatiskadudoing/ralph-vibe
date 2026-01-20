@@ -821,9 +821,16 @@ const buildLoop = async (
         pauseLines.push('');
         const fiveHr = currentUsage.value.fiveHour.utilization;
         const sevenDay = currentUsage.value.sevenDay.utilization;
-        pauseLines.push(`5h:  ${amber(progressBar(fiveHr, barWidth))}`);
+        pauseLines.push(`5h:      ${amber(progressBar(fiveHr, barWidth))}`);
         pauseLines.push('');
-        pauseLines.push(`7d:  ${dim(progressBar(sevenDay, barWidth))}`);
+        pauseLines.push(`7d:      ${dim(progressBar(sevenDay, barWidth))}`);
+
+        // Add Sonnet-specific usage if available
+        if (currentUsage.value.sevenDaySonnet) {
+          const sonnetUsage = currentUsage.value.sevenDaySonnet.utilization;
+          pauseLines.push('');
+          pauseLines.push(`sonnet:  ${cyan(progressBar(sonnetUsage, barWidth))}`);
+        }
       }
 
       console.log(
