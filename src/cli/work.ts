@@ -256,20 +256,53 @@ const renderIterationSummary = (
     : error(CROSS);
 
   const taskName = status?.task ?? 'Unknown task';
-  let usageStr = formatUsageStats(usage, model);
+  const termWidth = getTerminalWidth();
 
-  // Add usage delta if available
-  if (usageDelta !== undefined && usageDelta > 0) {
-    usageStr += ` · ${amber(`+${usageDelta.toFixed(1)}%`)} usage`;
+  // Build stats parts
+  const statsParts: string[] = [];
+
+  // Model breakdown
+  if (usage.byModel && Object.keys(usage.byModel).length > 0) {
+    const modelParts: string[] = [];
+    if (usage.byModel.opus?.operations) {
+      modelParts.push(`${amber('opus')}:${usage.byModel.opus.operations}`);
+    }
+    if (usage.byModel.sonnet?.operations) {
+      modelParts.push(`${cyan('sonnet')}:${usage.byModel.sonnet.operations}`);
+    }
+    if (usage.byModel.haiku?.operations) {
+      modelParts.push(`${dim('haiku')}:${usage.byModel.haiku.operations}`);
+    }
+    if (modelParts.length > 0) {
+      statsParts.push(modelParts.join(' '));
+    }
+  } else {
+    statsParts.push(`${dim('model:')} ${amber(model)}`);
   }
 
-  // Dim border for completed iterations
-  const termWidth = getTerminalWidth();
-  const content = `${dim(`[#${iteration}]`)} ${
-    bold(truncateTask(taskName, termWidth - 25))
-  } ${validationIcon}\n${dim(usageStr)}`;
+  // Ops and time
+  statsParts.push(`${dim('ops:')} ${usage.operations}`);
+  statsParts.push(`${dim('time:')} ${formatDuration(usage.durationSec)}`);
+
+  // Tokens
+  if (usage.inputTokens !== undefined && usage.outputTokens !== undefined) {
+    const totalTokens = usage.inputTokens + usage.outputTokens;
+    statsParts.push(`${dim('tokens:')} ${formatTokensCompact(totalTokens)}`);
+  }
+
+  // Usage delta
+  if (usageDelta !== undefined && usageDelta > 0) {
+    statsParts.push(`${amber(`+${usageDelta.toFixed(1)}%`)} ${dim('usage')}`);
+  }
+
+  // Build content
+  const lines = [
+    `${dim(`[#${iteration}]`)} ${bold(truncateTask(taskName, termWidth - 25))} ${validationIcon}`,
+    statsParts.join('  ·  '),
+  ];
+
   console.log(
-    createBox(content, {
+    createBox(lines.join('\n'), {
       style: 'rounded',
       padding: 1,
       paddingY: 0,
