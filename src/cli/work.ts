@@ -399,6 +399,24 @@ const detectProjectNextSteps = async (): Promise<string[]> => {
   return [];
 };
 
+// Fun completion messages
+const COMPLETION_MESSAGES = [
+  { icon: '☕', title: 'Time for that coffee!', subtitle: 'Your code is freshly brewed.' },
+  { icon: '🍺', title: 'Beer o\'clock!', subtitle: 'You earned it. The build is done.' },
+  { icon: '🎉', title: 'Ship it!', subtitle: 'Another successful build in the books.' },
+  { icon: '🚀', title: 'Ready for launch!', subtitle: 'Your code is built and tested.' },
+  { icon: '✨', title: 'Magic complete!', subtitle: 'The robots have done their thing.' },
+  { icon: '🏆', title: 'Victory!', subtitle: 'All tasks conquered. Well done.' },
+];
+
+/**
+ * Gets a random completion message.
+ */
+const getCompletionMessage = () => {
+  const idx = Math.floor(Math.random() * COMPLETION_MESSAGES.length);
+  return COMPLETION_MESSAGES[idx] ?? COMPLETION_MESSAGES[0]!;
+};
+
 /**
  * Renders the work summary at the end.
  */
@@ -406,6 +424,7 @@ const renderWorkSummary = async (
   completed: string[],
   sessionStats: SessionStats,
   failed: boolean,
+  tracker?: SessionTracker,
 ): Promise<void> => {
   console.log();
 
@@ -423,19 +442,10 @@ const renderWorkSummary = async (
   }
 
   const termWidth = getTerminalWidth();
+  const msg = getCompletionMessage();
 
-  // Build stats line
-  const statsLine = [
-    `${sessionStats.totalIterations} iteration${sessionStats.totalIterations === 1 ? '' : 's'}`,
-    `${sessionStats.totalOperations} ops`,
-    formatDuration(sessionStats.totalDurationSec),
-  ];
-
-  // Add token count if available
-  const totalTokens = sessionStats.totalInputTokens + sessionStats.totalOutputTokens;
-  if (totalTokens > 0) {
-    statsLine.push(`${formatTokensCompact(totalTokens)} tokens`);
-  }
+  // Get tracker stats if available
+  const trackerStats = tracker?.getAggregateStats();
 
   // Fetch final usage
   const finalUsage = await getSubscriptionUsage();
@@ -443,32 +453,97 @@ const renderWorkSummary = async (
   // Detect project type for next steps
   const nextSteps = await detectProjectNextSteps();
 
-  // Build content lines
-  const lines: string[] = [
-    `${orange('◆')} ${bold('Build Complete!')}`,
-    '',
-    `${dim('→')} ${statsLine.join(' · ')}`,
-  ];
+  // ═══════════════════════════════════════════════════════════════════
+  // Build the awesome summary box
+  // ═══════════════════════════════════════════════════════════════════
 
-  if (finalUsage.ok) {
-    lines.push(`${dim('→')} Subscription: ${formatSubscriptionUsage(finalUsage.value)}`);
+  const lines: string[] = [];
+
+  // Header with fun message
+  lines.push('');
+  lines.push(`     ${msg.icon}  ${bold(orange(msg.title))}`);
+  lines.push(`        ${dim(msg.subtitle)}`);
+  lines.push('');
+
+  // Divider
+  lines.push(dim('─'.repeat(Math.min(50, termWidth - 12))));
+  lines.push('');
+
+  // Session stats section
+  lines.push(`  ${bold('Session Stats')}`);
+  lines.push('');
+
+  // Time and iterations
+  const timeStr = formatDuration(sessionStats.totalDurationSec);
+  lines.push(`  ${dim('⏱')}  ${bold(timeStr)} ${dim('total time')}`);
+  lines.push(`  ${dim('🔄')} ${bold(String(sessionStats.totalIterations))} ${dim('iterations')}`);
+  lines.push(`  ${dim('⚡')} ${bold(String(sessionStats.totalOperations))} ${dim('operations')}`);
+
+  // Tokens
+  const totalTokens = sessionStats.totalInputTokens + sessionStats.totalOutputTokens;
+  if (totalTokens > 0) {
+    lines.push(`  ${dim('📊')} ${bold(formatTokensCompact(totalTokens))} ${dim('tokens')} ${dim(`(${formatTokensCompact(sessionStats.totalInputTokens)} in / ${formatTokensCompact(sessionStats.totalOutputTokens)} out)`)}`);
+  }
+
+  // Cache savings (if tracker available and forking was used)
+  if (trackerStats && tracker?.isForking() && trackerStats.totalCacheReadTokens > 0) {
+    lines.push(`  ${dim('💾')} ${bold(formatTokensCompact(trackerStats.tokensSavedByCache))} ${dim('tokens saved by cache')}`);
   }
 
   lines.push('');
-  lines.push(dim('Completed tasks:'));
-  for (const task of completed.slice(0, 5)) {
-    lines.push(`  ${successColor(CHECK)} ${dim(truncateTask(task, termWidth - 15))}`);
-  }
-  if (completed.length > 5) {
-    lines.push(dim(`  ...and ${completed.length - 5} more`));
+
+  // Model breakdown
+  if (trackerStats && (trackerStats.modelBreakdown.opus > 0 || trackerStats.modelBreakdown.sonnet > 0)) {
+    lines.push(`  ${bold('Models Used')}`);
+    lines.push('');
+    if (trackerStats.modelBreakdown.opus > 0) {
+      lines.push(`  ${amber('●')} ${amber('Opus')}   ${dim('×')} ${trackerStats.modelBreakdown.opus} ${dim('iterations')}`);
+    }
+    if (trackerStats.modelBreakdown.sonnet > 0) {
+      lines.push(`  ${cyan('●')} ${cyan('Sonnet')} ${dim('×')} ${trackerStats.modelBreakdown.sonnet} ${dim('iterations')}`);
+    }
+    lines.push('');
   }
 
+  // Subscription usage
+  if (finalUsage.ok) {
+    lines.push(`  ${bold('Subscription')}`);
+    lines.push('');
+    lines.push(`  ${dim('5h:')}  ${formatUsageBar(finalUsage.value.fiveHour.utilization, 20)}`);
+    lines.push(`  ${dim('7d:')}  ${formatUsageBar(finalUsage.value.sevenDay.utilization, 20)}`);
+    lines.push('');
+  }
+
+  // Divider
+  lines.push(dim('─'.repeat(Math.min(50, termWidth - 12))));
+  lines.push('');
+
+  // Completed tasks
+  lines.push(`  ${bold('Completed')} ${dim(`(${completed.length} tasks)`)}`);
+  lines.push('');
+  for (const task of completed.slice(0, 4)) {
+    lines.push(`  ${successColor(CHECK)} ${dim(truncateTask(task, termWidth - 18))}`);
+  }
+  if (completed.length > 4) {
+    lines.push(dim(`     ...and ${completed.length - 4} more`));
+  }
+
+  // Next steps
   if (nextSteps.length > 0) {
     lines.push('');
-    lines.push(bold('Next steps:'));
+    lines.push(`  ${bold('Next Steps')}`);
+    lines.push('');
     for (const step of nextSteps) {
       lines.push(`  ${orange('▸')} ${step}`);
     }
+  }
+
+  lines.push('');
+
+  // Session file location (if tracker available)
+  if (tracker) {
+    lines.push(dim(`  Session saved: ${tracker.getFilePath()}`));
+    lines.push('');
   }
 
   console.log(createBox(lines.join('\n'), {
@@ -478,6 +553,16 @@ const renderWorkSummary = async (
     borderColor: orange,
     minWidth: termWidth - 6,
   }));
+};
+
+/**
+ * Formats a mini usage bar for the summary.
+ */
+const formatUsageBar = (percent: number, width: number): string => {
+  const filled = Math.round((percent / 100) * width);
+  const empty = width - filled;
+  const bar = amber('█'.repeat(filled)) + dim('░'.repeat(empty));
+  return `${bar} ${Math.round(percent)}%`;
 };
 
 /**
@@ -679,7 +764,7 @@ const buildLoop = async (
     if (!result.success) {
       // Show error summary box
       renderIterationSummary(iteration, result.status, result.usage, result.modelUsed, false, usageDelta);
-      await renderWorkSummary(completedTasks, sessionStats, true);
+      await renderWorkSummary(completedTasks, sessionStats, true, sessionTracker);
       Deno.exit(1);
     }
 
@@ -708,7 +793,7 @@ const buildLoop = async (
     if (result.status?.validation === 'fail') {
       console.log();
       console.log(error(`  ${CROSS} Validation failed - stopping loop`));
-      await renderWorkSummary(completedTasks, sessionStats, true);
+      await renderWorkSummary(completedTasks, sessionStats, true, sessionTracker);
       Deno.exit(1);
     }
 
@@ -734,7 +819,7 @@ const buildLoop = async (
     console.log(amber(`  ${INFO} Reached max iterations (${maxIterations})`));
   }
 
-  await renderWorkSummary(completedTasks, sessionStats, false);
+  await renderWorkSummary(completedTasks, sessionStats, false, sessionTracker);
 };
 
 // ============================================================================
