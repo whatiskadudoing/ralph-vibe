@@ -638,8 +638,8 @@ const getContentWidth = () => getBoxWidth() - 4; // Account for borders and padd
  */
 class BoxedIterationRenderer {
   private readonly iteration: number;
-  private readonly title: string;
-  private readonly task: string;
+  private title: string;
+  private task: string;
   private readonly borderColor: (s: string) => string;
   private readonly mainModel: string;
 
@@ -713,6 +713,14 @@ class BoxedIterationRenderer {
 
   updateStatus(status: string): void {
     this.status = status;
+  }
+
+  updateTitle(title: string): void {
+    this.title = title;
+  }
+
+  updateTask(task: string): void {
+    this.task = task;
   }
 
   addTool(tool: string, subagentModel?: 'opus' | 'sonnet' | 'haiku'): void {
@@ -924,6 +932,32 @@ export interface IterationRenderOptions {
  * Runs Claude and renders progress inside a bordered box.
  * Used by ralph work command for the active iteration display.
  */
+/**
+ * Extracts task info from Claude's text output.
+ * Looks for patterns like "Working on: [task]" or task list items.
+ */
+function extractTaskFromText(text: string): { title?: string; task?: string } | null {
+  // Look for "## Phase N:" or "### Phase:" headers
+  const phaseMatch = text.match(/^#{2,3}\s*(Phase\s*\d*:?\s*.+?)$/m);
+  if (phaseMatch) {
+    return { title: phaseMatch[1]?.trim() };
+  }
+
+  // Look for task list items being worked on: "- [ ] Task description"
+  const taskMatch = text.match(/^-\s*\[\s*[xX]?\s*\]\s*(.+?)$/m);
+  if (taskMatch) {
+    return { task: taskMatch[1]?.trim() };
+  }
+
+  // Look for "Working on:" or "Next task:" patterns
+  const workingOnMatch = text.match(/(?:Working on|Next task|Now (?:working on|implementing)|Starting):\s*(.+?)(?:\n|$)/i);
+  if (workingOnMatch) {
+    return { task: workingOnMatch[1]?.trim() };
+  }
+
+  return null;
+}
+
 export async function runIterationInBox(
   options: ClaudeRunOptions,
   renderOptions: IterationRenderOptions,
@@ -934,6 +968,7 @@ export async function runIterationInBox(
   const toolsCalled: string[] = [];
   let fullText = '';
   let hasExitSignal = false;
+  let currentTask = task;
 
   renderer.start();
 
@@ -948,6 +983,16 @@ export async function runIterationInBox(
 
             if (msg.text.includes('EXIT_SIGNAL: true')) {
               hasExitSignal = true;
+            }
+
+            // Try to extract task info from Claude's output
+            const taskInfo = extractTaskFromText(msg.text);
+            if (taskInfo?.title) {
+              renderer.updateTitle(taskInfo.title);
+            }
+            if (taskInfo?.task && taskInfo.task !== currentTask) {
+              currentTask = taskInfo.task;
+              renderer.updateTask(taskInfo.task);
             }
 
             // Update status with meaningful text
