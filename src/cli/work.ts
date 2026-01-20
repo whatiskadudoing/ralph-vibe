@@ -800,8 +800,29 @@ const buildLoop = async (
     // Brief pause between iterations (fresh context)
     if (iteration < maxIterations) {
       const termWidth = getTerminalWidth();
+
+      // Build pause box content with usage info
+      const pauseLines: string[] = [];
+      pauseLines.push(dim(`Next iteration in 2s...`));
+
+      // Add session stats so far
+      const totalTokensSoFar = sessionStats.totalInputTokens + sessionStats.totalOutputTokens;
+      const statsStr = [
+        `${iteration}/${maxIterations} iterations`,
+        `${sessionStats.totalOperations} ops`,
+        totalTokensSoFar > 0 ? `${formatTokensCompact(totalTokensSoFar)} tokens` : null,
+      ].filter(Boolean).join(' · ');
+      pauseLines.push(dim(statsStr));
+
+      // Add subscription usage bar
+      const currentUsage = await getSubscriptionUsage();
+      if (currentUsage.ok) {
+        const pct = Math.round(currentUsage.value.fiveHour.utilization);
+        pauseLines.push(`${dim('5h quota:')} ${formatUsageBar(pct, 15)} ${dim('remaining')}`);
+      }
+
       console.log(
-        createBox(dim('Next iteration in 2s...'), {
+        createBox(pauseLines.join('\n'), {
           style: 'rounded',
           padding: 1,
           paddingY: 0,
