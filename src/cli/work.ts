@@ -126,9 +126,17 @@ interface NextTask {
   readonly task: string;
 }
 
+interface PhaseInfo {
+  readonly name: string;
+  readonly tasks: Array<{ checked: boolean; text: string }>;
+}
+
 /**
- * Gets the first unchecked task from the implementation plan.
- * Also returns the current phase title if found.
+ * Gets the next unchecked task from the implementation plan.
+ * Uses smart detection to find the most likely "current" task:
+ * 1. Skip "Future Work" section
+ * 2. Prioritize phases with work-in-progress (has both checked and unchecked)
+ * 3. Fall back to first unchecked task in sequential flow
  */
 const getNextTaskFromPlan = async (): Promise<NextTask | null> => {
   const planPath = getPlanPath();
@@ -136,24 +144,79 @@ const getNextTaskFromPlan = async (): Promise<NextTask | null> => {
   if (!result.ok) return null;
 
   const lines = result.value.split('\n');
-  let currentPhase: string | null = null;
+  const phases: PhaseInfo[] = [];
+  let currentPhase: { name: string; tasks: Array<{ checked: boolean; text: string }> } | null = null;
+  let inFutureWork = false;
 
   for (const line of lines) {
-    // Match phase header: ## Phase N: Title or ### Phase N: Title
-    const phaseMatch = line.match(/^#{2,3}\s*(Phase\s*\d+[^#\n]*)/i);
+    // Skip Future Work section entirely
+    if (/^#{2,3}\s*Future\s*Work/i.test(line)) {
+      inFutureWork = true;
+      continue;
+    }
+    if (inFutureWork) continue;
+
+    // Match phase header: ## Phase N or ## Phase N.M or ### Phase N: Title
+    const phaseMatch = line.match(/^#{2,3}\s*(Phase\s*[\d.]+[^#\n]*)/i);
     if (phaseMatch && phaseMatch[1]) {
-      currentPhase = phaseMatch[1].trim();
+      if (currentPhase) {
+        phases.push(currentPhase);
+      }
+      currentPhase = {
+        name: phaseMatch[1].trim(),
+        tasks: [],
+      };
+      continue;
     }
 
-    // Match unchecked task: - [ ] Task description
-    const taskMatch = line.match(/^[\s]*-\s*\[\s*\]\s*(.+)$/);
-    if (taskMatch && taskMatch[1]) {
-      return {
-        phase: currentPhase,
-        task: taskMatch[1].trim(),
-      };
+    // Match tasks (checked or unchecked)
+    if (currentPhase) {
+      const checkedMatch = line.match(/^[\s]*-\s*\[x\]\s*(.+)$/i);
+      const uncheckedMatch = line.match(/^[\s]*-\s*\[\s*\]\s*(.+)$/);
+
+      if (checkedMatch && checkedMatch[1]) {
+        currentPhase.tasks.push({ checked: true, text: checkedMatch[1].trim() });
+      } else if (uncheckedMatch && uncheckedMatch[1]) {
+        currentPhase.tasks.push({ checked: false, text: uncheckedMatch[1].trim() });
+      }
     }
   }
+
+  // Add last phase
+  if (currentPhase) {
+    phases.push(currentPhase);
+  }
+
+  // Priority 1: Find phase with work-in-progress (has both checked and unchecked)
+  for (const phase of phases) {
+    const hasChecked = phase.tasks.some((t) => t.checked);
+    const uncheckedTask = phase.tasks.find((t) => !t.checked);
+    if (hasChecked && uncheckedTask) {
+      return { phase: phase.name, task: uncheckedTask.text };
+    }
+  }
+
+  // Priority 2: First phase with unchecked tasks where previous phases are complete
+  let previousComplete = true;
+  for (const phase of phases) {
+    const allChecked = phase.tasks.length > 0 && phase.tasks.every((t) => t.checked);
+    const uncheckedTask = phase.tasks.find((t) => !t.checked);
+
+    if (previousComplete && uncheckedTask) {
+      return { phase: phase.name, task: uncheckedTask.text };
+    }
+
+    previousComplete = allChecked || phase.tasks.length === 0;
+  }
+
+  // Priority 3: Fallback - first unchecked task anywhere
+  for (const phase of phases) {
+    const uncheckedTask = phase.tasks.find((t) => !t.checked);
+    if (uncheckedTask) {
+      return { phase: phase.name, task: uncheckedTask.text };
+    }
+  }
+
   return null;
 };
 
