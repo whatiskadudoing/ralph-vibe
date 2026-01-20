@@ -726,14 +726,88 @@ async function workAction(options: WorkOptions): Promise<void> {
     Deno.exit(1);
   }
 
-  // Dry run mode
+  // Dry run mode - show comprehensive info
   if (options.dryRun) {
+    // Read config for model setting
+    const dryRunConfigResult = await readConfig();
+
+    // Determine model - same logic as real run
+    let dryRunModelMode: 'opus' | 'sonnet' | 'adaptive';
+    if (options.model) {
+      dryRunModelMode = options.model;
+    } else if (options.adaptive) {
+      dryRunModelMode = 'adaptive';
+    } else {
+      dryRunModelMode = dryRunConfigResult.ok ? dryRunConfigResult.value.work.model : 'opus';
+    }
+
+    // Get next task
+    const nextTask = await getNextTaskFromPlan();
+
+    // Check for specs (would enable fork mode)
+    const specsDir = `${Deno.cwd()}/specs`;
+    let specFiles: string[] = [];
+    try {
+      for await (const entry of Deno.readDir(specsDir)) {
+        if (entry.isFile && entry.name.endsWith('.md')) {
+          specFiles.push(entry.name);
+        }
+      }
+    } catch { /* no specs dir */ }
+
+    // Get subscription usage
+    const usage = await getSubscriptionUsage();
+
+    // Model display
+    const modelDisplay = dryRunModelMode === 'adaptive'
+      ? `${amber('adaptive')} (sonnet for simple, opus for complex)`
+      : amber(dryRunModelMode);
+
+    // Fork mode display
+    const forkDisplay = specFiles.length > 0
+      ? `${successColor(CHECK)} Yes (${specFiles.length} specs cached)`
+      : `${dim('No')} (no specs found)`;
+
+    // Task display
+    const taskDisplay = nextTask
+      ? `${orange(nextTask.task)}\n     ${dim(`Phase: ${nextTask.phase ?? 'unknown'}`)}`
+      : dim('No pending tasks found');
+
+    // Build info lines
+    const lines: string[] = [
+      `${bold('Model:')}       ${modelDisplay}`,
+      `${bold('Fork mode:')}   ${forkDisplay}`,
+      `${bold('Max iters:')}   ${maxIterations}`,
+      '',
+      `${bold('Next task:')}   ${taskDisplay}`,
+      '',
+      `${bold('Plan:')}        ${dim(planPath)}`,
+    ];
+
+    if (specFiles.length > 0) {
+      lines.push(`${bold('Specs:')}       ${dim(specFiles.join(', '))}`);
+    }
+
+    if (usage.ok) {
+      lines.push('');
+      lines.push(`${bold('Usage:')}       ${formatSubscriptionUsage(usage.value)}`);
+    }
+
+    const termWidth = getTerminalWidth();
     console.log();
-    renderInfo('Dry Run Mode', [
-      'Would run the build loop with these settings:',
-      `Max iterations: ${maxIterations}`,
-      `Plan: ${planPath}`,
-    ]);
+    console.log(createBox(
+      `${orange('◆')} ${bold('Dry Run Mode')}\n\n${lines.join('\n')}`,
+      {
+        style: 'rounded',
+        padding: 1,
+        paddingY: 0,
+        borderColor: orange,
+        minWidth: termWidth - 6,
+      },
+    ));
+    console.log();
+    console.log(dim('  Run without --dry-run to start the build loop.'));
+    console.log();
     return;
   }
 
