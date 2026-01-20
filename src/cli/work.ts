@@ -491,18 +491,26 @@ const createGitTag = async (termWidth: number): Promise<void> => {
  */
 const renderCachedContextBox = (context: BaseSessionContext): void => {
   const termWidth = getTerminalWidth();
-  const specsList = context.specs.length > 0
-    ? context.specs.map((s) => `specs/${s}`).join(', ')
-    : 'none';
 
   const lines = [
     `${cyan('🍺')} ${bold('Context Cached')} ${dim('— forking enabled')}`,
     '',
-    `${dim('📚')} Specs: ${context.specs.length > 0 ? cyan(specsList) : dim('none')}`,
-    `${dim('📋')} Fresh each iteration: ${dim('IMPLEMENTATION_PLAN.md, AGENTS.md')}`,
-    '',
-    dim('Each iteration forks from specs cache → faster + cheaper'),
+    `${dim('Cached specs:')}`,
   ];
+
+  // Show specs as bullet list
+  if (context.specs.length > 0) {
+    for (const spec of context.specs) {
+      lines.push(`  ${cyan('•')} ${dim(`specs/${spec}`)}`);
+    }
+  } else {
+    lines.push(`  ${dim('(none)')}`);
+  }
+
+  lines.push('');
+  lines.push(`${dim('Fresh each iteration:')} IMPLEMENTATION_PLAN.md, AGENTS.md`);
+  lines.push('');
+  lines.push(dim('If specs change mid-session, cache auto-refreshes.'));
 
   console.log(createBox(lines.join('\n'), {
     style: 'rounded',
