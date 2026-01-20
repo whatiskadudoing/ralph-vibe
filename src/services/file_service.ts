@@ -249,3 +249,10 @@ export function getPlanPromptPath(projectDir?: string): string {
 export function getAgentsMdPath(projectDir?: string): string {
   return join(projectDir ?? getCwd(), 'AGENTS.md');
 }
+
+/**
+ * Gets the AUDIENCE_JTBD.md file path.
+ */
+export function getAudienceJtbdPath(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'AUDIENCE_JTBD.md');
+}

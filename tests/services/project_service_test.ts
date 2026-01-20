@@ -172,7 +172,7 @@ Deno.test('initProject writes build prompt with key elements', async () => {
   try {
     await initProject(tempDir);
     const content = await Deno.readTextFile(join(tempDir, 'PROMPT_build.md'));
-    assertStringIncludes(content, 'specs/README.md');
+    assertStringIncludes(content, 'specs/*');
     assertStringIncludes(content, 'IMPLEMENTATION_PLAN.md');
     assertStringIncludes(content, 'EXIT_SIGNAL');
   } finally {

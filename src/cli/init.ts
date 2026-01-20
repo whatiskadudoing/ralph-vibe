@@ -8,7 +8,6 @@
  */
 
 import { Command } from '@cliffy/command';
-import { Confirm } from '@cliffy/prompt';
 import { amber, dim } from '@/ui/colors.ts';
 import { withSpinner } from '@/ui/spinner.ts';
 import { initProject, isRalphProject } from '@/services/project_service.ts';
@@ -30,7 +29,6 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
-import { hasExistingCode, onboardAction } from './onboard.ts';
 
 // ============================================================================
 // Command
@@ -91,24 +89,6 @@ async function initAction(options: InitOptions): Promise<void> {
   }
   console.log(checkSuccess('Not already initialized'));
 
-  // Check for existing code - offer onboard instead
-  if (await hasExistingCode()) {
-    console.log(checkInfo('Existing code detected', 'src/, lib/, or project files found'));
-    console.log();
-
-    const useOnboard = await Confirm.prompt({
-      message: 'Use project analysis to discover patterns? (recommended for existing codebases)',
-      default: true,
-    });
-
-    if (useOnboard) {
-      // Run onboard flow instead
-      await onboardAction({ force: false, vibe: options.vibe });
-      return;
-    }
-    // Continue with normal init if user declines
-  }
-
   // Check git
   if (await isGitRepo()) {
     console.log(checkSuccess('Git repository detected'));
@@ -152,6 +132,7 @@ async function initAction(options: InitOptions): Promise<void> {
       details: [
         `${dim('Created files:')}`,
         `  ${amber('specs/')}                ${dim('Feature specifications')}`,
+        `  ${amber('AUDIENCE_JTBD.md')}      ${dim('Audience & jobs-to-be-done')}`,
         `  ${amber('IMPLEMENTATION_PLAN.md')} ${dim('Task checklist')}`,
         `  ${amber('AGENTS.md')}             ${dim('Build/test commands')}`,
       ],
@@ -162,6 +143,7 @@ async function initAction(options: InitOptions): Promise<void> {
       details: [
         `${dim('Created files:')}`,
         `  ${amber('specs/')}                ${dim('Feature specifications')}`,
+        `  ${amber('AUDIENCE_JTBD.md')}      ${dim('Audience & jobs-to-be-done')}`,
         `  ${amber('IMPLEMENTATION_PLAN.md')} ${dim('Task checklist')}`,
         `  ${amber('AGENTS.md')}             ${dim('Build/test commands')}`,
         `  ${dim('PROMPT_build.md')}        ${dim('Build instructions')}`,

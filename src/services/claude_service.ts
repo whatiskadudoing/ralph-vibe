@@ -334,6 +334,8 @@ export interface BaseSessionContext {
   readonly sessionId: string;
   /** List of spec files loaded */
   readonly specs: string[];
+  /** Snapshot of spec file modification times (for change detection) */
+  readonly specsMtimes: Map<string, number>;
 }
 
 /**
@@ -362,6 +364,60 @@ async function loadSpecs(): Promise<Map<string, string>> {
   }
 
   return specs;
+}
+
+/**
+ * Gets modification times for all spec files.
+ * Used for detecting spec changes between iterations.
+ */
+async function getSpecMtimes(): Promise<Map<string, number>> {
+  const mtimes = new Map<string, number>();
+  const specsDir = getSpecsDir();
+
+  if (!(await exists(specsDir))) {
+    return mtimes;
+  }
+
+  const result = await listDirectory(specsDir);
+  if (!result.ok) {
+    return mtimes;
+  }
+
+  for (const file of result.value) {
+    if (file.endsWith('.md')) {
+      try {
+        const stat = await Deno.stat(join(specsDir, file));
+        mtimes.set(file, stat.mtime?.getTime() ?? 0);
+      } catch {
+        // File may have been deleted, skip it
+      }
+    }
+  }
+
+  return mtimes;
+}
+
+/**
+ * Checks if specs have changed since the given snapshot.
+ * Returns true if any spec was added, removed, or modified.
+ */
+export async function haveSpecsChanged(snapshot: Map<string, number>): Promise<boolean> {
+  const current = await getSpecMtimes();
+
+  // Check for added or removed files
+  if (current.size !== snapshot.size) {
+    return true;
+  }
+
+  // Check for modified files
+  for (const [file, mtime] of current) {
+    const snapshotMtime = snapshot.get(file);
+    if (snapshotMtime === undefined || snapshotMtime !== mtime) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -419,6 +475,9 @@ export async function initializeBaseSession(
     return err(claudeError('execution_failed', 'No specs found. Nothing to cache.'));
   }
 
+  // Capture spec mtimes for change detection
+  const specsMtimes = await getSpecMtimes();
+
   // Generate a unique session ID
   const sessionId = crypto.randomUUID();
 
@@ -460,6 +519,7 @@ export async function initializeBaseSession(
     return ok({
       sessionId,
       specs: Array.from(specs.keys()),
+      specsMtimes,
     });
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : 'Unknown error';

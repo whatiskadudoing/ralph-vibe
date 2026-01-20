@@ -11,6 +11,7 @@ import {
   exists,
   type FileError,
   getAgentsMdPath,
+  getAudienceJtbdPath,
   getBuildPromptPath,
   getConfigPath,
   getPlanPath,
@@ -30,6 +31,7 @@ import {
 import {
   renderAgentsMd,
   renderBuildPrompt,
+  renderInitialAudienceJtbd,
   renderInitialPlan,
   renderPlanPrompt,
 } from '@/core/templates.ts';
@@ -189,6 +191,14 @@ export async function initProject(
   const writePlanFileResult = await writeTextFile(planPath, initialPlan);
   if (!writePlanFileResult.ok) {
     return err(fromFileError(writePlanFileResult.error));
+  }
+
+  // Write AUDIENCE_JTBD.md
+  const audienceJtbdPath = getAudienceJtbdPath(root);
+  const audienceJtbd = renderInitialAudienceJtbd();
+  const writeAudienceResult = await writeTextFile(audienceJtbdPath, audienceJtbd);
+  if (!writeAudienceResult.ok) {
+    return err(fromFileError(writeAudienceResult.error));
   }
 
   return ok(undefined);

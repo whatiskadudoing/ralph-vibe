@@ -9,7 +9,6 @@
 
 import { Command } from '@cliffy/command';
 import { createInitCommand } from './init.ts';
-import { createOnboardCommand } from './onboard.ts';
 import { createStartCommand } from './start.ts';
 import { createPlanCommand } from './plan.ts';
 import { createWorkCommand } from './work.ts';
@@ -53,7 +52,6 @@ export function createProgram(): Command<any> {
       console.log();
       console.log(bold('Commands:'));
       console.log(`  ${orange('init')}     ${dim('Initialize a new Ralph project')}`);
-      console.log(`  ${orange('onboard')}  ${dim('Analyze existing project & create Ralph files')}`);
       console.log(`  ${orange('start')}    ${dim('Interactive interview to create first specs')}`);
       console.log(`  ${orange('spec')}     ${dim('Add a new feature spec via interview')}`);
       console.log(`  ${orange('plan')}     ${dim('Generate implementation plan from specs')}`);
@@ -62,7 +60,6 @@ export function createProgram(): Command<any> {
       console.log(bold('Vibe Mode:'));
       console.log(dim('  Add --vibe to any command to automatically continue the flow:'));
       console.log(`  ${muted('ralph init --vibe')}     ${dim('→ init → start → plan → work')}`);
-      console.log(`  ${muted('ralph onboard --vibe')}  ${dim('→ onboard → spec → plan → work')}`);
       console.log(`  ${muted('ralph spec --vibe')}     ${dim('→ spec → plan → work')}`);
       console.log(`  ${muted('ralph plan --vibe')}     ${dim('→ plan → work')}`);
       console.log();
@@ -70,7 +67,6 @@ export function createProgram(): Command<any> {
     })
     // Add subcommands
     .command('init', createInitCommand())
-    .command('onboard', createOnboardCommand())
     .command('start', createStartCommand())
     .command('spec', createSpecCommand())
     .command('plan', createPlanCommand())

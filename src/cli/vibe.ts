@@ -209,7 +209,7 @@ async function showAutonomousStarting(): Promise<void> {
  * Commands that require user interaction.
  * After these complete in vibe mode, we show the "grab a beer" message.
  */
-const INTERACTIVE_COMMANDS = ['init', 'start', 'spec', 'onboard'];
+const INTERACTIVE_COMMANDS = ['init', 'start', 'spec'];
 
 // ============================================================================
 // Flow Execution
@@ -229,11 +229,6 @@ export function getNextCommands(currentCommand: string): string[] {
   // Special case: 'spec' flows into 'plan' then 'work'
   if (currentCommand === 'spec') {
     return ['plan', 'work'];
-  }
-
-  // Special case: 'onboard' flows into 'spec' then 'plan' then 'work'
-  if (currentCommand === 'onboard') {
-    return ['spec', 'plan', 'work'];
   }
 
   const idx = FLOW_ORDER.indexOf(currentCommand as FlowCommand);

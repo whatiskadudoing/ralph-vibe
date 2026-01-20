@@ -17,10 +17,10 @@ import {
 // renderBuildPrompt Tests
 // ============================================================================
 
-Deno.test('renderBuildPrompt includes specs/README.md reference', () => {
+Deno.test('renderBuildPrompt includes specs/* reference', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, 'specs/README.md');
+  assertStringIncludes(result, 'specs/*');
   assertStringIncludes(result, 'IMPLEMENTATION_PLAN.md');
 });
 
@@ -62,14 +62,15 @@ Deno.test('renderBuildPrompt includes implementation quality rules', () => {
 Deno.test('renderBuildPrompt includes backpressure control', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, '1 subagent');
+  assertStringIncludes(result, '1 Sonnet subagent');
   assertStringIncludes(result, 'backpressure');
 });
 
 Deno.test('renderBuildPrompt includes subagent guidance', () => {
   const result = renderBuildPrompt();
 
-  assertStringIncludes(result, '500 parallel subagents');
+  assertStringIncludes(result, '500 parallel');
+  assertStringIncludes(result, 'Sonnet');
 });
 
 Deno.test('renderBuildPrompt includes EXIT_SIGNAL', () => {
@@ -82,11 +83,11 @@ Deno.test('renderBuildPrompt includes EXIT_SIGNAL', () => {
 // renderPlanPrompt Tests
 // ============================================================================
 
-Deno.test('renderPlanPrompt focuses on gap analysis', () => {
+Deno.test('renderPlanPrompt focuses on gap analysis and SLC', () => {
   const result = renderPlanPrompt();
 
   assertStringIncludes(result, 'GAP ANALYSIS');
-  assertStringIncludes(result, 'specifications and code');
+  assertStringIncludes(result, 'SLC RELEASE PLANNING');
 });
 
 Deno.test('renderPlanPrompt includes critical rules', () => {
@@ -201,8 +202,8 @@ Deno.test('renderInitialPlan includes placeholder phase', () => {
 Deno.test('renderSpecInterviewPrompt works without hint', () => {
   const result = renderSpecInterviewPrompt();
 
-  assertStringIncludes(result, 'Spec Interview Mode');
-  assertStringIncludes(result, 'user wants to add a new feature');
+  assertStringIncludes(result, 'Activity Spec Interview Mode');
+  assertStringIncludes(result, 'user wants to add a new activity');
 });
 
 Deno.test('renderSpecInterviewPrompt includes hint when provided', () => {

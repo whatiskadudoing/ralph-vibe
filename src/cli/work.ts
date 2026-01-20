@@ -12,7 +12,12 @@ import { amber, bold, cyan, dim, error, muted, orange, success as successColor }
 import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
-import { type BaseSessionContext, initializeBaseSession, isClaudeInstalled } from '@/services/claude_service.ts';
+import {
+  type BaseSessionContext,
+  haveSpecsChanged,
+  initializeBaseSession,
+  isClaudeInstalled,
+} from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
 import { renderBuildPrompt, renderBuildPromptForked } from '@/core/templates.ts';
 import { assessComplexity } from '@/core/complexity.ts';
@@ -510,6 +515,29 @@ const renderCachedContextBox = (context: BaseSessionContext): void => {
 };
 
 /**
+ * Renders a notification that specs changed and cache was refreshed.
+ */
+const renderCacheRefreshBox = (context: BaseSessionContext): void => {
+  const termWidth = getTerminalWidth();
+
+  const lines = [
+    `${amber('🔄')} ${bold('Specs Modified')} ${dim('— refreshing cache')}`,
+    '',
+    `${dim('📚')} Updated specs: ${cyan(context.specs.length.toString())} files`,
+    dim('New base session created with fresh specs'),
+  ];
+
+  console.log(createBox(lines.join('\n'), {
+    style: 'rounded',
+    padding: 1,
+    paddingY: 0,
+    borderColor: amber,
+    minWidth: termWidth - 6,
+  }));
+  console.log();
+};
+
+/**
  * The main build loop.
  */
 const buildLoop = async (
@@ -556,6 +584,24 @@ const buildLoop = async (
   while (sessionStats.totalIterations < maxIterations) {
     sessionStats.totalIterations++;
     const iteration = sessionStats.totalIterations;
+
+    // Check if specs have changed since base session was created
+    // If so, refresh the cache to maintain consistency
+    if (baseSession) {
+      const specsChanged = await haveSpecsChanged(baseSession.specsMtimes);
+      if (specsChanged) {
+        const newSessionResult = await initializeBaseSession(baseModel);
+        if (newSessionResult.ok) {
+          baseSession = newSessionResult.value;
+          renderCacheRefreshBox(baseSession);
+        } else {
+          // Fall back to non-cached mode
+          baseSession = null;
+          console.log(dim('  ℹ Could not refresh cache - continuing without caching'));
+          console.log();
+        }
+      }
+    }
 
     // Get usage before iteration
     const usageBefore = await getSubscriptionUsage();
