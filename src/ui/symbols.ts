@@ -5,21 +5,7 @@
  * Provides both fancy (Unicode) and fallback (ASCII) versions.
  */
 
-/**
- * Check if terminal likely supports Unicode.
- */
-function supportsUnicode(): boolean {
-  // Windows cmd.exe doesn't support Unicode well
-  if (Deno.build.os === 'windows') {
-    // Windows Terminal and PowerShell support Unicode
-    const term = Deno.env.get('WT_SESSION') || Deno.env.get('ConEmuANSI');
-    return term !== undefined;
-  }
-
-  // Most Unix terminals support Unicode
-  const lang = Deno.env.get('LANG') || '';
-  return lang.includes('UTF') || lang.includes('utf');
-}
+import { supportsUnicode } from './capabilities.ts';
 
 const UNICODE = supportsUnicode();
 

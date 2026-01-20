@@ -94,7 +94,7 @@ export function createBox(content: string, options: BoxOptions = {}): string {
   let topBorder: string;
   if (opts.title) {
     const titleText = ` ${opts.title} `;
-    const remainingWidth = innerWidth - titleText.length;
+    const remainingWidth = innerWidth - visibleLength(titleText);
     const leftWidth = Math.floor(remainingWidth / 2);
     const rightWidth = remainingWidth - leftWidth;
     topBorder = colorBorder(box.topLeft) +

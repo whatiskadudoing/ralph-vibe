@@ -29,6 +29,9 @@ const DEFAULT_PROGRESS_OPTIONS: Required<ProgressBarOptions> = {
  * Creates a progress bar string.
  * Pure function - returns the progress bar as a string.
  *
+ * @deprecated Use `progressBar` from `./symbols.ts` instead for simpler API.
+ * This function may be removed in a future version.
+ *
  * @param current - Current value
  * @param total - Total value
  * @param options - Display options

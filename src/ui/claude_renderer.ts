@@ -94,6 +94,9 @@ export interface ClaudeResult {
 const BOX = BOX_ROUNDED;
 const MAX_VISIBLE_TOOLS = 6;
 
+// Cached TextEncoder for better performance in hot paths (spinners render 60+ times/sec)
+const textEncoder = new TextEncoder();
+
 // ============================================================================
 // Icons & Symbols
 // ============================================================================
@@ -168,16 +171,16 @@ class ActivitySpinner {
     if (!this.initialized) return;
 
     // Move cursor up to our fixed render area (always same amount)
-    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
 
     // Render spinner line
     const frame = orange(SPINNER_DOTS[this.frameIndex] ?? '◆');
     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
     const time = elapsed > 0 ? dim(` (${elapsed}s)`) : '';
-    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[2K${frame} ${this.status}${time}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${frame} ${this.status}${time}\n`));
 
     // Render separator
-    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[2K${dim(BOX.vertical)}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${dim(BOX.vertical)}\n`));
 
     // Render tool slots (always render MAX_VISIBLE_TOOLS lines for fixed height)
     for (let i = 0; i < MAX_VISIBLE_TOOLS; i++) {
@@ -185,11 +188,11 @@ class ActivitySpinner {
       if (tool) {
         const formatted = this.formatTool(tool);
         Deno.stdout.writeSync(
-          new TextEncoder().encode(`\x1b[2K${dim(BOX.vertical)}  ${formatted}\n`),
+          textEncoder.encode(`\x1b[2K${dim(BOX.vertical)}  ${formatted}\n`),
         );
       } else {
         // Empty slot - just clear the line
-        Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[2K\n`));
+        Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K\n`));
       }
     }
   }
@@ -233,12 +236,12 @@ class ActivitySpinner {
     if (!this.initialized) return;
 
     // Move up and clear our fixed render area
-    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
     for (let i = 0; i < this.fixedHeight; i++) {
-      Deno.stdout.writeSync(new TextEncoder().encode('\x1b[2K\n'));
+      Deno.stdout.writeSync(textEncoder.encode('\x1b[2K\n'));
     }
     // Move back up to where we started
-    Deno.stdout.writeSync(new TextEncoder().encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
   }
 
   getStats(): { total: number; elapsed: number } {
@@ -698,16 +701,15 @@ class BoxedIterationRenderer {
     if (!this.initialized) return;
 
     const bc = this.borderColor;
-    const encoder = new TextEncoder();
     const boxWidth = getBoxWidth();
     const contentWidth = getContentWidth();
 
     // Move cursor to top of our render area
-    Deno.stdout.writeSync(encoder.encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
 
     // Line 0: Top border
     const topBorder = bc(BOX.topLeft + BOX.horizontal.repeat(boxWidth - 2) + BOX.topRight);
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${topBorder}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${topBorder}\n`));
 
     // Line 1: [#N] Title
     const titleLine = `${amber(`[#${this.iteration}]`)} ${
@@ -747,12 +749,11 @@ class BoxedIterationRenderer {
 
     // Line 12: Bottom border
     const bottomBorder = bc(BOX.bottomLeft + BOX.horizontal.repeat(boxWidth - 2) + BOX.bottomRight);
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${bottomBorder}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${bottomBorder}\n`));
   }
 
   private renderContentLine(content: string, contentWidth: number): void {
     const bc = this.borderColor;
-    const encoder = new TextEncoder();
     const boxWidth = getBoxWidth();
 
     // Truncate content if too long, then pad to exact width
@@ -768,9 +769,9 @@ class BoxedIterationRenderer {
     // Use cursor positioning to ensure right border is always in correct place
     // Clear line, write content, then position cursor at end for right border
     const leftPart = `${bc(BOX.vertical)} ${finalContent}${padding} `;
-    Deno.stdout.writeSync(encoder.encode(`\x1b[2K${leftPart}`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${leftPart}`));
     // Move to column boxWidth and write right border
-    Deno.stdout.writeSync(encoder.encode(`\x1b[${boxWidth}G${bc(BOX.vertical)}\n`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${boxWidth}G${bc(BOX.vertical)}\n`));
   }
 
   private formatTool(toolDisplay: string, contentWidth: number): string {
@@ -853,12 +854,11 @@ class BoxedIterationRenderer {
     if (!this.initialized) return;
 
     // Clear the entire box area
-    const encoder = new TextEncoder();
-    Deno.stdout.writeSync(encoder.encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
     for (let i = 0; i < this.fixedHeight; i++) {
-      Deno.stdout.writeSync(encoder.encode('\x1b[2K\n'));
+      Deno.stdout.writeSync(textEncoder.encode('\x1b[2K\n'));
     }
-    Deno.stdout.writeSync(encoder.encode(`\x1b[${this.fixedHeight}A`));
+    Deno.stdout.writeSync(textEncoder.encode(`\x1b[${this.fixedHeight}A`));
   }
 
   getStats(): {

@@ -12,6 +12,8 @@
  * - Muted (Gray): Secondary text, hints
  */
 
+import { supportsColor as checkSupportsColor } from './capabilities.ts';
+
 // ANSI escape codes
 const ESC = '\x1b[';
 const RESET = `${ESC}0m`;
@@ -175,17 +177,7 @@ export function visibleLength(str: string): number {
  * Returns false if NO_COLOR env var is set or not a TTY.
  */
 export function supportsColor(): boolean {
-  // Respect NO_COLOR convention: https://no-color.org/
-  if (Deno.env.get('NO_COLOR') !== undefined) {
-    return false;
-  }
-
-  // Check if stdout is a TTY
-  try {
-    return Deno.stdout.isTerminal();
-  } catch {
-    return false;
-  }
+  return checkSupportsColor();
 }
 
 /**

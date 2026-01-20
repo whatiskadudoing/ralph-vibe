@@ -5,6 +5,7 @@
  * All display functions are pure - they return strings, not print directly.
  */
 
+export * from './capabilities.ts';
 export * from './colors.ts';
 export * from './symbols.ts';
 export * from './banner.ts';
