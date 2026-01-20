@@ -509,8 +509,11 @@ const renderWorkSummary = async (
   if (finalUsage.ok) {
     lines.push(`  ${bold('Subscription')}`);
     lines.push('');
-    lines.push(`  ${dim('5h:')}  ${formatUsageBar(finalUsage.value.fiveHour.utilization, 20)}`);
-    lines.push(`  ${dim('7d:')}  ${formatUsageBar(finalUsage.value.sevenDay.utilization, 20)}`);
+    lines.push(`  ${dim('5h:')}      ${formatUsageBar(finalUsage.value.fiveHour.utilization, 20)}`);
+    lines.push(`  ${dim('7d:')}      ${formatUsageBar(finalUsage.value.sevenDay.utilization, 20)}`);
+    if (finalUsage.value.sevenDaySonnet) {
+      lines.push(`  ${dim('sonnet:')}  ${formatUsageBar(finalUsage.value.sevenDaySonnet.utilization, 20)}`);
+    }
     lines.push('');
   }
 
