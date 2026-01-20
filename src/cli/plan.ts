@@ -4,26 +4,20 @@
  * The `ralph plan` command.
  * Launches Claude to perform gap analysis and generate IMPLEMENTATION_PLAN.md.
  *
- * Reference: https://github.com/ghuntley/how-to-ralph-wiggum
+ * Reference: https://github.com/ClaytonFarr/ralph-playbook
  */
 
 import { Command } from '@cliffy/command';
 import { amber, dim, error, muted } from '@/ui/colors.ts';
 import { CROSS, INFO } from '@/ui/symbols.ts';
-import { isRalphProject } from '@/services/project_service.ts';
+import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
-import {
-  renderAnalysisPrompt,
-  renderPlanCommandPrompt,
-  renderSynthesisPrompt,
-} from '@/core/templates.ts';
-import { exists, getPlanPath, getSpecsDir } from '@/services/file_service.ts';
+import { exists, getPlanPath, getPlanPromptPath, getSpecsDir } from '@/services/file_service.ts';
 import { getTerminalWidth, runAndRender } from '@/ui/claude_renderer.ts';
 import { createBox } from '@/ui/box.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import {
   commandHeader,
-  completionBox,
   errorBox,
   infoBox,
   statusBox,
@@ -70,111 +64,52 @@ async function hasPlan(cwd?: string): Promise<boolean> {
 }
 
 // ============================================================================
-// Plan Strategies
+// Plan Execution
 // ============================================================================
 
 /**
- * Two-stage planning: Sonnet analyzes, Opus synthesizes.
+ * Reads the planning prompt from the project's PROMPT_plan.md file.
  */
-const runTwoStagePlan = async (): Promise<
-  { success: boolean; usage: { before: number | null; after: number | null } }
-> => {
-  const usageBefore = await getSubscriptionUsage();
-  const beforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
-
-  // Stage 1: Analysis with Sonnet
-  console.log(statusBox({
-    label: '[1/2]',
-    title: 'Analyzing Codebase',
-    description: 'Reading specs and searching for existing implementation',
-    active: true,
-  }));
-  console.log();
-
-  const analysisResult = await runAndRender(
-    {
-      prompt: renderAnalysisPrompt(),
-      model: 'sonnet',
-      skipPermissions: true,
-    },
-    {
-      showSpinner: true,
-      showTools: true,
-      showStats: false,
-    },
-  );
-
-  if (!analysisResult.success) {
-    return { success: false, usage: { before: beforeVal, after: null } };
+async function readPlanPrompt(): Promise<string | null> {
+  const promptPath = getPlanPromptPath();
+  try {
+    return await Deno.readTextFile(promptPath);
+  } catch {
+    return null;
   }
-
-  // Show stage 1 complete
-  console.log(completionBox(
-    '[1/2]',
-    'Analysis complete',
-    `${analysisResult.usage.operations} ops · ${analysisResult.usage.durationSec}s`,
-  ));
-  console.log();
-
-  // Stage 2: Synthesis with Opus
-  console.log(statusBox({
-    label: '[2/2]',
-    title: 'Generating Plan',
-    description: 'Creating prioritized implementation tasks',
-    active: true,
-  }));
-  console.log();
-
-  const synthesisResult = await runAndRender(
-    {
-      prompt: renderSynthesisPrompt(analysisResult.text),
-      model: 'opus',
-      skipPermissions: true,
-    },
-    {
-      showSpinner: true,
-      showTools: true,
-      showStats: false,
-    },
-  );
-
-  const usageAfter = await getSubscriptionUsage();
-  const afterVal = usageAfter.ok ? usageAfter.value.fiveHour.utilization : null;
-
-  if (!synthesisResult.success) {
-    return { success: false, usage: { before: beforeVal, after: afterVal } };
-  }
-
-  // Show stage 2 complete
-  console.log(completionBox(
-    '[2/2]',
-    'Plan generated',
-    `${synthesisResult.usage.operations} ops · ${synthesisResult.usage.durationSec}s`,
-  ));
-
-  return { success: true, usage: { before: beforeVal, after: afterVal } };
-};
+}
 
 /**
- * Single-stage planning: One model does everything.
+ * Runs the planning phase with a single model.
+ * The model uses subagents internally for parallel analysis.
  */
-const runSingleStagePlan = async (
+const runPlan = async (
   model: 'opus' | 'sonnet',
 ): Promise<{ success: boolean; usage: { before: number | null; after: number | null } }> => {
   const usageBefore = await getSubscriptionUsage();
   const beforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
 
+  // Read prompt from project's PROMPT_plan.md
+  const prompt = await readPlanPrompt();
+  if (!prompt) {
+    console.log(errorBox({
+      title: 'PROMPT_plan.md not found',
+      description: 'Run `ralph init` to create the prompt file.',
+    }));
+    return { success: false, usage: { before: beforeVal, after: null } };
+  }
+
   console.log(statusBox({
-    label: '[Planning]',
-    title: 'Gap Analysis',
-    description: `Using ${model} to analyze specs and generate tasks`,
+    label: `[${model}]`,
+    title: 'Gap Analysis & Planning',
+    description: 'Studying specs, searching codebase, generating plan',
     active: true,
   }));
   console.log();
 
   const result = await runAndRender(
     {
-      prompt: renderPlanCommandPrompt(),
+      prompt,
       model,
       skipPermissions: true,
     },
@@ -196,7 +131,6 @@ const runSingleStagePlan = async (
 // ============================================================================
 
 interface PlanOptions {
-  readonly fast?: boolean;
   readonly vibe?: boolean;
   readonly model?: string;
 }
@@ -205,19 +139,6 @@ interface PlanOptions {
  * The plan command action.
  */
 async function planAction(options: PlanOptions): Promise<void> {
-  // Handle --model flag with helpful hint
-  if (options.model) {
-    console.log();
-    console.log(infoBox({
-      title: 'Model selection not available for plan',
-      description:
-        'The plan command uses a two-stage approach (Sonnet→Opus) for best results.\n\n' +
-        '▸ Use --fast for single-stage Sonnet planning\n' +
-        '▸ --model and --adaptive are only available in ralph work',
-    }));
-    Deno.exit(0);
-  }
-
   // Handle vibe mode
   if (options.vibe) {
     enableVibeMode();
@@ -260,6 +181,27 @@ async function planAction(options: PlanOptions): Promise<void> {
     Deno.exit(1);
   }
 
+  // Read config for model setting
+  const configResult = await readConfig();
+
+  // Determine model - precedence: --model flag > config > default (opus)
+  let model: 'opus' | 'sonnet';
+  if (options.model === 'opus' || options.model === 'sonnet') {
+    model = options.model;
+  } else if (options.model) {
+    console.log();
+    console.log(infoBox({
+      title: 'Invalid model',
+      description: `Model must be 'opus' or 'sonnet'. Got: ${options.model}`,
+    }));
+    Deno.exit(1);
+  } else {
+    // Use config or default to opus
+    const configModel = configResult.ok ? configResult.value.work.model : 'opus';
+    // If config says adaptive, default to opus for planning
+    model = (configModel === 'opus' || configModel === 'sonnet') ? configModel : 'opus';
+  }
+
   // Fetch initial subscription usage
   const initialUsage = await getSubscriptionUsage();
 
@@ -282,8 +224,8 @@ async function planAction(options: PlanOptions): Promise<void> {
     console.log();
   }
 
-  // Run the appropriate planning strategy
-  const result = options.fast ? await runSingleStagePlan('sonnet') : await runTwoStagePlan();
+  // Run planning
+  const result = await runPlan(model);
 
   console.log();
 
@@ -340,8 +282,7 @@ async function planAction(options: PlanOptions): Promise<void> {
 export function createPlanCommand(): Command<any> {
   return new Command()
     .description('Generate implementation plan from specs (gap analysis)')
-    .option('-f, --fast', 'Use single-stage planning with Sonnet (faster, less thorough)')
+    .option('--model <model:string>', 'Model to use (opus or sonnet). Default: from config or opus')
     .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
-    .option('--model <model:string>', 'Not supported - see hint', { hidden: true })
     .action(planAction);
 }
