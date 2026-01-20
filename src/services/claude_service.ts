@@ -6,6 +6,8 @@
  */
 
 import { err, ok, type Result } from '@/utils/result.ts';
+import { exists, getSpecsDir, listDirectory, readTextFile } from './file_service.ts';
+import { join } from '@std/path';
 
 // ============================================================================
 // Types
@@ -33,6 +35,12 @@ export interface ClaudeRunOptions {
   readonly cwd?: string;
   /** Timeout in milliseconds. Default: none. */
   readonly timeout?: number;
+  /** Session ID to create a new session with. */
+  readonly sessionId?: string;
+  /** Session ID to resume from. */
+  readonly resumeSessionId?: string;
+  /** Fork from the resumed session instead of continuing it. */
+  readonly forkSession?: boolean;
 }
 
 export interface ToolUse {
@@ -113,6 +121,19 @@ export function buildClaudeArgs(options: ClaudeRunOptions): string[] {
 
   if (options.model) {
     args.push('--model', options.model);
+  }
+
+  // Session management for prompt caching
+  if (options.sessionId) {
+    // Create a new session with this ID
+    args.push('--session-id', options.sessionId);
+  } else if (options.resumeSessionId) {
+    // Resume from an existing session
+    args.push('--resume', options.resumeSessionId);
+    if (options.forkSession) {
+      // Fork instead of continuing (creates a new branch from cached context)
+      args.push('--fork-session');
+    }
   }
 
   // The prompt is passed via stdin, not as an argument
@@ -302,4 +323,146 @@ export async function* runClaude(
   }
 
   await process.status;
+}
+
+// ============================================================================
+// Base Session Management
+// ============================================================================
+
+export interface BaseSessionContext {
+  /** Session ID for forking */
+  readonly sessionId: string;
+  /** List of spec files loaded */
+  readonly specs: string[];
+}
+
+/**
+ * Loads all specs from the specs/ directory.
+ */
+async function loadSpecs(): Promise<Map<string, string>> {
+  const specs = new Map<string, string>();
+  const specsDir = getSpecsDir();
+
+  if (!(await exists(specsDir))) {
+    return specs;
+  }
+
+  const result = await listDirectory(specsDir);
+  if (!result.ok) {
+    return specs;
+  }
+
+  for (const file of result.value) {
+    if (file.endsWith('.md')) {
+      const content = await readTextFile(join(specsDir, file));
+      if (content.ok) {
+        specs.set(file, content.value);
+      }
+    }
+  }
+
+  return specs;
+}
+
+/**
+ * Builds the base context prompt with all specs.
+ * AGENTS.md is NOT cached because it can be updated during iterations.
+ * This creates a "brain" that Claude can fork from.
+ */
+function buildBaseContextPrompt(specs: Map<string, string>): string {
+  const lines: string[] = [
+    '# 🍺 Ralph Base Context',
+    '',
+    'This session contains all project specifications.',
+    'Each iteration will fork from this cached context.',
+    '',
+    '---',
+    '',
+  ];
+
+  // Add specs
+  if (specs.size > 0) {
+    lines.push('## Project Specifications');
+    lines.push('');
+
+    for (const [name, content] of specs.entries()) {
+      lines.push(`### ${name}`);
+      lines.push('');
+      lines.push(content);
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    }
+  }
+
+  lines.push('## Ready');
+  lines.push('');
+  lines.push('Specs loaded. AGENTS.md and IMPLEMENTATION_PLAN.md will be read fresh each iteration.');
+  lines.push('');
+  lines.push('Reply with: "🍺 Context cached. Ready to vibe."');
+
+  return lines.join('\n');
+}
+
+/**
+ * Initializes a base session with all specs loaded.
+ * AGENTS.md is NOT cached - it's read fresh each iteration (can be updated).
+ * Returns the session ID that can be used to fork subsequent iterations.
+ */
+export async function initializeBaseSession(
+  model: 'opus' | 'sonnet' = 'opus',
+): Promise<Result<BaseSessionContext, ClaudeError>> {
+  // Load specs only (AGENTS.md is read fresh each iteration)
+  const specs = await loadSpecs();
+
+  if (specs.size === 0) {
+    return err(claudeError('execution_failed', 'No specs found. Nothing to cache.'));
+  }
+
+  // Generate a unique session ID
+  const sessionId = crypto.randomUUID();
+
+  // Build the base context prompt
+  const prompt = buildBaseContextPrompt(specs);
+
+  // Create the base session
+  const args = [
+    '-p',
+    '--dangerously-skip-permissions',
+    '--output-format', 'json',
+    '--session-id', sessionId,
+    '--model', model,
+  ];
+
+  const command = new Deno.Command('claude', {
+    args,
+    stdin: 'piped',
+    stdout: 'piped',
+    stderr: 'piped',
+  });
+
+  try {
+    const process = command.spawn();
+
+    // Write prompt to stdin
+    const writer = process.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(prompt));
+    await writer.close();
+
+    const output = await process.output();
+    const status = await process.status;
+
+    if (!status.success) {
+      const stderr = new TextDecoder().decode(output.stderr);
+      return err(claudeError('execution_failed', `Failed to create base session: ${stderr}`));
+    }
+
+    return ok({
+      sessionId,
+      specs: Array.from(specs.keys()),
+    });
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+    return err(claudeError('execution_failed', `Failed to create base session: ${errorMsg}`));
+  }
 }

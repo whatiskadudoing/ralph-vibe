@@ -8,13 +8,13 @@
  */
 
 import { Command } from '@cliffy/command';
-import { amber, bold, dim, error, muted, orange, success as successColor } from '@/ui/colors.ts';
+import { amber, bold, cyan, dim, error, muted, orange, success as successColor } from '@/ui/colors.ts';
 import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
-import { isClaudeInstalled } from '@/services/claude_service.ts';
+import { type BaseSessionContext, initializeBaseSession, isClaudeInstalled } from '@/services/claude_service.ts';
 import { createTag, getLatestTag, incrementVersion, pushTags } from '@/services/git_service.ts';
-import { renderBuildPrompt } from '@/core/templates.ts';
+import { renderBuildPrompt, renderBuildPromptForked } from '@/core/templates.ts';
 import { assessComplexity } from '@/core/complexity.ts';
 import { exists, getPlanPath, readTextFile } from '@/services/file_service.ts';
 import {
@@ -159,10 +159,12 @@ const getNextTaskFromPlan = async (): Promise<NextTask | null> => {
  * Runs a single iteration of the build loop.
  * Renders progress inside an orange-bordered box.
  * When modelMode is 'adaptive', selects model based on task complexity.
+ * If baseSession is provided, forks from the cached context for faster execution.
  */
 const runIteration = async (
   iteration: number,
   modelMode: 'opus' | 'sonnet' | 'adaptive',
+  baseSession: BaseSessionContext | null,
 ): Promise<IterationResult> => {
   // Get next task from plan for display
   const nextTask = await getNextTaskFromPlan();
@@ -181,14 +183,18 @@ const runIteration = async (
     model = modelMode;
   }
 
-  const prompt = renderBuildPrompt();
+  // Use slimmer prompt if we have a base session (specs already cached)
+  const prompt = baseSession ? renderBuildPromptForked() : renderBuildPrompt();
 
   // Run Claude with progress displayed inside an orange-bordered box
+  // If base session exists, fork from it for prompt caching benefits
   const result = await runIterationInBox(
     {
       prompt,
       model,
       skipPermissions: true,
+      resumeSessionId: baseSession?.sessionId,
+      forkSession: baseSession !== null,
     },
     {
       iteration,
@@ -476,6 +482,34 @@ const createGitTag = async (termWidth: number): Promise<void> => {
 };
 
 /**
+ * Renders the cached context box with vibe icons.
+ */
+const renderCachedContextBox = (context: BaseSessionContext): void => {
+  const termWidth = getTerminalWidth();
+  const specsList = context.specs.length > 0
+    ? context.specs.map((s) => `specs/${s}`).join(', ')
+    : 'none';
+
+  const lines = [
+    `${cyan('🍺')} ${bold('Context Cached')} ${dim('— forking enabled')}`,
+    '',
+    `${dim('📚')} Specs: ${context.specs.length > 0 ? cyan(specsList) : dim('none')}`,
+    `${dim('📋')} Fresh each iteration: ${dim('IMPLEMENTATION_PLAN.md, AGENTS.md')}`,
+    '',
+    dim('Each iteration forks from specs cache → faster + cheaper'),
+  ];
+
+  console.log(createBox(lines.join('\n'), {
+    style: 'rounded',
+    padding: 1,
+    paddingY: 0,
+    borderColor: cyan,
+    minWidth: termWidth - 6,
+  }));
+  console.log();
+};
+
+/**
  * The main build loop.
  */
 const buildLoop = async (
@@ -505,6 +539,20 @@ const buildLoop = async (
   }));
   console.log();
 
+  // Initialize base session with specs and AGENTS.md for prompt caching
+  const baseModel = modelMode === 'adaptive' ? 'opus' : modelMode;
+  const baseSessionResult = await initializeBaseSession(baseModel);
+
+  let baseSession: BaseSessionContext | null = null;
+  if (baseSessionResult.ok) {
+    baseSession = baseSessionResult.value;
+    renderCachedContextBox(baseSession);
+  } else {
+    // Fallback: no caching, just show a note
+    console.log(dim('  ℹ No specs/AGENTS.md found - running without cache'));
+    console.log();
+  }
+
   while (sessionStats.totalIterations < maxIterations) {
     sessionStats.totalIterations++;
     const iteration = sessionStats.totalIterations;
@@ -513,7 +561,7 @@ const buildLoop = async (
     const usageBefore = await getSubscriptionUsage();
     const usageBeforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
 
-    const result = await runIteration(iteration, modelMode);
+    const result = await runIteration(iteration, modelMode, baseSession);
 
     // Get usage after iteration
     const usageAfter = await getSubscriptionUsage();

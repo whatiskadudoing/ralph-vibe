@@ -39,7 +39,12 @@ export function renderBuildPrompt(): string {
 
     Implement completely. No placeholders.
     Run validation commands from AGENTS.md.
-    When tests pass, mark task \`[x]\` complete in plan.
+
+    When tests pass:
+    - Mark task \`[x]\` complete in IMPLEMENTATION_PLAN.md
+    - Note any discoveries or bugs found in the plan
+    - If you learned operational tips, update AGENTS.md
+
     Commit with message capturing the **why**.
     Push to remote.
 
@@ -65,6 +70,66 @@ export function renderBuildPrompt(): string {
     999996. **TESTS MUST PASS** - Never mark a task complete if tests fail. Fix failures first.
     999995. **NO INVENTED FEATURES** - Only implement what's in the specs. Don't add unrequested features.
     999994. **MATCH EXISTING PATTERNS** - Follow the codebase's established conventions and patterns.
+
+    ---
+
+    If all tasks done: \`EXIT_SIGNAL: true\`
+
+    End with:
+    \`\`\`
+    RALPH_STATUS:
+    task: "[task name]"
+    validation: pass/fail
+    EXIT_SIGNAL: true/false
+    \`\`\`
+  `).trim();
+}
+
+/**
+ * Generates a slimmer build prompt for forked sessions.
+ * Use this when the base session already has specs loaded.
+ * Instructs Claude to read IMPLEMENTATION_PLAN.md and AGENTS.md (both can change).
+ *
+ * 🍺 Vibe mode - specs are cached, let's build!
+ */
+export function renderBuildPromptForked(): string {
+  return dedent(`
+    # 🍺 Build Mode (Cached Context)
+
+    **You already have specs in context.**
+
+    Study \`IMPLEMENTATION_PLAN.md\` for current tasks.
+    Study \`AGENTS.md\` for build/test commands.
+    Pick the **most important** unchecked task.
+
+    **Search codebase first** - don't assume things are missing.
+    Use existing codebase patterns.
+    Use up to 500 parallel subagents for reading/searching.
+    Use only **1 subagent** for build/test (backpressure).
+
+    Implement completely. No placeholders.
+    Run validation commands from AGENTS.md.
+
+    When tests pass:
+    - Mark task \`[x]\` complete in IMPLEMENTATION_PLAN.md
+    - Note any discoveries or bugs found in the plan
+    - If you learned operational tips, update AGENTS.md
+
+    Commit with message capturing the **why**.
+    Push to remote.
+
+    **One task per iteration. Exit after commit.**
+
+    ---
+
+    ## Guardrails
+
+    999999. **ONE TASK ONLY** - Pick one, complete it, commit, exit.
+    999998. **FULL IMPLEMENTATIONS** - No placeholders or TODOs.
+    999997. **SEARCH BEFORE IMPLEMENTING** - Always search first.
+    999996. **TESTS MUST PASS** - Fix failures before marking done.
+    999995. **NO INVENTED FEATURES** - Only implement what's in specs.
+    999994. **MATCH EXISTING PATTERNS** - Follow codebase conventions.
 
     ---
 
