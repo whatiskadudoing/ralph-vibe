@@ -9,7 +9,7 @@
 
 import { Command } from '@cliffy/command';
 import { amber, bold, cyan, dim, error, muted, orange, success as successColor } from '@/ui/colors.ts';
-import { CHECK, CROSS, INFO } from '@/ui/symbols.ts';
+import { CHECK, CROSS, INFO, progressBar } from '@/ui/symbols.ts';
 import { isRalphProject, readConfig } from '@/services/project_service.ts';
 import { DEFAULT_WORK, RECOMMENDED_MAX_ITERATIONS } from '@/core/config.ts';
 import {
@@ -800,6 +800,7 @@ const buildLoop = async (
     // Brief pause between iterations (fresh context)
     if (iteration < maxIterations) {
       const termWidth = getTerminalWidth();
+      const barWidth = termWidth - 22;
 
       // Build pause box content with usage info
       const pauseLines: string[] = [];
@@ -814,11 +815,15 @@ const buildLoop = async (
       ].filter(Boolean).join(' · ');
       pauseLines.push(dim(statsStr));
 
-      // Add subscription usage bar
+      // Add subscription usage bars (same style as header)
       const currentUsage = await getSubscriptionUsage();
       if (currentUsage.ok) {
-        const pct = Math.round(currentUsage.value.fiveHour.utilization);
-        pauseLines.push(`${dim('5h:')} ${formatUsageBar(pct, 20)}`);
+        pauseLines.push('');
+        const fiveHr = currentUsage.value.fiveHour.utilization;
+        const sevenDay = currentUsage.value.sevenDay.utilization;
+        pauseLines.push(`5h:  ${amber(progressBar(fiveHr, barWidth))}`);
+        pauseLines.push('');
+        pauseLines.push(`7d:  ${dim(progressBar(sevenDay, barWidth))}`);
       }
 
       console.log(
