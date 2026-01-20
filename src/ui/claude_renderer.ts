@@ -492,8 +492,36 @@ export function renderAnalysisSummary(items: readonly string[]): void {
 // ============================================================================
 
 function truncate(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 3) + '...';
+  const visLen = visibleLength(str);
+  if (visLen <= maxLength) return str;
+
+  // For ANSI strings, we need to truncate by visible characters
+  // Walk through and count visible chars to find cut point
+  let visible = 0;
+  let i = 0;
+  const target = maxLength - 3; // Leave room for '...'
+
+  while (i < str.length && visible < target) {
+    // Check for ANSI escape sequence
+    if (str[i] === '\x1b' && str[i + 1] === '[') {
+      // Skip the entire ANSI sequence
+      const end = str.indexOf('m', i);
+      if (end !== -1) {
+        i = end + 1;
+        continue;
+      }
+    }
+    visible++;
+    i++;
+  }
+
+  // Include any trailing ANSI reset sequence
+  let result = str.slice(0, i);
+  // Add reset if we cut in the middle of styled text
+  if (result.includes('\x1b[') && !result.endsWith('\x1b[0m')) {
+    result += '\x1b[0m';
+  }
+  return result + '...';
 }
 
 /**
