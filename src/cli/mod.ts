@@ -15,6 +15,7 @@ import { createWorkCommand } from './work.ts';
 import { createSpecCommand } from './spec.ts';
 import { createBanner } from '@/ui/banner.ts';
 import { bold, dim, muted, orange } from '@/ui/colors.ts';
+import { renderVersion } from '@components/mod.ts';
 import denoConfig from '../../deno.json' with { type: 'json' };
 
 // ============================================================================
@@ -23,6 +24,14 @@ import denoConfig from '../../deno.json' with { type: 'json' };
 
 const VERSION = denoConfig.version;
 const DESCRIPTION = 'Ralph Vibe - Autonomous development with Claude Code';
+
+/**
+ * Custom version action using deno-ink for rendering.
+ */
+function showVersion(): void {
+  renderVersion();
+  Deno.exit(0);
+}
 
 // ============================================================================
 // Main Command
@@ -36,6 +45,7 @@ export function createProgram(): Command<any> {
   return new Command()
     .name('ralph')
     .version(VERSION)
+    .versionOption('-v, --version', 'Show version information', showVersion)
     .description(DESCRIPTION)
     .action(() => {
       // Show help when no command is provided
