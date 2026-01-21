@@ -12,24 +12,44 @@ import { createFocusManager } from "./focus-manager.ts";
 import { createInputManager, parseKey } from "./hooks/use-input.ts";
 
 /**
- * Move cursor up N lines and to column 0.
- * Used to position cursor at the start of previous output for overwriting.
- */
-function moveCursorUp(count: number): string {
-  if (count <= 0) return "";
-  return `\x1b[${count}A\r`; // Move up N lines + move to column 0
-}
-
-/**
  * Clear to end of line escape sequence.
  * This clears from cursor to end of line without affecting scrollback.
  */
 const CLEAR_TO_EOL = "\x1b[K";
 
 /**
- * Erase entire line (for clearing extra lines when content shrinks).
+ * Erase entire line.
  */
 const ERASE_LINE = "\x1b[2K";
+
+/**
+ * Move cursor up one line.
+ */
+const CURSOR_UP = "\x1b[1A";
+
+/**
+ * Move cursor to beginning of line.
+ */
+const CURSOR_TO_START = "\r";
+
+/**
+ * Erase lines from current position upward.
+ * This mimics log-update/ansi-escapes eraseLines behavior.
+ * After erasing, cursor is at the beginning of the topmost erased line.
+ */
+function eraseLines(count: number): string {
+  if (count <= 0) return "";
+
+  let result = "";
+  for (let i = 0; i < count; i++) {
+    result += ERASE_LINE; // Erase current line
+    if (i < count - 1) {
+      result += CURSOR_UP; // Move up (except on last iteration)
+    }
+  }
+  result += CURSOR_TO_START; // Return to start of line
+  return result;
+}
 import { InkProvider } from "./components/InkProvider.tsx";
 import type { AppContextValue } from "./contexts/app-context.ts";
 import type { StdoutContextValue, StderrContextValue, StdinContextValue } from "./contexts/std-context.ts";
@@ -348,21 +368,20 @@ export class Ink {
     // Build the complete frame in a single buffer to minimize writes
     let frameBuffer = "";
 
-    // On subsequent renders, move cursor up to start of previous content
-    if (!this.firstRender) {
-      const moveUpCount = this.forceFullClear
+    // On subsequent renders, erase previous output first
+    // This uses the eraseLines approach (like log-update) which erases from
+    // current position upward, handling terminal reflow correctly
+    if (!this.firstRender && this.lastHeight > 0) {
+      const eraseCount = this.forceFullClear
         ? Math.max(this.lastHeight, this.maxHeight)
         : this.lastHeight;
-      if (moveUpCount > 0) {
-        frameBuffer += moveCursorUp(moveUpCount);
-      }
+      frameBuffer += eraseLines(eraseCount);
     }
     this.firstRender = false;
 
     // Split output into lines and write each with clear-to-end-of-line
-    // This overwrites the previous content in place
     const lines = output.split("\n");
-    const newHeight = lines.length; // Number of content lines
+    const newHeight = lines.length;
 
     for (let i = 0; i < lines.length; i++) {
       frameBuffer += lines[i] + CLEAR_TO_EOL;
@@ -371,23 +390,7 @@ export class Ink {
       }
     }
 
-    // If new content has fewer lines than old, clear the extra lines
-    // We stay on the last content line and erase downward, then return
-    const oldHeight = this.forceFullClear
-      ? Math.max(this.lastHeight, this.maxHeight)
-      : this.lastHeight;
-    if (oldHeight > newHeight) {
-      const extraLines = oldHeight - newHeight;
-      for (let i = 0; i < extraLines; i++) {
-        frameBuffer += "\n" + ERASE_LINE;
-      }
-      // Move cursor back up to end of actual content
-      if (extraLines > 0) {
-        frameBuffer += moveCursorUp(extraLines);
-      }
-    }
-
-    // Move to next line after content so cursor is positioned correctly
+    // Add final newline to position cursor below content
     frameBuffer += "\n";
 
     // Write everything at once
