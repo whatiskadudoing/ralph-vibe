@@ -3,7 +3,7 @@ import React from "react";
 import type { ReactElement } from "react";
 import { createReconciler } from "../src/reconciler.ts";
 import { createNode, type DOMElement, isTextNode } from "../src/dom.ts";
-import { renderToString } from "../src/render-node.ts";
+import { renderToString as renderNodeToString } from "../src/render-node.ts";
 import { loadYoga, type Yoga, type Node as YogaNode } from "../src/yoga.ts";
 import { applyStyles, type Styles } from "../src/styles.ts";
 import stringWidth from "string-width";
@@ -11,10 +11,15 @@ import { createFocusManager } from "../src/focus-manager.ts";
 import { createInputManager } from "../src/hooks/use-input.ts";
 import { InkProvider } from "../src/components/InkProvider.tsx";
 import type { AppContextValue } from "../src/contexts/app-context.ts";
-import type { StdoutContextValue, StderrContextValue, StdinContextValue } from "../src/contexts/std-context.ts";
+import type {
+  StdoutContextValue,
+  StderrContextValue,
+  StdinContextValue,
+} from "../src/contexts/std-context.ts";
 
 export interface RenderOptions {
   columns?: number;
+  debug?: boolean;
 }
 
 export interface RenderResult {
@@ -27,16 +32,31 @@ export interface RenderResult {
   };
 }
 
+// Cached yoga instance
 let yoga: Yoga | null = null;
+let yogaPromise: Promise<Yoga> | null = null;
 
 async function getYoga(): Promise<Yoga> {
-  if (!yoga) {
-    yoga = await loadYoga();
+  if (yoga) return yoga;
+  if (!yogaPromise) {
+    yogaPromise = loadYoga().then((y) => {
+      yoga = y;
+      return y;
+    });
   }
-  return yoga!;
+  return yogaPromise;
 }
 
-function rebuildYogaTree(node: DOMElement, parentYogaNode: YogaNode | null, y: Yoga): void {
+// Pre-load yoga for sync operations
+export async function initYoga(): Promise<void> {
+  await getYoga();
+}
+
+function rebuildYogaTree(
+  node: DOMElement,
+  parentYogaNode: YogaNode | null,
+  y: Yoga
+): void {
   if (!node.yogaNode) {
     node.yogaNode = y.Node.create();
   }
@@ -85,13 +105,100 @@ function getTextContent(node: DOMElement | { nodeValue: string }): string {
 }
 
 /**
- * Render a component for testing
+ * Synchronous render to string - requires yoga to be pre-loaded with initYoga()
  */
-export async function renderToTest(
+export function renderToString(
+  element: ReactElement,
+  options: { columns?: number } = {}
+): string {
+  if (!yoga) {
+    throw new Error("Yoga not initialized. Call initYoga() first.");
+  }
+
+  const { columns = 100 } = options;
+  const y = yoga;
+  const rootNode = createNode("ink-root");
+  let output = "";
+
+  const reconciler = createReconciler({
+    onRender: () => {
+      rebuildYogaTree(rootNode, null, y);
+      const result = renderNodeToString(rootNode, columns);
+      output = result.output;
+    },
+  });
+
+  // deno-lint-ignore no-explicit-any
+  const container = reconciler.createContainer(
+    rootNode,
+    0,
+    null,
+    false,
+    null,
+    "",
+    () => {},
+    null
+  );
+
+  const focusManager = createFocusManager();
+  const inputManager = createInputManager();
+
+  const appContext: AppContextValue = {
+    exit: () => {},
+  };
+
+  const stdoutContext: StdoutContextValue = {
+    // deno-lint-ignore no-explicit-any
+    stdout: { writeSync: () => 0 } as any,
+    write: () => {},
+  };
+
+  const stderrContext: StderrContextValue = {
+    // deno-lint-ignore no-explicit-any
+    stderr: { writeSync: () => 0 } as any,
+    write: () => {},
+  };
+
+  const stdinContext: StdinContextValue = {
+    stdin: Deno.stdin,
+    isRawModeSupported: false,
+    setRawMode: () => {},
+  };
+
+  const inputContext = {
+    subscribe: inputManager.subscribe,
+    isRawModeSupported: false,
+  };
+
+  const wrappedElement = React.createElement(
+    InkProvider,
+    {
+      app: appContext,
+      focusManager,
+      stdout: stdoutContext,
+      stderr: stderrContext,
+      stdin: stdinContext,
+      input: inputContext,
+    },
+    element
+  );
+
+  reconciler.updateContainer(wrappedElement, container, null, () => {});
+  rebuildYogaTree(rootNode, null, y);
+  const result = renderNodeToString(rootNode, columns);
+  output = result.output;
+
+  return output;
+}
+
+/**
+ * Render a component for testing (async version)
+ */
+export async function render(
   element: ReactElement,
   options: RenderOptions = {}
 ): Promise<RenderResult> {
-  const { columns = 80 } = options;
+  const { columns = 100 } = options;
 
   const y = await getYoga();
   const rootNode = createNode("ink-root");
@@ -100,7 +207,7 @@ export async function renderToTest(
   const reconciler = createReconciler({
     onRender: () => {
       rebuildYogaTree(rootNode, null, y);
-      const { output } = renderToString(rootNode, columns);
+      const { output } = renderNodeToString(rootNode, columns);
       frames.push(output);
     },
   });
@@ -163,7 +270,7 @@ export async function renderToTest(
 
     reconciler.updateContainer(wrappedElement, container, null, () => {});
     rebuildYogaTree(rootNode, null, y);
-    const { output } = renderToString(rootNode, columns);
+    const { output } = renderNodeToString(rootNode, columns);
     frames.push(output);
   };
 
@@ -182,12 +289,15 @@ export async function renderToTest(
       write: (data: string) => {
         inputManager.emit(data);
         rebuildYogaTree(rootNode, null, y);
-        const { output } = renderToString(rootNode, columns);
+        const { output } = renderNodeToString(rootNode, columns);
         frames.push(output);
       },
     },
   };
 }
+
+// Alias for backwards compatibility
+export const renderToTest = render;
 
 /**
  * Strip ANSI escape codes

@@ -7,7 +7,7 @@ export interface TransformProps {
   /**
    * Children to transform. Can be a string or React elements.
    */
-  children: ReactNode;
+  children?: ReactNode;
 
   /**
    * Transform function that receives each line of output and returns transformed text.

@@ -24,7 +24,7 @@ export interface StaticProps<T> {
   /**
    * Render function for each item
    */
-  children: (item: T, index: number) => ReactNode;
+  children?: (item: T, index: number) => ReactNode;
 }
 
 /**
@@ -35,7 +35,7 @@ export function Static<T>({
   items,
   children: render,
   style: customStyle,
-}: StaticProps<T>): React.ReactElement {
+}: StaticProps<T>): React.ReactElement | null {
   const [index, setIndex] = useState(0);
 
   // Only render new items since last render
@@ -47,6 +47,10 @@ export function Static<T>({
   useLayoutEffect(() => {
     setIndex(items.length);
   }, [items.length]);
+
+  if (!render) {
+    return null;
+  }
 
   const children = itemsToRender.map((item: T, itemIndex: number) => {
     return render(item, index + itemIndex);

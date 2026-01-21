@@ -2,6 +2,7 @@
 import React, { type ReactNode } from "react";
 
 export interface TextProps {
+  key?: React.Key;
   children?: ReactNode;
   color?: string;
   backgroundColor?: string;
