@@ -13,9 +13,7 @@ import { createStartCommand } from './start.ts';
 import { createPlanCommand } from './plan.ts';
 import { createWorkCommand } from './work.ts';
 import { createSpecCommand } from './spec.ts';
-import { createBanner } from '@/ui/banner.ts';
-import { bold, dim, muted, orange } from '@/ui/colors.ts';
-import { renderVersion } from '@components/mod.ts';
+import { renderVersion, renderHelp } from '@components/mod.ts';
 import denoConfig from '../../deno.json' with { type: 'json' };
 
 // ============================================================================
@@ -33,6 +31,14 @@ function showVersion(): void {
   Deno.exit(0);
 }
 
+/**
+ * Custom help action using deno-ink for rendering.
+ */
+async function showHelp(): Promise<void> {
+  await renderHelp(VERSION);
+  Deno.exit(0);
+}
+
 // ============================================================================
 // Main Command
 // ============================================================================
@@ -46,34 +52,11 @@ export function createProgram(): Command<any> {
     .name('ralph')
     .version(VERSION)
     .versionOption('-v, --version', 'Show version information', showVersion)
+    .helpOption('-h, --help', 'Show help information', showHelp)
     .description(DESCRIPTION)
-    .action(() => {
+    .action(async () => {
       // Show help when no command is provided
-      console.log(createBanner());
-      console.log();
-      console.log(orange('Ralph Vibe') + dim(' - Autonomous development with Claude Code'));
-      console.log(muted('Based on: https://github.com/ghuntley/how-to-ralph-wiggum'));
-      console.log();
-      console.log(bold('Usage:'));
-      console.log(`  ${orange('ralph <command>')}       ${dim('Run a specific command')}`);
-      console.log(
-        `  ${orange('ralph <command> --vibe')} ${dim('Run command and continue automatically')}`,
-      );
-      console.log();
-      console.log(bold('Commands:'));
-      console.log(`  ${orange('init')}     ${dim('Initialize a new Ralph project')}`);
-      console.log(`  ${orange('start')}    ${dim('Interactive interview to create first specs')}`);
-      console.log(`  ${orange('spec')}     ${dim('Add a new feature spec via interview')}`);
-      console.log(`  ${orange('plan')}     ${dim('Generate implementation plan from specs')}`);
-      console.log(`  ${orange('work')}     ${dim('Run the autonomous build loop')}`);
-      console.log();
-      console.log(bold('Vibe Mode:'));
-      console.log(dim('  Add --vibe to any command to automatically continue the flow:'));
-      console.log(`  ${muted('ralph init --vibe')}     ${dim('→ init → start → plan → work')}`);
-      console.log(`  ${muted('ralph spec --vibe')}     ${dim('→ spec → plan → work')}`);
-      console.log(`  ${muted('ralph plan --vibe')}     ${dim('→ plan → work')}`);
-      console.log();
-      console.log(muted('Run `ralph <command> --help` for more information.'));
+      await showHelp();
     })
     // Add subcommands
     .command('init', createInitCommand())

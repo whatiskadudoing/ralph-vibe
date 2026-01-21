@@ -437,6 +437,13 @@ export {
   type MascotProps,
 } from "./VersionDisplay.tsx";
 
+// Help Screen
+export {
+  HelpScreen,
+  renderHelp,
+  type HelpScreenProps,
+} from "./HelpScreen.tsx";
+
 // Menu/CommandPalette
 export {
   MenuItem,
