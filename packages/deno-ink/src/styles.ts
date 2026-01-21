@@ -53,7 +53,16 @@ export interface Styles {
   display?: "flex" | "none";
 
   // Border
-  borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic";
+  borderStyle?: "single" | "double" | "round" | "bold" | "singleDouble" | "doubleSingle" | "classic" | {
+    topLeft: string;
+    top: string;
+    topRight: string;
+    left: string;
+    bottomLeft: string;
+    bottom: string;
+    bottomRight: string;
+    right: string;
+  };
   borderTop?: boolean;
   borderBottom?: boolean;
   borderLeft?: boolean;
@@ -63,6 +72,7 @@ export interface Styles {
   borderBottomColor?: string;
   borderLeftColor?: string;
   borderRightColor?: string;
+  borderDimColor?: boolean;
 }
 
 export function applyStyles(
@@ -75,13 +85,15 @@ export function applyStyles(
     yogaNode.setPositionType(yoga.POSITION_TYPE_ABSOLUTE);
   }
 
-  // Dimensions
+  // Dimensions - reset to auto when undefined, set value when defined
   if (style.width !== undefined) {
     if (typeof style.width === "string" && style.width.endsWith("%")) {
       yogaNode.setWidthPercent(parseFloat(style.width));
     } else if (typeof style.width === "number") {
       yogaNode.setWidth(style.width);
     }
+  } else {
+    yogaNode.setWidthAuto();
   }
 
   if (style.height !== undefined) {
@@ -90,17 +102,39 @@ export function applyStyles(
     } else if (typeof style.height === "number") {
       yogaNode.setHeight(style.height);
     }
+  } else {
+    yogaNode.setHeightAuto();
   }
 
   if (style.minWidth !== undefined) {
-    if (typeof style.minWidth === "number") {
+    if (typeof style.minWidth === "string" && style.minWidth.endsWith("%")) {
+      yogaNode.setMinWidthPercent(parseFloat(style.minWidth));
+    } else if (typeof style.minWidth === "number") {
       yogaNode.setMinWidth(style.minWidth);
     }
   }
 
   if (style.minHeight !== undefined) {
-    if (typeof style.minHeight === "number") {
+    if (typeof style.minHeight === "string" && style.minHeight.endsWith("%")) {
+      yogaNode.setMinHeightPercent(parseFloat(style.minHeight));
+    } else if (typeof style.minHeight === "number") {
       yogaNode.setMinHeight(style.minHeight);
+    }
+  }
+
+  if (style.maxWidth !== undefined) {
+    if (typeof style.maxWidth === "string" && style.maxWidth.endsWith("%")) {
+      yogaNode.setMaxWidthPercent(parseFloat(style.maxWidth));
+    } else if (typeof style.maxWidth === "number") {
+      yogaNode.setMaxWidth(style.maxWidth);
+    }
+  }
+
+  if (style.maxHeight !== undefined) {
+    if (typeof style.maxHeight === "string" && style.maxHeight.endsWith("%")) {
+      yogaNode.setMaxHeightPercent(parseFloat(style.maxHeight));
+    } else if (typeof style.maxHeight === "number") {
+      yogaNode.setMaxHeight(style.maxHeight);
     }
   }
 
@@ -109,9 +143,8 @@ export function applyStyles(
     yogaNode.setFlexGrow(style.flexGrow);
   }
 
-  if (style.flexShrink !== undefined) {
-    yogaNode.setFlexShrink(style.flexShrink);
-  }
+  // Set flexShrink (default to 1 to match CSS behavior, unlike Yoga's default of 0)
+  yogaNode.setFlexShrink(style.flexShrink ?? 1);
 
   if (style.flexBasis !== undefined) {
     if (typeof style.flexBasis === "number") {
@@ -119,15 +152,15 @@ export function applyStyles(
     }
   }
 
-  if (style.flexDirection !== undefined) {
-    const directions: Record<string, any> = {
-      row: yoga.FLEX_DIRECTION_ROW,
-      column: yoga.FLEX_DIRECTION_COLUMN,
-      "row-reverse": yoga.FLEX_DIRECTION_ROW_REVERSE,
-      "column-reverse": yoga.FLEX_DIRECTION_COLUMN_REVERSE,
-    };
-    yogaNode.setFlexDirection(directions[style.flexDirection]);
-  }
+  // Set flex direction (default to row, unlike Yoga's default of column)
+  const directions: Record<string, any> = {
+    row: yoga.FLEX_DIRECTION_ROW,
+    column: yoga.FLEX_DIRECTION_COLUMN,
+    "row-reverse": yoga.FLEX_DIRECTION_ROW_REVERSE,
+    "column-reverse": yoga.FLEX_DIRECTION_COLUMN_REVERSE,
+  };
+  const flexDir = style.flexDirection ?? "row";
+  yogaNode.setFlexDirection(directions[flexDir]);
 
   if (style.flexWrap !== undefined) {
     const wraps: Record<string, any> = {

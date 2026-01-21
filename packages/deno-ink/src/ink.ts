@@ -33,10 +33,17 @@ const ERASE_LINE = "\x1b[2K";
 import { InkProvider } from "./components/InkProvider.tsx";
 import type { AppContextValue } from "./contexts/app-context.ts";
 import type { StdoutContextValue, StderrContextValue, StdinContextValue } from "./contexts/std-context.ts";
+import type { AccessibilityContextValue } from "./contexts/accessibility-context.ts";
+import { isCI, isInteractive } from "./ci.ts";
+import { patchConsole, type PatchedConsole } from "./console-patch.ts";
 
 export interface InkOptions {
   stdout?: typeof Deno.stdout;
   stdin?: typeof Deno.stdin;
+  /**
+   * Custom stderr stream.
+   */
+  stderr?: typeof Deno.stderr;
   exitOnCtrlC?: boolean;
   debug?: boolean;
   /**
@@ -44,6 +51,22 @@ export interface InkOptions {
    * @default 60
    */
   maxFps?: number;
+  /**
+   * Patch console methods (log, warn, error) to prevent output mixing.
+   * When enabled, console output is buffered and flushed on unmount.
+   * @default true
+   */
+  patchConsole?: boolean;
+  /**
+   * Enable screen reader support mode.
+   * Can also be enabled via INK_SCREEN_READER=1 environment variable.
+   * @default false
+   */
+  isScreenReaderEnabled?: boolean;
+  /**
+   * Callback called after each render with timing information.
+   */
+  onRender?: (info: { renderTime: number }) => void;
 }
 
 export interface InkInstance {
@@ -54,7 +77,7 @@ export interface InkInstance {
 }
 
 export class Ink {
-  private readonly options: Required<InkOptions>;
+  private readonly options: Required<Omit<InkOptions, "onRender">> & Pick<InkOptions, "onRender">;
   private readonly rootNode: DOMElement;
   private readonly reconciler: ReturnType<typeof createReconciler>;
   private container: any;
@@ -76,14 +99,35 @@ export class Ink {
   private focusManager: ReturnType<typeof createFocusManager>;
   private inputManager: ReturnType<typeof createInputManager>;
   private exitError: Error | undefined = undefined;
+  private patchedConsole: PatchedConsole | null = null;
+  private readonly inCI: boolean;
+  private readonly isScreenReaderEnabled: boolean;
 
   constructor(options: InkOptions = {}) {
+    // Detect CI environment
+    this.inCI = isCI();
+
+    // Determine screen reader mode from option or environment variable
+    let screenReaderEnabled = options.isScreenReaderEnabled ?? false;
+    try {
+      if (Deno.env.get("INK_SCREEN_READER") === "1") {
+        screenReaderEnabled = true;
+      }
+    } catch {
+      // Ignore env access errors
+    }
+    this.isScreenReaderEnabled = screenReaderEnabled;
+
     this.options = {
       stdout: options.stdout ?? Deno.stdout,
       stdin: options.stdin ?? Deno.stdin,
+      stderr: options.stderr ?? Deno.stderr,
       exitOnCtrlC: options.exitOnCtrlC ?? true,
       debug: options.debug ?? false,
       maxFps: options.maxFps ?? 60,
+      patchConsole: options.patchConsole ?? true,
+      isScreenReaderEnabled: this.isScreenReaderEnabled,
+      onRender: options.onRender,
     };
 
     this.rootNode = createNode("ink-root");
@@ -111,16 +155,29 @@ export class Ink {
       () => {},
       null
     );
+
+    // Set up console patching if enabled and not in CI
+    if (this.options.patchConsole && !this.inCI) {
+      const encoder = new TextEncoder();
+      this.patchedConsole = patchConsole(
+        (data) => this.options.stdout.writeSync(encoder.encode(data)),
+        (data) => this.options.stderr.writeSync(encoder.encode(data))
+      );
+    }
   }
 
   async init(): Promise<void> {
     this.yoga = await loadYoga();
     this.attachYogaNodes(this.rootNode);
-    this.setupInput();
-    this.setupResizeHandler();
 
-    // Hide cursor during rendering
-    this.writeSync(ansiEscapes.cursorHide);
+    // In CI mode, skip interactive features
+    if (!this.inCI) {
+      this.setupInput();
+      this.setupResizeHandler();
+
+      // Hide cursor during rendering (not in CI)
+      this.writeSync(ansiEscapes.cursorHide);
+    }
   }
 
   private setupResizeHandler(): void {
@@ -266,6 +323,8 @@ export class Ink {
   private render(): void {
     if (this.isUnmounted || !this.yoga) return;
 
+    const renderStart = performance.now();
+
     // Rebuild yoga tree to match DOM
     this.rebuildYogaTree(this.rootNode, null);
 
@@ -329,10 +388,15 @@ export class Ink {
     this.maxHeight = Math.max(this.maxHeight, this.lastHeight);
     this.forceFullClear = false;
 
-    // Debug rendering disabled to avoid infinite loop
-    // if (this.options.debug) {
-    //   console.error("[deno-ink] Rendered:", { width, lastHeight: this.lastHeight });
-    // }
+    // Call onRender callback with timing info
+    if (this.options.onRender) {
+      const renderTime = performance.now() - renderStart;
+      try {
+        this.options.onRender({ renderTime });
+      } catch {
+        // Ignore errors in callback
+      }
+    }
   }
 
   private rebuildYogaTree(node: DOMElement, parentYogaNode: YogaNode | null): void {
@@ -418,10 +482,10 @@ export class Ink {
     };
 
     const stderrContext: StderrContextValue = {
-      stderr: Deno.stderr,
+      stderr: this.options.stderr,
       write: (data: string) => {
         const encoder = new TextEncoder();
-        Deno.stderr.writeSync(encoder.encode(data));
+        this.options.stderr.writeSync(encoder.encode(data));
       },
     };
 
@@ -444,6 +508,10 @@ export class Ink {
       isRawModeSupported: this.inputManager.isRawModeSupported,
     };
 
+    const accessibilityContext: AccessibilityContextValue = {
+      isScreenReaderEnabled: this.isScreenReaderEnabled,
+    };
+
     // Wrap the node with InkProvider
     const wrappedNode = React.createElement(InkProvider, {
       app: appContext,
@@ -452,6 +520,7 @@ export class Ink {
       stderr: stderrContext,
       stdin: stdinContext,
       input: inputContext,
+      accessibility: accessibilityContext,
     }, node);
 
     this.reconciler.updateContainer(wrappedNode, this.container, null, () => {});
@@ -478,8 +547,16 @@ export class Ink {
 
     this.cleanupInput();
 
-    // Show cursor again
-    this.writeSync(ansiEscapes.cursorShow);
+    // Show cursor again (not in CI)
+    if (!this.inCI) {
+      this.writeSync(ansiEscapes.cursorShow);
+    }
+
+    // Restore console methods and flush buffered output
+    if (this.patchedConsole) {
+      this.patchedConsole.restore();
+      this.patchedConsole = null;
+    }
 
     this.reconciler.updateContainer(null, this.container, null, () => {});
 

@@ -14,6 +14,7 @@ import {
 } from "../contexts/std-context.ts";
 import { InputContext } from "../hooks/use-input.ts";
 import type { FocusManager } from "../focus-manager.ts";
+import { AccessibilityContext, type AccessibilityContextValue } from "../contexts/accessibility-context.ts";
 
 export interface InkProviderProps {
   children: ReactNode;
@@ -26,6 +27,7 @@ export interface InkProviderProps {
     subscribe: (handler: (input: string, key: any) => void) => () => void;
     isRawModeSupported: boolean;
   };
+  accessibility: AccessibilityContextValue;
 }
 
 export function InkProvider({
@@ -36,6 +38,7 @@ export function InkProvider({
   stderr,
   stdin,
   input,
+  accessibility,
 }: InkProviderProps) {
   // Use state to track focus context changes
   const [focusContext, setFocusContext] = useState<FocusContextValue>(() =>
@@ -55,19 +58,21 @@ export function InkProvider({
 
   return (
     <AppContext.Provider value={app}>
-      <FocusManagerContext.Provider value={focusManagerContext}>
-        <FocusContext.Provider value={focusContext}>
-          <StdoutContext.Provider value={stdout}>
-            <StderrContext.Provider value={stderr}>
-              <StdinContext.Provider value={stdin}>
-                <InputContext.Provider value={input}>
-                  {children}
-                </InputContext.Provider>
-              </StdinContext.Provider>
-            </StderrContext.Provider>
-          </StdoutContext.Provider>
-        </FocusContext.Provider>
-      </FocusManagerContext.Provider>
+      <AccessibilityContext.Provider value={accessibility}>
+        <FocusManagerContext.Provider value={focusManagerContext}>
+          <FocusContext.Provider value={focusContext}>
+            <StdoutContext.Provider value={stdout}>
+              <StderrContext.Provider value={stderr}>
+                <StdinContext.Provider value={stdin}>
+                  <InputContext.Provider value={input}>
+                    {children}
+                  </InputContext.Provider>
+                </StdinContext.Provider>
+              </StderrContext.Provider>
+            </StdoutContext.Provider>
+          </FocusContext.Provider>
+        </FocusManagerContext.Provider>
+      </AccessibilityContext.Provider>
     </AppContext.Provider>
   );
 }

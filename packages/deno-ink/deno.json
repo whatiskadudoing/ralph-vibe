@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "exports": "./src/mod.ts",
   "tasks": {
+    "test": "deno test test/ --allow-read --allow-env --allow-run --no-check",
     "demo": "deno run --allow-all examples/demo.tsx",
     "counter": "deno run --allow-all examples/counter.tsx",
     "beautiful": "deno run --allow-all examples/beautiful.tsx",
