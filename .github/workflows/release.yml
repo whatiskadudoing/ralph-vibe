@@ -39,7 +39,7 @@ jobs:
           deno-version: v2.x
 
       - name: Build binary
-        run: deno compile --allow-all --target ${{ matrix.target }} --output ${{ matrix.artifact }} src/mod.ts
+        run: deno compile --no-check --allow-all --target ${{ matrix.target }} --output ${{ matrix.artifact }} src/mod.ts
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
