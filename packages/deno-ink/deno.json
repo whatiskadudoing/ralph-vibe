@@ -1,0 +1,34 @@
+{
+  "name": "@ralph/deno-ink",
+  "version": "0.1.0",
+  "exports": "./src/mod.ts",
+  "tasks": {
+    "demo": "deno run --allow-all examples/demo.tsx",
+    "counter": "deno run --allow-all examples/counter.tsx",
+    "beautiful": "deno run --allow-all examples/beautiful.tsx",
+    "spinners": "deno run --allow-all examples/test-all-spinners.tsx",
+    "progress": "deno run --allow-all examples/test-progress.tsx",
+    "boxes": "deno run --allow-all examples/test-boxes.tsx",
+    "dashboard": "deno run --allow-all examples/test-dashboard.tsx",
+    "simple": "deno run --allow-all examples/test-simple.tsx",
+    "layout": "deno run --allow-all examples/test-layout.tsx",
+    "spinner": "deno run --allow-all examples/test-spinner.tsx",
+    "focus": "deno run --allow-all examples/test-focus.tsx"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "imports": {
+    "react": "npm:react@18.3.1",
+    "react/jsx-runtime": "npm:react@18.3.1/jsx-runtime",
+    "react-reconciler": "npm:react-reconciler@0.29.2",
+    "yoga-wasm-web": "npm:yoga-wasm-web@0.3.3",
+    "chalk": "npm:chalk@5.3.0",
+    "cli-boxes": "npm:cli-boxes@3.0.0",
+    "string-width": "npm:string-width@7.2.0",
+    "wrap-ansi": "npm:wrap-ansi@9.0.0",
+    "slice-ansi": "npm:slice-ansi@7.1.0",
+    "ansi-escapes": "npm:ansi-escapes@7.0.0"
+  }
+}
