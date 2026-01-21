@@ -365,19 +365,30 @@ export class Ink {
     const newHeight = lines.length; // Number of content lines
 
     for (let i = 0; i < lines.length; i++) {
-      frameBuffer += lines[i] + CLEAR_TO_EOL + "\n";
+      frameBuffer += lines[i] + CLEAR_TO_EOL;
+      if (i < lines.length - 1) {
+        frameBuffer += "\n";
+      }
     }
 
     // If new content has fewer lines than old, clear the extra lines
+    // We stay on the last content line and erase downward, then return
     const oldHeight = this.forceFullClear
       ? Math.max(this.lastHeight, this.maxHeight)
       : this.lastHeight;
     if (oldHeight > newHeight) {
       const extraLines = oldHeight - newHeight;
       for (let i = 0; i < extraLines; i++) {
-        frameBuffer += ERASE_LINE + "\n";
+        frameBuffer += "\n" + ERASE_LINE;
+      }
+      // Move cursor back up to end of actual content
+      if (extraLines > 0) {
+        frameBuffer += moveCursorUp(extraLines);
       }
     }
+
+    // Move to next line after content so cursor is positioned correctly
+    frameBuffer += "\n";
 
     // Write everything at once
     this.writeSync(frameBuffer);
