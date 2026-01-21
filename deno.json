@@ -34,12 +34,25 @@
     "@std/testing": "jsr:@std/testing@1.0.0",
     "@std/fmt": "jsr:@std/fmt@1.0.0",
 
+    "react": "npm:react@18.3.1",
+    "react/jsx-runtime": "npm:react@18.3.1/jsx-runtime",
+    "react-reconciler": "npm:react-reconciler@0.29.2",
+    "yoga-wasm-web": "npm:yoga-wasm-web@0.3.3",
+    "chalk": "npm:chalk@5.3.0",
+    "cli-boxes": "npm:cli-boxes@3.0.0",
+    "string-width": "npm:string-width@7.2.0",
+    "wrap-ansi": "npm:wrap-ansi@9.0.0",
+    "slice-ansi": "npm:slice-ansi@7.1.0",
+    "ansi-escapes": "npm:ansi-escapes@7.0.0",
+    "@ink/": "./packages/deno-ink/src/",
+
     "@/": "./src/",
     "@core/": "./src/core/",
     "@services/": "./src/services/",
     "@ui/": "./src/ui/",
     "@cli/": "./src/cli/",
-    "@utils/": "./src/utils/"
+    "@utils/": "./src/utils/",
+    "@components/": "./src/components/"
   },
 
   "fmt": {
@@ -82,6 +95,8 @@
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   }
 }

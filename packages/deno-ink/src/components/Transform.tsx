@@ -1,6 +1,5 @@
-// deno-lint-ignore-file no-explicit-any
 // Transform component - transforms text output
-import React, { useState, useLayoutEffect, useRef } from "react";
+import React from "react";
 import type { ReactNode } from "react";
 
 export interface TransformProps {
@@ -10,85 +9,51 @@ export interface TransformProps {
   children?: ReactNode;
 
   /**
-   * Transform function that receives each line of output and returns transformed text.
-   * The function receives the line content and the line index (0-based).
+   * Transform function that receives the output string and index, returns transformed text.
+   * The function receives the concatenated text content and the index of this text node.
    */
-  transform: (line: string, index: number) => string;
+  transform: (text: string, index: number) => string;
 }
 
 /**
- * Transform component that applies a transformation function to its children.
- * Useful for effects like gradient text, line numbering, etc.
+ * Transform component that applies a transformation function to its children's text output.
+ * Useful for effects like gradient text, line numbering, wrapping text in brackets, etc.
+ *
+ * The transform is applied to the final text output, not to the React element tree.
+ * This allows nested transforms to work correctly.
  *
  * @example
  * ```tsx
- * // Add line numbers
- * <Transform transform={(line, index) => `${index + 1}: ${line}`}>
- *   <Text>First line</Text>
- *   <Text>Second line</Text>
- * </Transform>
- *
- * // Make text uppercase
- * <Transform transform={(line) => line.toUpperCase()}>
+ * // Wrap text in brackets with index
+ * <Transform transform={(text, index) => `[${index}: ${text}]`}>
  *   <Text>hello world</Text>
  * </Transform>
+ * // Output: [0: hello world]
+ *
+ * // Nested transforms
+ * <Transform transform={(text, i) => `[${i}: ${text}]`}>
+ *   <Text>
+ *     <Transform transform={(text, i) => `{${i}: ${text}}`}>
+ *       <Text>test</Text>
+ *     </Transform>
+ *   </Text>
+ * </Transform>
+ * // Output: [0: {0: test}]
  * ```
  */
 export function Transform({ children, transform }: TransformProps) {
-  const [transformedChildren, setTransformedChildren] = useState<ReactNode>(children);
-  const childrenRef = useRef<ReactNode>(children);
+  if (children === undefined || children === null) {
+    return null;
+  }
 
-  useLayoutEffect(() => {
-    // Store the original children
-    childrenRef.current = children;
-
-    // Track the global line index
-    let lineIndex = 0;
-
-    // Transform the children
-    const transformChildren = (node: ReactNode): ReactNode => {
-      if (typeof node === "string") {
-        const lines = node.split("\n");
-        const transformedLines = lines.map((line) => {
-          const result = transform(line, lineIndex);
-          lineIndex++;
-          return result;
-        });
-        return transformedLines.join("\n");
-      }
-
-      if (typeof node === "number") {
-        const result = transform(String(node), lineIndex);
-        lineIndex++;
-        return result;
-      }
-
-      if (Array.isArray(node)) {
-        return node.map((child, idx) => {
-          const result = transformChildren(child);
-          // Add key if it's a valid element
-          if (React.isValidElement(result)) {
-            return React.cloneElement(result, { key: result.key ?? idx } as any);
-          }
-          return result;
-        });
-      }
-
-      if (React.isValidElement(node)) {
-        const elementChildren = (node.props as any).children;
-        if (elementChildren !== undefined) {
-          return React.cloneElement(node, {
-            ...(node.props as any),
-            children: transformChildren(elementChildren),
-          } as any);
-        }
-      }
-
-      return node;
-    };
-
-    setTransformedChildren(transformChildren(children));
-  }, [children, transform]);
-
-  return <>{transformedChildren}</>;
+  // Use React.createElement to avoid JSX intrinsic element type issues
+  // deno-lint-ignore no-explicit-any
+  return React.createElement(
+    "ink-text" as any,
+    {
+      style: { flexGrow: 0, flexShrink: 1, flexDirection: "row" },
+      internal_transform: transform,
+    },
+    children
+  );
 }

@@ -1,5 +1,6 @@
 import stringWidth from "string-width";
 import sliceAnsi from "slice-ansi";
+import wrapAnsi from "wrap-ansi";
 
 // Strip ANSI codes for width calculation
 const ANSI_REGEX = /\x1b\[[0-9;]*m/g;
@@ -74,8 +75,10 @@ export class Output {
 
   /**
    * Get final output as string with lines joined.
+   * @param maxHeight Optional maximum height - if specified, output will include this many lines
+   *                  (preserving height for layout purposes), but won't exceed content
    */
-  get(): string {
+  get(maxHeight?: number): string {
     // Find last non-empty line
     let lastNonEmpty = -1;
     for (let i = this.lines.length - 1; i >= 0; i--) {
@@ -87,8 +90,19 @@ export class Output {
 
     if (lastNonEmpty < 0) return "";
 
+    // Determine the effective end line
+    // If maxHeight is specified, use it (handles both preserving height and clipping):
+    // - If content < maxHeight: we preserve height by including empty lines
+    // - If content > maxHeight: we clip to maxHeight
+    // Without maxHeight, include all content up to the last non-empty line
+    let endLine = lastNonEmpty + 1;
+    if (maxHeight !== undefined && maxHeight > 0) {
+      // Use maxHeight directly, just cap at buffer size
+      endLine = Math.min(maxHeight, this.lines.length);
+    }
+
     return this.lines
-      .slice(0, lastNonEmpty + 1)
+      .slice(0, endLine)
       .map((line) => line.trimEnd())
       .join("\n");
   }
@@ -104,35 +118,12 @@ export class Output {
   }
 }
 
-// Wrap text to fit within a given width
+// Wrap text to fit within a given width using word-aware wrapping
 export function wrapText(text: string, maxWidth: number): string {
   if (maxWidth <= 0) return text;
 
-  const lines: string[] = [];
-  const inputLines = text.split("\n");
-
-  for (const line of inputLines) {
-    const visibleWidth = stringWidth(stripAnsi(line));
-
-    if (visibleWidth <= maxWidth) {
-      lines.push(line);
-      continue;
-    }
-
-    // Need to wrap this line - use sliceAnsi to preserve ANSI codes
-    let remaining = line;
-    while (stringWidth(stripAnsi(remaining)) > maxWidth) {
-      const sliced = sliceAnsi(remaining, 0, maxWidth);
-      lines.push(sliced);
-      remaining = sliceAnsi(remaining, maxWidth);
-    }
-
-    if (remaining) {
-      lines.push(remaining);
-    }
-  }
-
-  return lines.join("\n");
+  // Use wrap-ansi for word-aware wrapping that preserves ANSI codes
+  return wrapAnsi(text, maxWidth, { hard: true, trim: false });
 }
 
 // Truncate text to fit within a given width

@@ -15,6 +15,31 @@ import {
 
 export interface HostConfig {
   onRender: () => void;
+  isPrimaryRenderer?: boolean;
+}
+
+// Timer tracking for proper cleanup
+const activeTimers = new Set<ReturnType<typeof setTimeout>>();
+
+export function clearAllTimers(): void {
+  for (const timer of activeTimers) {
+    clearTimeout(timer);
+  }
+  activeTimers.clear();
+}
+
+function trackedSetTimeout(callback: () => void, delay?: number): ReturnType<typeof setTimeout> {
+  const timer = setTimeout(() => {
+    activeTimers.delete(timer);
+    callback();
+  }, delay);
+  activeTimers.add(timer);
+  return timer;
+}
+
+function trackedClearTimeout(timer: ReturnType<typeof setTimeout>): void {
+  activeTimers.delete(timer);
+  clearTimeout(timer);
 }
 
 type Container = DOMElement;
@@ -22,7 +47,11 @@ type Instance = DOMElement;
 type TextInstance = ReturnType<typeof createTextNode>;
 type Props = Record<string, any>;
 
-const NO_CONTEXT = {};
+interface HostContext {
+  isInsideText: boolean;
+}
+
+const ROOT_CONTEXT: HostContext = { isInsideText: false };
 
 export function createReconciler(hostConfig: HostConfig) {
   const reconciler = ReactReconciler<
@@ -34,7 +63,7 @@ export function createReconciler(hostConfig: HostConfig) {
     any,
     any,
     any,
-    typeof NO_CONTEXT,
+    HostContext,
     any,
     any,
     any,
@@ -44,11 +73,18 @@ export function createReconciler(hostConfig: HostConfig) {
     supportsMutation: true,
     supportsPersistence: false,
     supportsHydration: false,
-    isPrimaryRenderer: true,
+    isPrimaryRenderer: hostConfig.isPrimaryRenderer ?? true,
 
     // Create instances
-    createInstance(type: NodeType, props: Props): Instance {
-      const node = createNode(type);
+    createInstance(type: NodeType, props: Props, _rootContainer: Container, hostContext: HostContext): Instance {
+      // If we're inside a text component and this is another text component,
+      // convert it to virtual-text (no yoga node, just styling)
+      let actualType = type;
+      if (hostContext.isInsideText && type === "ink-text") {
+        actualType = "ink-virtual-text";
+      }
+
+      const node = createNode(actualType);
 
       // Apply props
       for (const [key, value] of Object.entries(props)) {
@@ -57,6 +93,8 @@ export function createReconciler(hostConfig: HostConfig) {
           setStyle(node, value);
         } else if (key === "internal_static") {
           node.internal_static = true;
+        } else if (key === "internal_transform") {
+          node.internal_transform = value;
         } else {
           setAttribute(node, key, value);
         }
@@ -176,12 +214,18 @@ export function createReconciler(hostConfig: HostConfig) {
     },
 
     // Context
-    getRootHostContext(): typeof NO_CONTEXT {
-      return NO_CONTEXT;
+    getRootHostContext(): HostContext {
+      return ROOT_CONTEXT;
     },
 
-    getChildHostContext(): typeof NO_CONTEXT {
-      return NO_CONTEXT;
+    getChildHostContext(parentHostContext: HostContext, type: NodeType): HostContext {
+      // When entering an ink-text, mark context as inside text
+      // This causes nested ink-text to become ink-virtual-text
+      if (type === "ink-text" || type === "ink-virtual-text") {
+        return { isInsideText: true };
+      }
+      // ink-box inside text is an error in original Ink, but we'll just pass through
+      return parentHostContext;
     },
 
     // Text content
@@ -196,9 +240,9 @@ export function createReconciler(hostConfig: HostConfig) {
 
     preparePortalMount(): void {},
 
-    // Scheduling
-    scheduleTimeout: setTimeout,
-    cancelTimeout: clearTimeout,
+    // Scheduling - use tracked versions for cleanup
+    scheduleTimeout: trackedSetTimeout,
+    cancelTimeout: trackedClearTimeout,
     noTimeout: -1,
 
     // Misc

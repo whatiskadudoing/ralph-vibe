@@ -48,14 +48,6 @@ export function Static<T>({
     setIndex(items.length);
   }, [items.length]);
 
-  if (!render) {
-    return null;
-  }
-
-  const children = itemsToRender.map((item: T, itemIndex: number) => {
-    return render(item, index + itemIndex);
-  });
-
   const style: Styles = useMemo(
     () => ({
       position: "absolute",
@@ -64,6 +56,16 @@ export function Static<T>({
     }),
     [customStyle]
   );
+
+  // Return null if no render function or no items to render
+  // This prevents empty frames after initial render
+  if (!render || itemsToRender.length === 0) {
+    return null;
+  }
+
+  const children = itemsToRender.map((item: T, itemIndex: number) => {
+    return render(item, index + itemIndex);
+  });
 
   // deno-lint-ignore no-explicit-any
   return React.createElement(

@@ -18,6 +18,7 @@ export interface DOMElement {
   yogaNode?: YogaNode;
   style: Record<string, any>;
   internal_static?: boolean;
+  internal_transform?: (text: string, index: number) => string;
 }
 
 export interface TextNode {
@@ -103,18 +104,35 @@ export function isElement(node: DOMNode): node is DOMElement {
 }
 
 // Squash all text nodes into a single string
+// This combines multiple text nodes and applies any internal_transform functions
 export function squashTextNodes(node: DOMElement): string {
   let text = "";
 
-  for (const childNode of node.childNodes) {
+  for (let index = 0; index < node.childNodes.length; index++) {
+    const childNode = node.childNodes[index];
+    if (!childNode) continue;
+
+    let nodeText = "";
+
     if (isTextNode(childNode)) {
-      text += childNode.nodeValue;
+      nodeText = childNode.nodeValue;
     } else if (
       childNode.nodeName === "ink-text" ||
       childNode.nodeName === "ink-virtual-text"
     ) {
-      text += squashTextNodes(childNode);
+      nodeText = squashTextNodes(childNode);
+
+      // Apply internal_transform if present on the child node
+      // This is used by the Transform component
+      if (
+        nodeText.length > 0 &&
+        typeof childNode.internal_transform === "function"
+      ) {
+        nodeText = childNode.internal_transform(nodeText, index);
+      }
     }
+
+    text += nodeText;
   }
 
   return text;

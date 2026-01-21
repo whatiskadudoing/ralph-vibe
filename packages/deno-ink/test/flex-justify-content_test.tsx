@@ -62,13 +62,13 @@ Deno.test("flex-justify-content: row - space between", () => {
 
 Deno.test("flex-justify-content: row - space evenly", () => {
   const output = renderToString(
-    <Box justifyContent="space-evenly" width={12}>
+    <Box justifyContent="space-evenly" width={10}>
       <Text>A</Text>
       <Text>B</Text>
     </Box>
   );
 
-  assertEquals(output, "    A   B");
+  assertEquals(output, "  A   B");
 });
 
 Deno.test("flex-justify-content: column - center", () => {

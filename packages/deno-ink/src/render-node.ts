@@ -3,7 +3,7 @@ import cliBoxes from "cli-boxes";
 import stringWidth from "string-width";
 import type { DOMElement, DOMNode } from "./dom.ts";
 import { isTextNode, squashTextNodes } from "./dom.ts";
-import { Output, wrapText } from "./output.ts";
+import { Output, wrapText, truncateText } from "./output.ts";
 import {
   colorize,
   bold,
@@ -62,6 +62,27 @@ function applyTextStyles(
   return result;
 }
 
+// Get border box characters (supports named styles or custom objects)
+function getBorderBox(borderStyle: any): {
+  topLeft: string;
+  top: string;
+  topRight: string;
+  left: string;
+  bottomLeft: string;
+  bottom: string;
+  bottomRight: string;
+  right: string;
+} {
+  // Custom border style object
+  if (typeof borderStyle === "object" && borderStyle !== null) {
+    return borderStyle;
+  }
+
+  // Named border style
+  const boxStyle = cliBoxes[borderStyle as keyof typeof cliBoxes];
+  return (boxStyle && "topLeft" in boxStyle) ? boxStyle : cliBoxes.single;
+}
+
 // Render a border around content
 function renderBorder(
   output: Output,
@@ -71,9 +92,7 @@ function renderBorder(
   height: number,
   style: Record<string, any>
 ): void {
-  const borderStyle = style.borderStyle || "single";
-  const boxStyle = cliBoxes[borderStyle as keyof typeof cliBoxes];
-  const box = (boxStyle && "topLeft" in boxStyle) ? boxStyle : cliBoxes.single;
+  const box = getBorderBox(style.borderStyle || "single");
 
   const showTop = style.borderTop !== false;
   const showBottom = style.borderBottom !== false;
@@ -84,41 +103,86 @@ function renderBorder(
   const bottomColor = style.borderBottomColor || style.borderColor;
   const leftColor = style.borderLeftColor || style.borderColor;
   const rightColor = style.borderRightColor || style.borderColor;
+  const applyDim = style.borderDimColor === true;
+
+  // Helper to apply color and dim
+  // Note: Apply color FIRST, then dim (matches original Ink behavior)
+  const applyBorderStyle = (text: string, color?: string): string => {
+    let result = text;
+    if (color) {
+      result = colorize(result, color, "foreground");
+    }
+    if (applyDim) {
+      result = dim(result);
+    }
+    return result;
+  };
+
+  // Determine corner characters based on which borders are shown
+  const getTopLeftChar = () => {
+    if (!showTop && !showLeft) return "";
+    if (!showTop) return box.left;
+    if (!showLeft) return box.top;
+    return box.topLeft;
+  };
+
+  const getTopRightChar = () => {
+    if (!showTop && !showRight) return "";
+    if (!showTop) return box.right;
+    if (!showRight) return box.top;
+    return box.topRight;
+  };
+
+  const getBottomLeftChar = () => {
+    if (!showBottom && !showLeft) return "";
+    if (!showBottom) return box.left;
+    if (!showLeft) return box.bottom;
+    return box.bottomLeft;
+  };
+
+  const getBottomRightChar = () => {
+    if (!showBottom && !showRight) return "";
+    if (!showBottom) return box.right;
+    if (!showRight) return box.bottom;
+    return box.bottomRight;
+  };
 
   // Top border
   if (showTop && height > 0) {
-    let topBorder = box.topLeft + box.top.repeat(Math.max(0, width - 2)) + box.topRight;
-    if (topColor) {
-      topBorder = colorize(topBorder, topColor, "foreground");
-    }
+    const topLeft = showLeft ? getTopLeftChar() : "";
+    const topRight = showRight ? getTopRightChar() : "";
+    const topRepeat = Math.max(0, width - (showLeft ? 1 : 0) - (showRight ? 1 : 0));
+    let topBorder = topLeft + box.top.repeat(topRepeat) + topRight;
+    topBorder = applyBorderStyle(topBorder, topColor);
     output.write(x, y, topBorder);
   }
 
-  // Left and right borders
-  for (let row = 1; row < height - 1; row++) {
+  // Left and right borders - calculate positioning based on which borders are shown
+  const verticalBorderStartY = showTop ? 1 : 0;
+  let verticalBorderHeight = height;
+  if (showTop) verticalBorderHeight -= 1;
+  if (showBottom) verticalBorderHeight -= 1;
+
+  for (let row = 0; row < verticalBorderHeight; row++) {
     if (showLeft) {
       let leftChar = box.left;
-      if (leftColor) {
-        leftChar = colorize(leftChar, leftColor, "foreground");
-      }
-      output.write(x, y + row, leftChar);
+      leftChar = applyBorderStyle(leftChar, leftColor);
+      output.write(x, y + verticalBorderStartY + row, leftChar);
     }
     if (showRight) {
       let rightChar = box.right;
-      if (rightColor) {
-        rightChar = colorize(rightChar, rightColor, "foreground");
-      }
-      output.write(x + width - 1, y + row, rightChar);
+      rightChar = applyBorderStyle(rightChar, rightColor);
+      output.write(x + width - 1, y + verticalBorderStartY + row, rightChar);
     }
   }
 
   // Bottom border
   if (showBottom && height > 1) {
-    let bottomBorder =
-      box.bottomLeft + box.bottom.repeat(Math.max(0, width - 2)) + box.bottomRight;
-    if (bottomColor) {
-      bottomBorder = colorize(bottomBorder, bottomColor, "foreground");
-    }
+    const bottomLeft = showLeft ? getBottomLeftChar() : "";
+    const bottomRight = showRight ? getBottomRightChar() : "";
+    const bottomRepeat = Math.max(0, width - (showLeft ? 1 : 0) - (showRight ? 1 : 0));
+    let bottomBorder = bottomLeft + box.bottom.repeat(bottomRepeat) + bottomRight;
+    bottomBorder = applyBorderStyle(bottomBorder, bottomColor);
     output.write(x, y + height - 1, bottomBorder);
   }
 }
@@ -134,6 +198,12 @@ export function renderNode(
 
   const yogaNode = node.yogaNode;
   if (!yogaNode) return;
+
+  // Check for display: none - skip rendering entirely
+  // Yoga DISPLAY_NONE = 1
+  if (yogaNode.getDisplay() === 1) {
+    return;
+  }
 
   const x = context.offsetX + yogaNode.getComputedLeft();
   const y = context.offsetY + yogaNode.getComputedTop();
@@ -172,10 +242,24 @@ export function renderNode(
     const paddingRight = yogaNode.getComputedPadding(3 as any) || 0; // EDGE_RIGHT
     const availableWidth = width - paddingLeft - paddingRight - borderLeft - borderRight;
 
-    // Wrap text if needed
+    // Process text based on wrap style
     let processedText = text;
-    if (style.wrap !== "truncate" && style.wrap !== "truncate-middle" && style.wrap !== "truncate-start") {
+    if (style.wrap === "truncate") {
+      processedText = truncateText(text, availableWidth, "end");
+    } else if (style.wrap === "truncate-middle") {
+      processedText = truncateText(text, availableWidth, "middle");
+    } else if (style.wrap === "truncate-start") {
+      processedText = truncateText(text, availableWidth, "start");
+    } else {
+      // Default: wrap text
       processedText = wrapText(text, availableWidth);
+    }
+
+    // Apply the node's own internal_transform if present
+    // Transforms are applied per-line, with the line index
+    if (typeof node.internal_transform === "function") {
+      const lines = processedText.split("\n");
+      processedText = lines.map((line, index) => node.internal_transform!(line, index)).join("\n");
     }
 
     // Apply text styles
@@ -215,8 +299,11 @@ export function renderToString(
 
   yogaNode.calculateLayout(terminalWidth, undefined);
 
-  const height = Math.ceil(yogaNode.getComputedHeight());
-  const output = new Output({ width: terminalWidth, height: Math.max(height, 1) });
+  const yogaHeight = Math.ceil(yogaNode.getComputedHeight());
+  // Use a larger buffer to accommodate text wrapping (text may wrap to more lines than yoga calculates)
+  // The actual output will be clipped to the computed yoga height
+  const bufferHeight = Math.max(yogaHeight * 3, 100);
+  const output = new Output({ width: terminalWidth, height: bufferHeight });
 
   renderNode(node, {
     output,
@@ -224,8 +311,9 @@ export function renderToString(
     offsetY: 0,
   });
 
+  // Clip output to the computed yoga height
   return {
-    output: output.get(),
-    height: output.getHeight(),
+    output: output.get(yogaHeight),
+    height: Math.min(output.getHeight(), yogaHeight),
   };
 }

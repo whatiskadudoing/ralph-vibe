@@ -33,6 +33,26 @@ const CURSOR_UP = "\x1b[1A";
 const CURSOR_TO_START = "\r";
 
 /**
+ * Enter alternate screen buffer (like vim/less).
+ */
+const ENTER_ALT_SCREEN = "\x1b[?1049h";
+
+/**
+ * Exit alternate screen buffer and restore original screen.
+ */
+const EXIT_ALT_SCREEN = "\x1b[?1049l";
+
+/**
+ * Move cursor to home position (top-left).
+ */
+const CURSOR_HOME = "\x1b[H";
+
+/**
+ * Clear entire screen.
+ */
+const CLEAR_SCREEN = "\x1b[2J";
+
+/**
  * Erase lines from current position upward.
  * This mimics log-update/ansi-escapes eraseLines behavior.
  * After erasing, cursor is at the beginning of the topmost erased line.
@@ -87,6 +107,13 @@ export interface InkOptions {
    * Callback called after each render with timing information.
    */
   onRender?: (info: { renderTime: number }) => void;
+  /**
+   * Use alternate screen buffer for full-screen apps.
+   * When enabled, the app renders in a separate buffer (like vim/less).
+   * On exit, the original screen is restored.
+   * @default false
+   */
+  fullScreen?: boolean;
 }
 
 export interface InkInstance {
@@ -147,6 +174,7 @@ export class Ink {
       maxFps: options.maxFps ?? 60,
       patchConsole: options.patchConsole ?? true,
       isScreenReaderEnabled: this.isScreenReaderEnabled,
+      fullScreen: options.fullScreen ?? false,
       onRender: options.onRender,
     };
 
@@ -194,6 +222,11 @@ export class Ink {
     if (!this.inCI) {
       this.setupInput();
       this.setupResizeHandler();
+
+      // Enter alternate screen buffer for full-screen mode
+      if (this.options.fullScreen) {
+        this.writeSync(ENTER_ALT_SCREEN + CLEAR_SCREEN + CURSOR_HOME);
+      }
 
       // Hide cursor during rendering (not in CI)
       this.writeSync(ansiEscapes.cursorHide);
@@ -368,6 +401,40 @@ export class Ink {
     // Build the complete frame in a single buffer to minimize writes
     let frameBuffer = "";
 
+    // In full-screen mode, use simpler approach: move to home and redraw
+    if (this.options.fullScreen) {
+      frameBuffer += CURSOR_HOME;
+      const lines = output.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        frameBuffer += lines[i] + CLEAR_TO_EOL;
+        if (i < lines.length - 1) {
+          frameBuffer += "\n";
+        }
+      }
+      // Clear any remaining lines from previous render
+      if (this.lastHeight > lines.length) {
+        for (let i = lines.length; i < this.lastHeight; i++) {
+          frameBuffer += "\n" + ERASE_LINE;
+        }
+      }
+      this.writeSync(frameBuffer);
+      this.lastOutput = output;
+      this.lastHeight = lines.length;
+      this.forceFullClear = false;
+
+      // Call onRender callback with timing info
+      if (this.options.onRender) {
+        const renderTime = performance.now() - renderStart;
+        try {
+          this.options.onRender({ renderTime });
+        } catch {
+          // Ignore errors in callback
+        }
+      }
+      return;
+    }
+
+    // Regular mode: erase previous output and redraw
     // On subsequent renders, erase previous output first
     // This uses the eraseLines approach (like log-update) which erases from
     // current position upward, handling terminal reflow correctly
@@ -390,8 +457,10 @@ export class Ink {
       }
     }
 
-    // Add final newline to position cursor below content
-    frameBuffer += "\n";
+    // DON'T add trailing newline - cursor must stay at end of last content line
+    // so that eraseLines(lastHeight) erases all content lines correctly.
+    // eraseLines erases current line then moves up, so we need to be ON the last
+    // content line, not below it.
 
     // Write everything at once
     this.writeSync(frameBuffer);
@@ -564,6 +633,11 @@ export class Ink {
     // Show cursor again (not in CI)
     if (!this.inCI) {
       this.writeSync(ansiEscapes.cursorShow);
+
+      // Exit alternate screen buffer if we were in full-screen mode
+      if (this.options.fullScreen) {
+        this.writeSync(EXIT_ALT_SCREEN);
+      }
     }
 
     // Restore console methods and flush buffered output
