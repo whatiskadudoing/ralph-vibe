@@ -24,11 +24,13 @@ import { exists } from './file_service.ts';
 export interface ResolvedPaths {
   readonly root: string;
   readonly specs: string;
+  readonly research: string;
   readonly plan: string;
   readonly agents: string;
   readonly audienceJtbd: string;
   readonly buildPrompt: string;
   readonly planPrompt: string;
+  readonly researchPrompt: string;
   readonly startPrompt: string;
   readonly specPrompt: string;
   readonly audiencePrompt: string;
@@ -108,11 +110,13 @@ export async function resolvePaths(startDir?: string): Promise<ResolvedPaths> {
   return {
     root,
     specs: join(root, paths.specs),
+    research: join(root, paths.research),
     plan: join(root, paths.plan),
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
     planPrompt: join(root, paths.planPrompt),
+    researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
     specPrompt: join(root, paths.specPrompt),
     audiencePrompt: join(root, paths.audiencePrompt),
@@ -134,11 +138,13 @@ export async function tryResolvePaths(startDir?: string): Promise<ResolvedPaths 
   return {
     root,
     specs: join(root, paths.specs),
+    research: join(root, paths.research),
     plan: join(root, paths.plan),
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
     planPrompt: join(root, paths.planPrompt),
+    researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
     specPrompt: join(root, paths.specPrompt),
     audiencePrompt: join(root, paths.audiencePrompt),
@@ -157,11 +163,13 @@ export function resolvePathsFromConfig(config: RalphConfig, cwd?: string): Resol
   return {
     root,
     specs: join(root, paths.specs),
+    research: join(root, paths.research),
     plan: join(root, paths.plan),
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
     planPrompt: join(root, paths.planPrompt),
+    researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
     specPrompt: join(root, paths.specPrompt),
     audiencePrompt: join(root, paths.audiencePrompt),
@@ -180,11 +188,13 @@ export function resolveDefaultPaths(cwd?: string): ResolvedPaths {
   return {
     root,
     specs: join(root, paths.specs),
+    research: join(root, paths.research),
     plan: join(root, paths.plan),
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
     planPrompt: join(root, paths.planPrompt),
+    researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
     specPrompt: join(root, paths.specPrompt),
     audiencePrompt: join(root, paths.audiencePrompt),

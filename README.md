@@ -97,18 +97,20 @@ Once you see it work on something small, you'll trust it with the big stuff.
 You don't need to know this. But if you're curious:
 
 ```
-ralph init    →  Sets up project files
-ralph start   →  Interviews you, creates specs
-ralph plan    →  Analyzes specs, creates task list
-ralph work    →  Builds one task at a time until done
+ralph init      →  Sets up project files
+ralph start     →  Interviews you, creates specs
+ralph research  →  Researches APIs, libraries, approaches
+ralph plan      →  Analyzes specs, creates task list
+ralph work      →  Builds one task at a time until done
 ```
 
 With `--vibe`, it chains automatically:
 
 ```bash
-ralph init --vibe   # Does everything: init → start → plan → work
-ralph spec --vibe   # New feature: spec → plan → work
+ralph init --vibe   # Does everything: init → start → research → plan → work
+ralph spec --vibe   # New feature: spec → research → plan → work
 ralph plan --vibe   # Replanning: plan → work
+ralph work --vibe   # Full loop: work → (research → plan → work)* → done
 ```
 
 Without `--vibe`, run each step when you want control.
@@ -145,6 +147,21 @@ ralph spec -f "user authentication" # Skip straight to this feature
 ralph spec --vibe                   # Feature → Plan → Build
 ```
 
+### `ralph research`
+
+Research APIs, libraries, and implementation approaches before planning.
+
+```bash
+ralph research          # Research and document findings
+ralph research --vibe   # Research → Plan → Build
+```
+
+Creates a `research/` folder with:
+- `inspiration.md` - Similar products and reference implementations
+- `apis/` - API documentation and comparisons
+- `approaches/` - Technical approaches for complex features
+- `readiness.md` - Are we ready to build?
+
 ### `ralph plan`
 
 Create or update the implementation plan.
@@ -161,9 +178,29 @@ The autonomous build loop. Where code gets written.
 ```bash
 ralph work                      # Build until done
 ralph work --max-iterations 10  # Limit iterations
+ralph work --vibe               # Full vibe loop (see below)
 ```
 
 When all tasks complete successfully, Ralph auto-creates a git tag (e.g., `v0.1.0`) and pushes it.
+
+#### Vibe Loop Mode
+
+With `--vibe`, Ralph doesn't stop after completing the current plan. If there's more work (Future Work in the plan), it automatically loops:
+
+```
+work → research → plan → work → research → plan → work → ... → done!
+```
+
+Each cycle is called an SLC (Simple, Lovable, Complete) release. Ralph builds one complete slice, then researches and plans the next, until everything is done.
+
+```bash
+ralph work --vibe  # Loops through multiple SLC releases automatically
+```
+
+The loop stops when:
+- All specs are fully implemented (`SLC_COMPLETE: true`)
+- Max SLC iterations reached (default: 5, configurable in `.ralph.json`)
+- You press Ctrl+C
 
 ---
 
@@ -206,7 +243,12 @@ your-project/
 ├── specs/                 # Your feature specifications
 │   ├── README.md          # Specs index (lookup table)
 │   └── *.md
-└── .ralph.json            # Ralph config (hidden)
+├── research/              # Research findings (after ralph research)
+│   ├── inspiration.md     # Similar products, references
+│   ├── readiness.md       # Build readiness assessment
+│   ├── apis/              # API documentation
+│   └── approaches/        # Technical approaches
+└── .ralph.json            # Ralph config
 ```
 
 You can edit any of these. Ralph Vibe creates them; you own them.

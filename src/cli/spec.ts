@@ -4,20 +4,21 @@
  * The `ralph spec` command.
  * Launches an interactive interview to add new feature specs to an existing project.
  *
+ * NOTE: This command uses plain console output instead of Ink because it launches
+ * an interactive Claude session that requires stdin/stdout access.
+ *
  * Reference: https://github.com/ghuntley/how-to-ralph-wiggum
  */
 
 import { Command } from '@cliffy/command';
-import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
-import { CHECK, CROSS } from '@/ui/symbols.ts';
+import { error, muted, success, dim, orange } from '@/ui/colors.ts';
+import { CROSS, CHECK, BULLET } from '@/ui/symbols.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { readTextFile } from '@/services/file_service.ts';
 import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
-import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
-import { commandHeader, errorBox } from '@/ui/components.ts';
-import { createBox } from '@/ui/box.ts';
-import { getTerminalWidth } from '@/ui/claude_renderer.ts';
+import { getSubscriptionUsage, type SubscriptionUsage } from '@/services/usage_service.ts';
+import { errorBox } from '@/ui/components.ts';
 import {
   continueVibeFlow,
   enableVibeMode,
@@ -59,8 +60,80 @@ interface SpecOptions {
   readonly vibe?: boolean;
 }
 
+// ============================================================================
+// Simple Console Output (no Ink - for interactive Claude session)
+// ============================================================================
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+function printHeader(featureHint?: string, usage?: SubscriptionUsage): void {
+  console.log('');
+  console.log(`${orange(BULLET)} ${orange('Ralph Spec')} ${dim('· Add new feature specifications')}`);
+
+  if (usage) {
+    const fiveHr = usage.fiveHour.utilization.toFixed(1);
+    const sevenDay = usage.sevenDay.utilization.toFixed(1);
+    console.log(dim(`  5h: ${fiveHr}% · 7d: ${sevenDay}%`));
+  }
+
+  if (featureHint) {
+    console.log('');
+    console.log(`${orange('Feature:')} ${featureHint}`);
+  }
+
+  console.log('');
+  console.log(dim('Starting Claude interview...'));
+  console.log(dim('─'.repeat(50)));
+  console.log('');
+}
+
+function printSummary(options: {
+  successResult: boolean;
+  durationSec: number;
+  usageDelta?: number;
+  outputPath?: string;
+  nextCommand?: string;
+}): void {
+  console.log('');
+  console.log(dim('─'.repeat(50)));
+  console.log('');
+
+  if (options.successResult) {
+    console.log(`${success(CHECK)} ${success('Spec created!')}`);
+  } else {
+    console.log(`${error(CROSS)} ${error('Interview failed')}`);
+  }
+
+  // Stats
+  const stats = [formatDuration(options.durationSec)];
+  if (options.usageDelta !== undefined && options.usageDelta > 0) {
+    stats.push(`+${options.usageDelta.toFixed(1)}% usage`);
+  }
+  console.log(dim(stats.join(' · ')));
+
+  // Output path
+  if (options.outputPath) {
+    console.log('');
+    console.log(`${dim('→')} ${orange(options.outputPath)}`);
+  }
+
+  // Next command
+  if (options.nextCommand) {
+    console.log('');
+    console.log(`Next: ${orange(options.nextCommand)}`);
+  }
+
+  console.log('');
+}
+
 /**
  * The spec command action.
+ * NOTE: Uses plain console output because this launches an interactive Claude session.
  */
 async function specAction(options: SpecOptions): Promise<void> {
   // Handle vibe mode
@@ -83,7 +156,7 @@ async function specAction(options: SpecOptions): Promise<void> {
   }
 
   // Resolve paths from config (finds nearest .ralph.json)
-  let paths;
+  let paths: ResolvedPaths;
   try {
     paths = await resolvePaths();
   } catch {
@@ -99,44 +172,6 @@ async function specAction(options: SpecOptions): Promise<void> {
     Deno.exit(1);
   }
 
-  // Fetch subscription usage
-  const initialUsage = await getSubscriptionUsage();
-
-  // Show header
-  console.log();
-  console.log(commandHeader({
-    name: 'Ralph Spec',
-    description: 'Add new feature specifications',
-    usage: initialUsage.ok ? initialUsage.value : undefined,
-  }));
-  console.log();
-
-  // Show progress box
-  const termWidth = getTerminalWidth();
-  const featureHint = options.feature
-    ? `Feature: ${options.feature}`
-    : 'Describe your new feature through a quick interview';
-
-  const progressLines = [
-    `${orange('◆')} ${bold('Spec Interview')}`,
-    '',
-    dim(featureHint),
-    '',
-    `${dim('Steps:')}`,
-    `  ${amber('1.')} Read existing specs for context`,
-    `  ${amber('2.')} Interview you about the feature`,
-    `  ${amber('3.')} Write spec to specs/ directory`,
-  ];
-
-  console.log(createBox(progressLines.join('\n'), {
-    style: 'rounded',
-    padding: 1,
-    paddingY: 0,
-    borderColor: orange,
-    minWidth: termWidth - 6,
-  }));
-  console.log();
-
   // Get the spec interview prompt from project file
   const prompt = await readSpecPrompt(paths, options.feature);
 
@@ -147,6 +182,15 @@ async function specAction(options: SpecOptions): Promise<void> {
     }));
     Deno.exit(1);
   }
+
+  // Fetch subscription usage
+  const initialUsage = await getSubscriptionUsage();
+  const usage = initialUsage.ok ? initialUsage.value : undefined;
+
+  // Print header (plain console - no Ink)
+  printHeader(options.feature, usage);
+
+  const startTime = Date.now();
 
   // Marker file path - use absolute path in current working directory
   const markerPath = `${Deno.cwd()}/${RALPH_DONE_MARKER}`;
@@ -159,7 +203,7 @@ async function specAction(options: SpecOptions): Promise<void> {
   }
 
   // Launch Claude interactively with the prompt
-  // Keep stdout: inherit for full interactivity
+  // NOTE: No Ink rendering here - Claude gets full terminal control
   const command = new Deno.Command('claude', {
     args: ['--dangerously-skip-permissions', prompt],
     stdin: 'inherit',
@@ -210,62 +254,35 @@ async function specAction(options: SpecOptions): Promise<void> {
   await watchPromise;
 
   // If we killed Claude ourselves after marker was found, treat as success
-  const success = status.success || killedByUs;
-
-  console.log();
+  const succeeded = status.success || killedByUs;
 
   // Get final usage
   const finalUsage = await getSubscriptionUsage();
+  const durationSec = Math.floor((Date.now() - startTime) / 1000);
 
-  if (success) {
-    // Calculate usage delta
-    let usageInfo: string | undefined;
-    let usageDelta: number | undefined;
+  // Calculate usage delta
+  let usageDelta: number | undefined;
+  if (initialUsage.ok && finalUsage.ok) {
+    usageDelta = finalUsage.value.fiveHour.utilization - initialUsage.value.fiveHour.utilization;
+  }
 
-    if (initialUsage.ok && finalUsage.ok) {
-      usageDelta = finalUsage.value.fiveHour.utilization - initialUsage.value.fiveHour.utilization;
-      usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
-      if (usageDelta > 0) {
-        usageInfo += ` ${amber(`(+${usageDelta.toFixed(1)}%)`)}`;
-      }
-    } else if (finalUsage.ok) {
-      usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
+  // Print summary (plain console - no Ink)
+  printSummary({
+    successResult: succeeded,
+    durationSec,
+    usageDelta,
+    outputPath: succeeded ? 'specs/' : undefined,
+    nextCommand: isVibeMode() ? undefined : (succeeded ? 'ralph plan' : undefined),
+  });
+
+  // Continue vibe flow if active and successful
+  if (succeeded) {
+    if (isVibeMode()) {
+      await continueVibeFlow('spec');
+    } else {
+      Deno.exit(0);
     }
-
-    // Show completion summary
-    const summaryLines = [
-      `${orange('◆')} ${bold('Spec Created!')} ${CHECK}`,
-      '',
-      `${dim('→')} New spec file added to ${amber('specs/')}`,
-    ];
-
-    if (usageInfo) {
-      summaryLines.push(`${dim('→')} ${usageInfo}`);
-    }
-
-    if (!isVibeMode()) {
-      summaryLines.push('');
-      summaryLines.push(`${bold('Next steps:')}`);
-      summaryLines.push(`  ${orange('▸')} Review the spec in ${amber('specs/')}`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph plan')} to update implementation plan`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph work')} to start building`);
-    }
-
-    console.log(createBox(summaryLines.join('\n'), {
-      style: 'rounded',
-      padding: 1,
-      paddingY: 0,
-      borderColor: orange,
-      minWidth: termWidth - 6,
-    }));
-
-    // Continue vibe flow if active
-    await continueVibeFlow('spec');
   } else {
-    console.log(errorBox({
-      title: 'Interview failed',
-      description: 'Check the error above and try again.',
-    }));
     Deno.exit(1);
   }
 }

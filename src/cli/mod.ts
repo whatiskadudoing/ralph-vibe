@@ -10,6 +10,7 @@
 import { Command } from '@cliffy/command';
 import { createInitCommand } from './init.ts';
 import { createStartCommand } from './start.ts';
+import { createResearchCommand } from './research.ts';
 import { createPlanCommand } from './plan.ts';
 import { createWorkCommand } from './work.ts';
 import { createSpecCommand } from './spec.ts';
@@ -62,6 +63,7 @@ export function createProgram(): Command<any> {
     .command('init', createInitCommand())
     .command('start', createStartCommand())
     .command('spec', createSpecCommand())
+    .command('research', createResearchCommand())
     .command('plan', createPlanCommand())
     .command('work', createWorkCommand());
 }

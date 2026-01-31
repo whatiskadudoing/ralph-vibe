@@ -30,11 +30,13 @@ export type Model = 'opus' | 'sonnet' | 'adaptive';
  */
 export interface PathsConfig {
   readonly specs: string;
+  readonly research: string;
   readonly plan: string;
   readonly agents: string;
   readonly audienceJtbd: string;
   readonly buildPrompt: string;
   readonly planPrompt: string;
+  readonly researchPrompt: string;
   readonly startPrompt: string;
   readonly specPrompt: string;
   readonly audiencePrompt: string;
@@ -46,6 +48,7 @@ export interface PathsConfig {
 export interface WorkConfig {
   readonly model: Model;
   readonly maxIterations: number;
+  readonly maxSlcIterations: number;
   readonly autoPush: boolean;
   readonly stopOnFailure: boolean;
   readonly cooldown: number;
@@ -82,11 +85,13 @@ export const CONFIG_VERSION = '0.1.0';
  */
 export const DEFAULT_PATHS: PathsConfig = {
   specs: 'specs',
+  research: 'research',
   plan: 'IMPLEMENTATION_PLAN.md',
   agents: 'AGENTS.md',
   audienceJtbd: 'AUDIENCE_JTBD.md',
   buildPrompt: 'PROMPT_build.md',
   planPrompt: 'PROMPT_plan.md',
+  researchPrompt: 'PROMPT_research.md',
   startPrompt: 'PROMPT_start.md',
   specPrompt: 'PROMPT_spec.md',
   audiencePrompt: 'PROMPT_audience.md',
@@ -97,10 +102,14 @@ export const DEFAULT_PATHS: PathsConfig = {
  *
  * maxIterations: 25 is the recommended safety limit to prevent infinite loops
  * on impossible tasks. Users can increase if needed, but should always have a limit.
+ *
+ * maxSlcIterations: 5 is the maximum number of SLC (research → plan → work) cycles
+ * in vibe mode before stopping. This prevents infinite outer loops.
  */
 export const DEFAULT_WORK: WorkConfig = {
   model: 'opus',
   maxIterations: 25,
+  maxSlcIterations: 5,
   autoPush: true,
   stopOnFailure: false,
   cooldown: 5,
@@ -169,11 +178,13 @@ export function validateConfig(config: unknown): readonly ValidationError[] {
     const paths = c.paths as Record<string, unknown>;
     const requiredPaths = [
       'specs',
+      'research',
       'plan',
       'agents',
       'audienceJtbd',
       'buildPrompt',
       'planPrompt',
+      'researchPrompt',
       'startPrompt',
       'specPrompt',
       'audiencePrompt',
@@ -217,6 +228,13 @@ export function validateConfig(config: unknown): readonly ValidationError[] {
       errors.push({
         path: 'work.cooldown',
         message: 'cooldown must be a non-negative number',
+      });
+    }
+
+    if (typeof work.maxSlcIterations !== 'number' || work.maxSlcIterations < 1) {
+      errors.push({
+        path: 'work.maxSlcIterations',
+        message: 'maxSlcIterations must be a positive number',
       });
     }
   }

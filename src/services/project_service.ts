@@ -17,6 +17,8 @@ import {
   getConfigPath,
   getPlanPath,
   getPlanPromptPath,
+  getResearchDir,
+  getResearchPromptPath,
   getSpecPromptPath,
   getSpecsDir,
   getStartPromptPath,
@@ -37,7 +39,9 @@ import {
   renderBuildPrompt,
   renderInitialAudienceJtbd,
   renderInitialPlan,
+  renderInitialResearchReadme,
   renderPlanPrompt,
+  renderResearchPrompt,
   renderSpecInterviewPrompt,
   renderStartPrompt,
 } from '@/core/templates.ts';
@@ -244,11 +248,13 @@ export async function initProject(
 export type ProjectFile =
   | 'config'
   | 'specs'
+  | 'research'
   | 'agents'
   | 'plan'
   | 'audience_jtbd'
   | 'prompt_build'
   | 'prompt_plan'
+  | 'prompt_research'
   | 'prompt_start'
   | 'prompt_spec'
   | 'prompt_audience';
@@ -273,6 +279,7 @@ export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> 
   const files: Array<Omit<ProjectFileInfo, 'exists'>> = [
     { key: 'config', path: getConfigPath(root), name: '.ralph.json', description: 'Configuration' },
     { key: 'specs', path: getSpecsDir(root), name: 'specs/', description: 'Feature specifications' },
+    { key: 'research', path: getResearchDir(root), name: 'research/', description: 'Research & discovery' },
     { key: 'agents', path: getAgentsMdPath(root), name: 'AGENTS.md', description: 'Build/test commands' },
     { key: 'plan', path: getPlanPath(root), name: 'IMPLEMENTATION_PLAN.md', description: 'Task checklist' },
     {
@@ -292,6 +299,12 @@ export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> 
       path: getPlanPromptPath(root),
       name: 'PROMPT_plan.md',
       description: 'Planning instructions',
+    },
+    {
+      key: 'prompt_research',
+      path: getResearchPromptPath(root),
+      name: 'PROMPT_research.md',
+      description: 'Research instructions',
     },
     {
       key: 'prompt_start',
@@ -349,6 +362,42 @@ export async function createProjectFiles(
     }
   }
 
+  // Create research directory with subdirectories
+  if (filesToCreate.has('research')) {
+    const researchDir = getResearchDir(root);
+    const createDirResult = await createDirectory(researchDir);
+    if (!createDirResult.ok) {
+      return err(fromFileError(createDirResult.error));
+    }
+    // Create subdirectories
+    const apisDir = `${researchDir}/apis`;
+    const approachesDir = `${researchDir}/approaches`;
+    const createApisResult = await createDirectory(apisDir);
+    if (!createApisResult.ok) {
+      return err(fromFileError(createApisResult.error));
+    }
+    const createApproachesResult = await createDirectory(approachesDir);
+    if (!createApproachesResult.ok) {
+      return err(fromFileError(createApproachesResult.error));
+    }
+    // Create README.md
+    const readmePath = `${researchDir}/README.md`;
+    const readme = renderInitialResearchReadme();
+    const writeReadmeResult = await writeTextFile(readmePath, readme);
+    if (!writeReadmeResult.ok) {
+      return err(fromFileError(writeReadmeResult.error));
+    }
+    // Create .gitkeep files in subdirectories
+    const writeApisGitkeep = await writeTextFile(`${apisDir}/.gitkeep`, '');
+    if (!writeApisGitkeep.ok) {
+      return err(fromFileError(writeApisGitkeep.error));
+    }
+    const writeApproachesGitkeep = await writeTextFile(`${approachesDir}/.gitkeep`, '');
+    if (!writeApproachesGitkeep.ok) {
+      return err(fromFileError(writeApproachesGitkeep.error));
+    }
+  }
+
   // Write config file
   if (filesToCreate.has('config')) {
     const configPath = getConfigPath(root);
@@ -375,6 +424,16 @@ export async function createProjectFiles(
     const planPromptPath = getPlanPromptPath(root);
     const planPrompt = renderPlanPrompt();
     const writeResult = await writeTextFile(planPromptPath, planPrompt);
+    if (!writeResult.ok) {
+      return err(fromFileError(writeResult.error));
+    }
+  }
+
+  // Write PROMPT_research.md
+  if (filesToCreate.has('prompt_research')) {
+    const researchPromptPath = getResearchPromptPath(root);
+    const researchPrompt = renderResearchPrompt();
+    const writeResult = await writeTextFile(researchPromptPath, researchPrompt);
     if (!writeResult.ok) {
       return err(fromFileError(writeResult.error));
     }

@@ -1,188 +1,129 @@
 /**
  * @module ui/colors
  *
- * ANSI color functions for terminal output.
+ * ANSI color functions for terminal output, based on a modern palette.
  * All functions are pure - they take a string and return a colored string.
- *
- * Color Palette:
- * - Primary (Cyan): Main brand color, used for headers and emphasis
- * - Success (Green): Completed tasks, success messages
- * - Warning (Yellow): Warnings, pending items
- * - Error (Red): Errors, failures
- * - Muted (Gray): Secondary text, hints
  */
 
-import { supportsColor as checkSupportsColor } from './capabilities.ts';
+import { palette } from './palette.ts';
 
-// ANSI escape codes
 const ESC = '\x1b[';
 const RESET = `${ESC}0m`;
-
-// Foreground colors (30-37, 90-97 for bright)
-const FG_BLACK = `${ESC}30m`;
-const FG_RED = `${ESC}31m`;
-const FG_GREEN = `${ESC}32m`;
-const FG_YELLOW = `${ESC}33m`;
-const FG_BLUE = `${ESC}34m`;
-const FG_MAGENTA = `${ESC}35m`;
-const FG_CYAN = `${ESC}36m`;
-const FG_WHITE = `${ESC}37m`;
-const FG_GRAY = `${ESC}90m`;
-const FG_BRIGHT_RED = `${ESC}91m`;
-const FG_BRIGHT_GREEN = `${ESC}92m`;
-const FG_BRIGHT_YELLOW = `${ESC}93m`;
-const FG_BRIGHT_BLUE = `${ESC}94m`;
-const FG_BRIGHT_MAGENTA = `${ESC}95m`;
-const FG_BRIGHT_CYAN = `${ESC}96m`;
-const FG_BRIGHT_WHITE = `${ESC}97m`;
-
-// 256-color mode for orange/amber
-const FG_ORANGE = `${ESC}38;5;214m`; // Bright orange
-const FG_AMBER = `${ESC}38;5;208m`; // Amber/gold
-const _FG_DARK_ORANGE = `${ESC}38;5;166m`; // Darker orange (unused, kept for future)
-
-// Text styles
 const BOLD = `${ESC}1m`;
 const DIM = `${ESC}2m`;
 const ITALIC = `${ESC}3m`;
 const UNDERLINE = `${ESC}4m`;
 const STRIKETHROUGH = `${ESC}9m`;
 
-/**
- * Creates a color function that wraps text with ANSI codes.
- */
-function createColorFn(code: string): (text: string) => string {
+// Helper function to convert a hex color to the nearest ANSI 256 color code.
+function hexToAnsi256(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  if (r === g && g === b) {
+    if (r < 8) return '16';
+    if (r > 248) return '231';
+    return String(Math.round(((r - 8) / 247) * 24) + 232);
+  }
+
+  const ansi = 16 +
+    (36 * Math.round(r / 255 * 5)) +
+    (6 * Math.round(g / 255 * 5)) +
+    Math.round(b / 255 * 5);
+
+  return String(ansi);
+}
+
+function createColorFn(hex: string): (text: string) => string {
+  const code = `${ESC}38;5;${hexToAnsi256(hex)}m`;
   return (text: string): string => `${code}${text}${RESET}`;
 }
 
-/**
- * Combines multiple style codes into a single function.
- */
 function createStyleFn(...codes: string[]): (text: string) => string {
   const combined = codes.join('');
   return (text: string): string => `${combined}${text}${RESET}`;
 }
 
 // ============================================================================
-// Brand Colors (Semantic)
+// Theme Colors from Palette
 // ============================================================================
+export const primary = createColorFn(palette.primary.base);
+export const success = createColorFn(palette.success);
+export const warning = createColorFn(palette.warning);
+export const error = createColorFn(palette.error);
+export const info = createColorFn(palette.info);
 
-/** Primary brand color - Cyan. Use for headers, emphasis. */
-export const primary = createColorFn(FG_BRIGHT_CYAN);
+// Text
+export const text = {
+  primary: createColorFn(palette.gray.lightest),
+  secondary: createColorFn(palette.gray.base),
+  muted: createColorFn(palette.gray.dark),
+  accent: createColorFn(palette.primary.light),
+};
 
-/** Success color - Green. Use for completed tasks, success messages. */
-export const success = createColorFn(FG_BRIGHT_GREEN);
+export const muted = text.muted; // Export muted directly
 
-/** Warning color - Yellow. Use for warnings, pending items. */
-export const warning = createColorFn(FG_BRIGHT_YELLOW);
+// Accents
+export const accent = {
+  orange: createColorFn(palette.accent.orange),
+  yellow: createColorFn(palette.accent.yellow),
+  green: createColorFn(palette.accent.green),
+  purple: createColorFn(palette.accent.purple),
+};
 
-/** Error color - Red. Use for errors, failures. */
-export const error = createColorFn(FG_BRIGHT_RED);
+// Grays
+export const gray = {
+  black: createColorFn(palette.gray.black),
+  darkest: createColorFn(palette.gray.darkest),
+  dark: createColorFn(palette.gray.dark),
+  base: createColorFn(palette.gray.base),
+  light: createColorFn(palette.gray.light),
+  lightest: createColorFn(palette.gray.lightest),
+  white: createColorFn(palette.gray.white),
+};
 
-/** Muted color - Gray. Use for secondary text, hints. */
-export const muted = createColorFn(FG_GRAY);
+// Original basic colors, now mapped to the new palette for compatibility
+export const red = error;
+export const green = success;
+export const yellow = warning;
+export const blue = primary;
+export const magenta = accent.purple;
+export const cyan = createColorFn(palette.primary.light);
+export const white = gray.white;
 
-/** Info color - Blue. Use for informational messages. */
-export const info = createColorFn(FG_BRIGHT_BLUE);
-
-/** Orange color - For highlights, active items. */
-export const orange = createColorFn(FG_ORANGE);
-
-/** Amber/gold color - For accents, emphasis. */
-export const amber = createColorFn(FG_AMBER);
-
-// ============================================================================
-// Basic Colors
-// ============================================================================
-
-export const black = createColorFn(FG_BLACK);
-export const red = createColorFn(FG_RED);
-export const green = createColorFn(FG_GREEN);
-export const yellow = createColorFn(FG_YELLOW);
-export const blue = createColorFn(FG_BLUE);
-export const magenta = createColorFn(FG_MAGENTA);
-export const cyan = createColorFn(FG_CYAN);
-export const white = createColorFn(FG_WHITE);
-export const gray = createColorFn(FG_GRAY);
-
-// Bright variants
-export const brightRed = createColorFn(FG_BRIGHT_RED);
-export const brightGreen = createColorFn(FG_BRIGHT_GREEN);
-export const brightYellow = createColorFn(FG_BRIGHT_YELLOW);
-export const brightBlue = createColorFn(FG_BRIGHT_BLUE);
-export const brightMagenta = createColorFn(FG_BRIGHT_MAGENTA);
-export const brightCyan = createColorFn(FG_BRIGHT_CYAN);
-export const brightWhite = createColorFn(FG_BRIGHT_WHITE);
+// For compatibility with the old theme structure
+export const dim = createColorFn(palette.gray.dark);
+export const amber = accent.yellow;
+export const orange = accent.orange;
 
 // ============================================================================
 // Text Styles
 // ============================================================================
-
-/** Makes text bold. */
-export const bold = createColorFn(BOLD);
-
-/** Makes text dim/faint. */
-export const dim = createColorFn(DIM);
-
-/** Makes text italic. */
-export const italic = createColorFn(ITALIC);
-
-/** Underlines text. */
-export const underline = createColorFn(UNDERLINE);
-
-/** Strikes through text. */
-export const strikethrough = createColorFn(STRIKETHROUGH);
-
-// ============================================================================
-// Combined Styles
-// ============================================================================
-
-/** Bold primary - for main headers. */
-export const headerPrimary = createStyleFn(BOLD, FG_BRIGHT_CYAN);
-
-/** Bold success - for important success messages. */
-export const headerSuccess = createStyleFn(BOLD, FG_BRIGHT_GREEN);
-
-/** Bold error - for important error messages. */
-export const headerError = createStyleFn(BOLD, FG_BRIGHT_RED);
-
-/** Bold warning - for important warnings. */
-export const headerWarning = createStyleFn(BOLD, FG_BRIGHT_YELLOW);
-
-/** Dim italic - for hints and secondary info. */
-export const hint = createStyleFn(DIM, ITALIC);
+export const bold = (text: string): string => `${BOLD}${text}${RESET}`;
+export const italic = (text: string): string => `${ITALIC}${text}${RESET}`;
+export const underline = (text: string): string => `${UNDERLINE}${text}${RESET}`;
+export const strikethrough = (text: string): string => `${STRIKETHROUGH}${text}${RESET}`;
 
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Strips all ANSI codes from a string.
- * Useful for getting the actual display length.
- */
 export function stripAnsi(str: string): string {
   // deno-lint-ignore no-control-regex
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-/**
- * Gets the visible length of a string (excluding ANSI codes).
- */
 export function visibleLength(str: string): number {
   return stripAnsi(str).length;
 }
 
-/**
- * Checks if the terminal supports colors.
- * Returns false if NO_COLOR env var is set or not a TTY.
- */
+// Keep supportsColor and colorize for robustness, though they are not in the provided snippet
+import { supportsColor as checkSupportsColor } from './capabilities.ts';
+
 export function supportsColor(): boolean {
   return checkSupportsColor();
 }
 
-/**
- * Conditionally applies color only if terminal supports it.
- */
 export function colorize(colorFn: (s: string) => string, text: string): string {
   return supportsColor() ? colorFn(text) : text;
 }

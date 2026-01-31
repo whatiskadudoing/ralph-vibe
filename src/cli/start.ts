@@ -8,23 +8,26 @@
  */
 
 import { Command } from '@cliffy/command';
-import { amber, bold, dim, error, muted, orange } from '@/ui/colors.ts';
-import { CHECK, CROSS } from '@/ui/symbols.ts';
+import { error, muted } from '@/ui/colors.ts';
+import { CROSS } from '@/ui/symbols.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
-import { commandHeader, errorBox } from '@/ui/components.ts';
-import { createBox } from '@/ui/box.ts';
-import { getTerminalWidth } from '@/ui/claude_renderer.ts';
 import { exists, readTextFile } from '@/services/file_service.ts';
 import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
 import {
   continueVibeFlow,
   enableVibeMode,
-  getNextCommands,
   isVibeMode,
-  showVibeActivated,
 } from './vibe.ts';
+import {
+  renderStartOptions,
+  printAudienceInterviewHeader,
+  printAudienceCompleted,
+  printSpecsInterviewHeader,
+  printCompletionSummary,
+  printError,
+} from '@/components/StartScreen.tsx';
 
 // ============================================================================
 // Prompt Reading
@@ -156,26 +159,7 @@ interface StartOptions {
 /**
  * The start command action.
  */
-async function startAction(options: StartOptions): Promise<void> {
-  // Handle vibe mode
-  if (options.vibe) {
-    enableVibeMode();
-    const nextSteps = getNextCommands('start');
-    showVibeActivated([
-      'Create feature specs via interview',
-      ...nextSteps.map((cmd) => {
-        switch (cmd) {
-          case 'plan':
-            return 'Generate implementation plan';
-          case 'work':
-            return 'Run autonomous build loop';
-          default:
-            return cmd;
-        }
-      }),
-    ]);
-  }
-
+async function startAction(cliOptions: StartOptions): Promise<void> {
   // Resolve paths from config (finds nearest .ralph.json)
   let paths;
   try {
@@ -193,179 +177,95 @@ async function startAction(options: StartOptions): Promise<void> {
     Deno.exit(1);
   }
 
+  // Check if audience discovery is already done
+  const hasAudienceAlready = await hasAudienceDiscovery(paths);
+
+  // If CLI flags are provided, use them directly; otherwise show options UI
+  let vibeMode = cliOptions.vibe ?? false;
+  let skipAudience = cliOptions.skipAudience ?? false;
+
+  // Show options UI if no CLI flags provided
+  if (!cliOptions.vibe && !cliOptions.skipAudience) {
+    const { options } = await renderStartOptions(hasAudienceAlready);
+    if (options) {
+      vibeMode = options.vibeMode;
+      skipAudience = options.skipAudience;
+    }
+  }
+
+  // Enable vibe mode if selected
+  if (vibeMode) {
+    enableVibeMode();
+  }
+
   // Fetch subscription usage
   const initialUsage = await getSubscriptionUsage();
-  const termWidth = getTerminalWidth();
 
   // Check if audience discovery is needed
-  const hasAudience = options.skipAudience || (await hasAudienceDiscovery(paths));
+  const needsAudience = !skipAudience && !hasAudienceAlready;
 
-  if (!hasAudience) {
+  if (needsAudience) {
     // Show header for audience interview
-    console.log();
-    console.log(commandHeader({
-      name: 'Ralph Start',
-      description: 'Step 1: Discover your audience & jobs-to-be-done',
-      usage: initialUsage.ok ? initialUsage.value : undefined,
-    }));
-    console.log();
-
-    // Show progress box for audience interview
-    const audienceProgressLines = [
-      `${orange('◆')} ${bold('Audience & JTBD Interview')} ${dim('[1/2]')}`,
-      '',
-      dim('First, let\'s understand WHO you\'re building for and WHAT they need'),
-      '',
-      `${dim('Steps:')}`,
-      `  ${amber('1.')} Discover your primary audience`,
-      `  ${amber('2.')} Identify their jobs-to-be-done (outcomes)`,
-      `  ${amber('3.')} Map activities to those jobs`,
-    ];
-
-    console.log(createBox(audienceProgressLines.join('\n'), {
-      style: 'rounded',
-      padding: 1,
-      paddingY: 0,
-      borderColor: orange,
-      minWidth: termWidth - 6,
-    }));
-    console.log();
+    printAudienceInterviewHeader();
 
     // Run audience interview - read prompt from project file
     const audiencePrompt = await readAudiencePrompt(paths);
     if (!audiencePrompt) {
-      console.log(errorBox({
-        title: 'Audience prompt file not found',
-        description: `Expected: ${paths.audiencePrompt}\nRun \`ralph init\` to create the prompt file.`,
-      }));
+      printError(
+        'Audience prompt file not found',
+        `Expected: ${paths.audiencePrompt}\nRun \`ralph init\` to create the prompt file.`
+      );
       Deno.exit(1);
     }
     const audienceSuccess = await runInteractiveSession(audiencePrompt);
 
     if (!audienceSuccess) {
-      console.log(errorBox({
-        title: 'Audience interview failed',
-        description: 'Check the error above and try again.',
-      }));
+      printError('Audience interview failed', 'Check the error above and try again.');
       Deno.exit(1);
     }
 
-    console.log();
-
     // Show transition message
-    const transitionLines = [
-      `${orange('◆')} ${bold('Audience Documented!')} ${CHECK}`,
-      '',
-      `${dim('→')} AUDIENCE_JTBD.md created`,
-      '',
-      `${dim('Now let\'s create activity specs based on those jobs...')}`,
-    ];
-
-    console.log(createBox(transitionLines.join('\n'), {
-      style: 'rounded',
-      padding: 1,
-      paddingY: 0,
-      borderColor: orange,
-      minWidth: termWidth - 6,
-    }));
-    console.log();
+    printAudienceCompleted();
   }
 
   // Show header for spec interview
-  console.log();
-  console.log(commandHeader({
-    name: 'Ralph Start',
-    description: hasAudience ? 'Create your feature specifications' : 'Step 2: Create activity specifications',
-    usage: initialUsage.ok ? initialUsage.value : undefined,
-  }));
-  console.log();
-
-  // Show progress box for spec interview
-  const progressLines = [
-    `${orange('◆')} ${bold('Activity Spec Interview')}${hasAudience ? '' : ` ${dim('[2/2]')}`}`,
-    '',
-    dim('Now let\'s define the activities (features) users will do'),
-    '',
-    `${dim('Steps:')}`,
-    `  ${amber('1.')} Interview you about each activity`,
-    `  ${amber('2.')} Link activities to jobs-to-be-done`,
-    `  ${amber('3.')} Write spec files to specs/ directory`,
-  ];
-
-  console.log(createBox(progressLines.join('\n'), {
-    style: 'rounded',
-    padding: 1,
-    paddingY: 0,
-    borderColor: orange,
-    minWidth: termWidth - 6,
-  }));
-  console.log();
+  printSpecsInterviewHeader(needsAudience);
 
   // Get the start prompt from project file and run spec interview
   const prompt = await readStartPrompt(paths);
   if (!prompt) {
-    console.log(errorBox({
-      title: 'Start prompt file not found',
-      description: `Expected: ${paths.startPrompt}\nRun \`ralph init\` to create the prompt file.`,
-    }));
+    printError(
+      'Start prompt file not found',
+      `Expected: ${paths.startPrompt}\nRun \`ralph init\` to create the prompt file.`
+    );
     Deno.exit(1);
   }
   const success = await runInteractiveSession(prompt);
 
-  console.log();
-
-  // Get final usage
-  const finalUsage = await getSubscriptionUsage();
-
   if (success) {
-    // Calculate usage delta
+    // Get final usage and calculate delta
+    const finalUsage = await getSubscriptionUsage();
     let usageInfo: string | undefined;
-    let usageDelta: number | undefined;
 
     if (initialUsage.ok && finalUsage.ok) {
-      usageDelta = finalUsage.value.fiveHour.utilization - initialUsage.value.fiveHour.utilization;
+      const usageDelta = finalUsage.value.fiveHour.utilization - initialUsage.value.fiveHour.utilization;
       usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
       if (usageDelta > 0) {
-        usageInfo += ` ${amber(`(+${usageDelta.toFixed(1)}%)`)}`;
+        usageInfo += ` (+${usageDelta.toFixed(1)}%)`;
       }
     } else if (finalUsage.ok) {
       usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
     }
 
     // Show completion summary
-    const summaryLines = [
-      `${orange('◆')} ${bold('Specs Created!')} ${CHECK}`,
-      '',
-      `${dim('→')} Your specifications are in ${amber('specs/')}`,
-    ];
-
-    if (usageInfo) {
-      summaryLines.push(`${dim('→')} ${usageInfo}`);
-    }
-
-    if (!isVibeMode()) {
-      summaryLines.push('');
-      summaryLines.push(`${bold('Next steps:')}`);
-      summaryLines.push(`  ${orange('▸')} Review and refine specs in ${amber('specs/')}`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph plan')} to generate implementation plan`);
-      summaryLines.push(`  ${orange('▸')} Run ${amber('ralph work')} to start autonomous building`);
-    }
-
-    console.log(createBox(summaryLines.join('\n'), {
-      style: 'rounded',
-      padding: 1,
-      paddingY: 0,
-      borderColor: orange,
-      minWidth: termWidth - 6,
-    }));
+    printCompletionSummary(usageInfo, isVibeMode());
 
     // Continue vibe flow if active
     await continueVibeFlow('start');
+
+    Deno.exit(0);
   } else {
-    console.log(errorBox({
-      title: 'Interview failed',
-      description: 'Check the error above and try again.',
-    }));
+    printError('Interview failed', 'Check the error above and try again.');
     Deno.exit(1);
   }
 }

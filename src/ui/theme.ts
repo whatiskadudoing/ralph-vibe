@@ -1,22 +1,11 @@
 /**
  * @module ui/theme
  *
- * Semantic color theme for Ralph CLI.
+ * Semantic color theme for Ralph CLI, using the new color palette.
  * All components use this theme for consistent styling.
  */
 
-import {
-  amber,
-  blue,
-  cyan,
-  dim,
-  gray,
-  green,
-  orange,
-  red,
-  white,
-  yellow,
-} from './colors.ts';
+import * as colors from './colors.ts';
 
 /**
  * The semantic theme used by all UI components.
@@ -24,53 +13,52 @@ import {
 export const theme = {
   /** Text colors for different contexts */
   text: {
-    primary: white,
-    secondary: dim,
-    accent: cyan,
-    muted: gray,
+    primary: colors.text.primary,
+    secondary: colors.text.secondary,
+    accent: colors.text.accent,
+    muted: colors.text.muted,
   },
 
   /** Status colors for different states */
   status: {
-    success: green,
-    error: red,
-    warning: yellow,
-    info: blue,
-    pending: gray,
-    running: cyan,
+    success: colors.success,
+    error: colors.error,
+    warning: colors.warning,
+    info: colors.info,
+    pending: colors.gray.base,
+    running: colors.cyan,
   },
 
-  /** Model-specific colors for Claude models */
+  /** Model-specific colors (example) */
   models: {
-    opus: amber,
-    sonnet: cyan,
-    haiku: dim,
+    opus: colors.accent.orange,
+    sonnet: colors.primary,
+    haiku: colors.accent.green,
   },
 
   /** Progress bar colors */
   progress: {
-    fiveHour: amber,
-    sevenDay: dim,
-    default: cyan,
-    warning: yellow,
-    danger: red,
+    default: colors.primary,
+    success: colors.success,
+    warning: colors.warning,
+    danger: colors.error,
   },
 
   /** Border colors for different box states */
   border: {
-    default: dim,
-    active: amber,
-    success: green,
-    error: red,
-    info: cyan,
-    warning: yellow,
+    default: colors.gray.dark,
+    active: colors.accent.orange,
+    success: colors.success,
+    error: colors.error,
+    info: colors.info,
+    warning: colors.warning,
   },
 
   /** Accent colors for highlights */
   accent: {
-    primary: orange,
-    secondary: amber,
-    tertiary: cyan,
+    primary: colors.accent.orange,
+    secondary: colors.accent.yellow,
+    tertiary: colors.accent.purple,
   },
 } as const;
 

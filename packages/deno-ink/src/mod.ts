@@ -20,6 +20,8 @@ export { ConfirmInput, type ConfirmInputProps } from "./components/ConfirmInput.
 // Hooks
 export { useInput, type Key, type InputHandler } from "./hooks/use-input.ts";
 export { useApp } from "./hooks/use-app.ts";
+export { useFinalOutput } from "./hooks/use-final-output.ts";
+export { useTerminalSize, type TerminalSize } from "./hooks/use-terminal-size.ts";
 export { useFocus, type UseFocusOptions, type UseFocusResult } from "./hooks/use-focus.ts";
 export { useFocusManager, type UseFocusManagerResult } from "./hooks/use-focus-manager.ts";
 export { useStdout } from "./hooks/use-stdout.ts";

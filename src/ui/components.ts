@@ -163,6 +163,19 @@ export interface NextStep {
   readonly command?: string;
 }
 
+export interface TokenInfo {
+  /** Input tokens consumed */
+  readonly inputTokens: number;
+  /** Output tokens consumed */
+  readonly outputTokens: number;
+  /** Cache tokens saved (optional) */
+  readonly cacheReadTokens?: number;
+  /** Duration in seconds */
+  readonly durationSec?: number;
+  /** Operations count */
+  readonly operations?: number;
+}
+
 export interface SuccessBoxOptions {
   /** Success title */
   readonly title: string;
@@ -172,6 +185,18 @@ export interface SuccessBoxOptions {
   readonly nextSteps?: NextStep[];
   /** Subscription usage info line */
   readonly usageInfo?: string;
+  /** Token consumption info */
+  readonly tokenInfo?: TokenInfo;
+}
+
+/**
+ * Formats token count with K/M suffix.
+ */
+function formatTokens(tokens: number): string {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+  if (tokens >= 10_000) return `${(tokens / 1_000).toFixed(0)}K`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
+  return String(tokens);
 }
 
 /**
@@ -187,6 +212,28 @@ export function successBox(options: SuccessBoxOptions): string {
   if (options.details && options.details.length > 0) {
     for (const detail of options.details) {
       lines.push(`${dim('→')} ${detail}`);
+    }
+  }
+
+  // Token info (primary metric for subscription users)
+  if (options.tokenInfo) {
+    const { inputTokens, outputTokens, cacheReadTokens, durationSec, operations } = options.tokenInfo;
+    const total = inputTokens + outputTokens;
+
+    // Stats line: operations and duration
+    if (operations !== undefined || durationSec !== undefined) {
+      const statsParts: string[] = [];
+      if (operations !== undefined) statsParts.push(`${operations} operations`);
+      if (durationSec !== undefined) statsParts.push(`${durationSec}s`);
+      lines.push(`${dim('→')} ${statsParts.join(' · ')}`);
+    }
+
+    // Token line (highlight total)
+    lines.push(`${dim('→')} ${cyan(formatTokens(total))} tokens (${formatTokens(inputTokens)} in / ${formatTokens(outputTokens)} out)`);
+
+    // Cache savings if available
+    if (cacheReadTokens !== undefined && cacheReadTokens > 0) {
+      lines.push(`${dim('→')} ${formatTokens(cacheReadTokens)} tokens saved by cache`);
     }
   }
 
