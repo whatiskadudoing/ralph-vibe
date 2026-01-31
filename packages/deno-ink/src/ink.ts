@@ -437,30 +437,28 @@ export class Ink {
     // Build the complete frame in a single buffer to minimize writes
     let frameBuffer = "";
 
-    // In full-screen mode, use simpler approach: move to home and redraw
+    // In full-screen mode, position cursor and redraw
     if (this.options.fullScreen) {
-      // On resize (forceFullClear), clear entire screen to remove artifacts
-      if (this.forceFullClear) {
-        frameBuffer += CLEAR_SCREEN;
-      }
-      frameBuffer += CURSOR_HOME;
+      // Use explicit absolute cursor positioning for EACH line
+      // This avoids issues with newlines and cursor state
       const lines = output.split("\n");
+
       for (let i = 0; i < lines.length; i++) {
+        // Position cursor at row (i+1), column 1 - ANSI uses 1-based indexing
+        frameBuffer += `\x1b[${i + 1};1H`;
+        // Write line content and clear to end of line
         frameBuffer += lines[i] + CLEAR_TO_EOL;
-        if (i < lines.length - 1) {
-          frameBuffer += "\n";
-        }
       }
-      // Clear any remaining lines from previous render (when content shrinks)
-      if (!this.forceFullClear && this.lastHeight > lines.length) {
-        for (let i = lines.length; i < this.lastHeight; i++) {
-          frameBuffer += "\n" + ERASE_LINE;
-        }
-      }
+
+      // Position cursor after last content line and clear everything below
+      frameBuffer += `\x1b[${lines.length + 1};1H`;
+      frameBuffer += "\x1b[J"; // Clear from cursor to end of screen
+
       this.writeSync(frameBuffer);
       this.lastOutput = output;
       this.lastHeight = lines.length;
       this.forceFullClear = false;
+      this.firstRender = false;
 
       // Call onRender callback with timing info
       if (this.options.onRender) {
