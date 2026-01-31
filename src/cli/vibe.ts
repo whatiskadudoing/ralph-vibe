@@ -13,9 +13,9 @@
  * - `ralph plan --vibe` → plan, work
  */
 
-import { amber, bold, dim, muted, orange, white } from '@/ui/colors.ts';
-import { createBox } from '@/ui/box.ts';
-import { getTerminalWidth } from '@/ui/claude_renderer.ts';
+import { amber, bold, cyan, dim, muted, orange, success as successColor } from '@/ui/colors.ts';
+import { CHECK, BULLET } from '@/ui/symbols.ts';
+import { DEFAULT_WORK } from '@/core/config.ts';
 
 // ============================================================================
 // Autonomous Mode Messages
@@ -75,6 +75,69 @@ export function isVibeMode(): boolean {
 }
 
 // ============================================================================
+// Vibe Loop State (SLC Iterations)
+// ============================================================================
+
+/**
+ * Environment variable names for vibe loop state.
+ */
+const VIBE_ENV = {
+  MODE: 'RALPH_VIBE_MODE',
+  SLC_ITERATION: 'RALPH_SLC_ITERATION',
+  MAX_SLC_ITERATIONS: 'RALPH_MAX_SLC_ITERATIONS',
+} as const;
+
+/**
+ * State for the vibe loop (research → plan → work cycles).
+ */
+export interface VibeLoopState {
+  readonly slcIteration: number;
+  readonly maxSlcIterations: number;
+}
+
+/**
+ * Gets the current vibe loop state from environment variables.
+ * Returns null if not in vibe loop mode.
+ */
+export function getVibeLoopState(): VibeLoopState | null {
+  const mode = Deno.env.get(VIBE_ENV.MODE);
+  if (mode !== '1') return null;
+
+  const iteration = parseInt(Deno.env.get(VIBE_ENV.SLC_ITERATION) ?? '1', 10);
+  const maxIterations = parseInt(
+    Deno.env.get(VIBE_ENV.MAX_SLC_ITERATIONS) ?? String(DEFAULT_WORK.maxSlcIterations),
+    10,
+  );
+
+  return {
+    slcIteration: iteration,
+    maxSlcIterations: maxIterations,
+  };
+}
+
+/**
+ * Creates environment variables for child processes in vibe loop.
+ */
+export function setVibeLoopEnv(state: VibeLoopState): Record<string, string> {
+  return {
+    [VIBE_ENV.MODE]: '1',
+    [VIBE_ENV.SLC_ITERATION]: String(state.slcIteration),
+    [VIBE_ENV.MAX_SLC_ITERATIONS]: String(state.maxSlcIterations),
+  };
+}
+
+/**
+ * Initializes vibe loop environment for the first iteration.
+ * Call this when starting work with --vibe flag.
+ */
+export function initializeVibeLoop(maxSlcIterations: number): Record<string, string> {
+  return setVibeLoopEnv({
+    slcIteration: 1,
+    maxSlcIterations,
+  });
+}
+
+// ============================================================================
 // Vibe Messages
 // ============================================================================
 
@@ -100,38 +163,26 @@ function getVibeMessage(): string {
  * Shows the vibe mode activation message.
  */
 export function showVibeActivated(nextSteps: string[]): void {
-  const termWidth = getTerminalWidth();
-
   // Check if first step is interactive
   const hasInteractiveStep = nextSteps.length > 0 &&
     (nextSteps[0]?.includes('interview') || nextSteps[0]?.includes('spec'));
 
-  const interactiveNote = hasInteractiveStep
-    ? [
-      '',
-      dim("🎤 I'll ask you a few questions first, then go fully autonomous."),
-      dim('   Make sure you have a beer ready for when we\'re done here!'),
-    ]
-    : [];
+  console.log();
+  console.log(`${orange(BULLET)} ${bold(orange('Vibe Mode Activated'))} 🍺`);
+  console.log();
+  console.log(dim(getVibeMessage()));
 
-  const lines = [
-    `${orange('◆')} ${bold('Vibe Mode Activated')} 🍺`,
-    '',
-    dim(getVibeMessage()),
-    ...interactiveNote,
-    '',
-    `${dim('Upcoming:')}`,
-    ...nextSteps.map((step, i) => `  ${amber(`${i + 1}.`)} ${step}`),
-  ];
+  if (hasInteractiveStep) {
+    console.log();
+    console.log(dim("🎤 I'll ask you a few questions first, then go fully autonomous."));
+    console.log(dim('   Make sure you have a beer ready for when we\'re done here!'));
+  }
 
   console.log();
-  console.log(createBox(lines.join('\n'), {
-    style: 'rounded',
-    padding: 1,
-    paddingY: 0,
-    borderColor: orange,
-    minWidth: termWidth - 6,
-  }));
+  console.log(dim('Upcoming:'));
+  nextSteps.forEach((step, i) => {
+    console.log(`  ${amber(`${i + 1}.`)} ${step}`);
+  });
   console.log();
 }
 
@@ -139,21 +190,18 @@ export function showVibeActivated(nextSteps: string[]): void {
  * Shows a transition message between commands in vibe mode.
  */
 export function showVibeTransition(fromCommand: string, toCommand: string): void {
-  const termWidth = getTerminalWidth();
   console.log();
-  console.log(createBox(
-    `${dim('Vibe mode:')} ${muted(fromCommand)} ${dim('→')} ${orange(toCommand)}`,
-    { style: 'rounded', padding: 1, paddingY: 0, borderColor: dim, minWidth: termWidth - 6 },
-  ));
+  console.log(`${dim('─'.repeat(40))}`);
+  console.log(`${dim('Vibe:')} ${muted(fromCommand)} ${dim('→')} ${orange(toCommand)}`);
+  console.log(`${dim('─'.repeat(40))}`);
   console.log();
 }
 
 /**
- * Shows the "autonomous mode starting" box with a countdown.
+ * Shows the "autonomous mode starting" message with a countdown.
  * This appears after interactive commands (start, spec) complete.
  */
 async function showAutonomousStarting(): Promise<void> {
-  const termWidth = getTerminalWidth();
   const idx = Math.floor(Math.random() * AUTONOMOUS_MESSAGES.length);
   const selectedMsg = AUTONOMOUS_MESSAGES[idx];
   const msg = selectedMsg
@@ -168,34 +216,25 @@ async function showAutonomousStarting(): Promise<void> {
   const countdownSeconds = 5;
   const encoder = new TextEncoder();
 
-  // Show the box with countdown
+  // Show header once
+  console.log();
+  console.log(`${msg.emoji}  ${bold(orange(msg.title))}`);
+  console.log();
+  // Split message by newlines and print each line
+  for (const line of msg.message.split('\n')) {
+    console.log(dim(line));
+  }
+  console.log();
+
+  // Show countdown with simple overwrite
   for (let i = countdownSeconds; i >= 0; i--) {
-    // Clear previous output (move cursor up and clear)
+    // Clear previous countdown line
     if (i < countdownSeconds) {
-      // Move up enough lines to clear the box (estimate ~12 lines)
-      await Deno.stdout.write(encoder.encode('\x1b[12A\x1b[J'));
+      await Deno.stdout.write(encoder.encode('\x1b[1A\x1b[2K'));
     }
 
     const countdown = i > 0 ? `Starting in ${orange(String(i))} seconds...` : `${orange('Starting now!')}`;
-
-    const lines = [
-      `${msg.emoji}  ${bold(orange(msg.title))}`,
-      '',
-      white(msg.message),
-      '',
-      dim('─'.repeat(Math.min(50, termWidth - 10))),
-      '',
-      countdown,
-    ];
-
-    console.log();
-    console.log(createBox(lines.join('\n'), {
-      style: 'rounded',
-      padding: 1,
-      paddingY: 0,
-      borderColor: orange,
-      minWidth: termWidth - 6,
-    }));
+    console.log(countdown);
 
     if (i > 0) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -209,7 +248,55 @@ async function showAutonomousStarting(): Promise<void> {
  * Commands that require user interaction.
  * After these complete in vibe mode, we show the "grab a beer" message.
  */
-const INTERACTIVE_COMMANDS = ['init', 'start', 'spec'];
+const INTERACTIVE_COMMANDS = ['init', 'start', 'spec', 'research'];
+
+// ============================================================================
+// Vibe Loop UI Messages
+// ============================================================================
+
+/**
+ * Shows the transition between SLC releases in vibe loop mode.
+ */
+export function showVibeLoopTransition(
+  currentIteration: number,
+  maxIterations: number,
+): void {
+  console.log();
+  console.log(`${orange('🔄')} ${bold('SLC Cycle Complete')}`);
+  console.log();
+  console.log(`${dim('Iteration:')} ${amber(String(currentIteration))} of ${maxIterations}`);
+  console.log();
+  console.log(dim('Starting next cycle: research → plan → work'));
+  console.log();
+}
+
+/**
+ * Shows message when max SLC iterations reached.
+ */
+export function showMaxSlcReached(maxIterations: number): void {
+  console.log();
+  console.log(`${amber('⚠')} ${bold('Max SLC Iterations Reached')}`);
+  console.log();
+  console.log(`Completed ${amber(String(maxIterations))} research → plan → work cycles.`);
+  console.log();
+  console.log(dim('The work may need human review to determine next steps.'));
+  console.log(dim('You can run `ralph work --vibe` again to continue.'));
+  console.log();
+}
+
+/**
+ * Shows success message when all SLCs are complete.
+ */
+export function showAllSlcsComplete(totalIterations: number): void {
+  console.log();
+  console.log(`${successColor(CHECK)} ${bold(orange('All SLCs Complete!'))} 🎉`);
+  console.log();
+  console.log(`Finished in ${cyan(String(totalIterations))} SLC cycle${totalIterations > 1 ? 's' : ''}.`);
+  console.log();
+  console.log(dim('All specs have been fully implemented.'));
+  console.log(dim('Your project is ready for review!'));
+  console.log();
+}
 
 // ============================================================================
 // Flow Execution
@@ -217,8 +304,9 @@ const INTERACTIVE_COMMANDS = ['init', 'start', 'spec'];
 
 /**
  * The command flow order.
+ * Flow: init → start → research → plan → work
  */
-const FLOW_ORDER = ['init', 'start', 'plan', 'work'] as const;
+const FLOW_ORDER = ['init', 'start', 'research', 'plan', 'work'] as const;
 
 type FlowCommand = typeof FLOW_ORDER[number];
 
@@ -226,9 +314,9 @@ type FlowCommand = typeof FLOW_ORDER[number];
  * Gets the next commands in the flow after a given command.
  */
 export function getNextCommands(currentCommand: string): string[] {
-  // Special case: 'spec' flows into 'plan' then 'work'
+  // Special case: 'spec' flows into 'research' then 'plan' then 'work'
   if (currentCommand === 'spec') {
-    return ['plan', 'work'];
+    return ['research', 'plan', 'work'];
   }
 
   const idx = FLOW_ORDER.indexOf(currentCommand as FlowCommand);
@@ -254,6 +342,73 @@ export async function runNextCommand(command: string): Promise<boolean> {
   const process = cmd.spawn();
   const status = await process.status;
   return status.success;
+}
+
+/**
+ * Runs a command with additional environment variables.
+ * Used for vibe loop to pass state to child processes.
+ */
+export async function runNextCommandWithEnv(
+  command: string,
+  extraEnv: Record<string, string>,
+): Promise<boolean> {
+  // Merge current env with extra env
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(Deno.env.toObject())) {
+    env[key] = value;
+  }
+  for (const [key, value] of Object.entries(extraEnv)) {
+    env[key] = value;
+  }
+
+  const cmd = new Deno.Command('ralph', {
+    args: [command],
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
+    env,
+  });
+
+  const process = cmd.spawn();
+  const status = await process.status;
+  return status.success;
+}
+
+/**
+ * Continues the vibe loop with the next SLC cycle (research → plan → work).
+ * Called when work completes but SLC_COMPLETE is false.
+ */
+export async function continueVibeSlcLoop(
+  currentState: VibeLoopState,
+): Promise<void> {
+  const nextIteration = currentState.slcIteration + 1;
+
+  // Check if we've hit the max
+  if (nextIteration > currentState.maxSlcIterations) {
+    showMaxSlcReached(currentState.maxSlcIterations);
+    return;
+  }
+
+  // Show transition message
+  showVibeLoopTransition(nextIteration, currentState.maxSlcIterations);
+
+  // Create env for next cycle
+  const nextEnv = setVibeLoopEnv({
+    slcIteration: nextIteration,
+    maxSlcIterations: currentState.maxSlcIterations,
+  });
+
+  // Run research → plan → work sequence
+  const commands = ['research', 'plan', 'work'];
+
+  for (const command of commands) {
+    showVibeTransition(command === 'research' ? 'work' : commands[commands.indexOf(command) - 1] ?? 'work', command);
+
+    const success = await runNextCommandWithEnv(command, nextEnv);
+    if (!success) {
+      Deno.exit(1);
+    }
+  }
 }
 
 /**

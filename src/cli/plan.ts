@@ -8,22 +8,18 @@
  */
 
 import { Command } from '@cliffy/command';
-import { amber, dim, error, muted } from '@/ui/colors.ts';
-import { CROSS, INFO } from '@/ui/symbols.ts';
+import { error, muted } from '@/ui/colors.ts';
+import { CROSS } from '@/ui/symbols.ts';
 import { readConfig } from '@/services/project_service.ts';
-import { isClaudeInstalled } from '@/services/claude_service.ts';
-import { exists } from '@/services/file_service.ts';
-import { resolvePaths } from '@/services/path_resolver.ts';
-import { getTerminalWidth, runAndRender } from '@/ui/claude_renderer.ts';
-import { createBox } from '@/ui/box.ts';
-import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import {
-  commandHeader,
-  errorBox,
-  infoBox,
-  statusBox,
-  successBox,
-} from '@/ui/components.ts';
+  isClaudeInstalled,
+  parseAssistantMessage,
+  runClaude,
+} from '@/services/claude_service.ts';
+import { exists, readTextFile } from '@/services/file_service.ts';
+import { resolvePaths } from '@/services/path_resolver.ts';
+import { getSubscriptionUsage } from '@/services/usage_service.ts';
+import { infoBox } from '@/ui/components.ts';
 import {
   continueVibeFlow,
   enableVibeMode,
@@ -31,6 +27,8 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
+import { renderPlan } from '@/components/PlanScreen.tsx';
+import type { EnhancedToolCall } from '@/components/ui/ToolActivity.tsx';
 
 // ============================================================================
 // Helpers
@@ -72,60 +70,9 @@ async function hasPlan(paths: { plan: string }): Promise<boolean> {
  * Path is resolved from .ralph.json config.
  */
 async function readPlanPrompt(paths: { planPrompt: string }): Promise<string | null> {
-  try {
-    return await Deno.readTextFile(paths.planPrompt);
-  } catch {
-    return null;
-  }
+  const result = await readTextFile(paths.planPrompt);
+  return result.ok ? result.value : null;
 }
-
-/**
- * Runs the planning phase with a single model.
- * The model uses subagents internally for parallel analysis.
- */
-const runPlan = async (
-  model: 'opus' | 'sonnet',
-  paths: { planPrompt: string },
-): Promise<{ success: boolean; usage: { before: number | null; after: number | null } }> => {
-  const usageBefore = await getSubscriptionUsage();
-  const beforeVal = usageBefore.ok ? usageBefore.value.fiveHour.utilization : null;
-
-  // Read prompt from project's configured plan prompt file
-  const prompt = await readPlanPrompt(paths);
-  if (!prompt) {
-    console.log(errorBox({
-      title: 'Plan prompt file not found',
-      description: `Expected: ${paths.planPrompt}\nRun \`ralph init\` to create the prompt file.`,
-    }));
-    return { success: false, usage: { before: beforeVal, after: null } };
-  }
-
-  console.log(statusBox({
-    label: `[${model}]`,
-    title: 'Gap Analysis & Planning',
-    description: 'Studying specs, searching codebase, generating plan',
-    active: true,
-  }));
-  console.log();
-
-  const result = await runAndRender(
-    {
-      prompt,
-      model,
-      skipPermissions: true,
-    },
-    {
-      showSpinner: true,
-      showTools: true,
-      showStats: false,
-    },
-  );
-
-  const usageAfter = await getSubscriptionUsage();
-  const afterVal = usageAfter.ok ? usageAfter.value.fiveHour.utilization : null;
-
-  return { success: result.success, usage: { before: beforeVal, after: afterVal } };
-};
 
 // ============================================================================
 // Command Action
@@ -140,8 +87,14 @@ interface PlanOptions {
  * The plan command action.
  */
 async function planAction(options: PlanOptions): Promise<void> {
-  // Handle vibe mode
-  if (options.vibe) {
+  // Check for vibe loop mode (set by environment from vibe loop)
+  const vibeEnvMode = Deno.env.get('RALPH_VIBE_MODE');
+  if (vibeEnvMode === '1') {
+    enableVibeMode();
+  }
+
+  // Handle explicit --vibe flag
+  if (options.vibe && !isVibeMode()) {
     enableVibeMode();
     const nextSteps = getNextCommands('plan');
     showVibeActivated([
@@ -209,72 +162,120 @@ async function planAction(options: PlanOptions): Promise<void> {
   // Fetch initial subscription usage
   const initialUsage = await getSubscriptionUsage();
 
-  // Show header
-  console.log();
-  console.log(commandHeader({
-    name: 'Ralph Plan',
-    description: 'Generate implementation plan from specs',
-    usage: initialUsage.ok ? initialUsage.value : undefined,
-  }));
-  console.log();
-
-  // Check if plan already exists
-  if (await hasPlan(paths)) {
-    const termWidth = getTerminalWidth();
-    console.log(createBox(
-      `${dim(INFO)} Existing plan found - will regenerate from current specs`,
-      { style: 'rounded', padding: 1, paddingY: 0, borderColor: dim, minWidth: termWidth - 6 },
-    ));
+  // Read the prompt
+  const prompt = await readPlanPrompt(paths);
+  if (!prompt) {
     console.log();
+    console.log(infoBox({
+      title: 'Plan prompt file not found',
+      description: `Expected: ${paths.planPrompt}\nRun \`ralph init\` to create the prompt file.`,
+    }));
+    Deno.exit(1);
   }
 
-  // Run planning
-  const result = await runPlan(model, paths);
+  // Run planning with React UI
+  const success = await renderPlan({
+    model,
+    usage: initialUsage.ok ? initialUsage.value : undefined,
+    vibeMode: isVibeMode(),
+    onRun: async ({ onToolUse, onStatusUpdate }) => {
+      let currentToolId: string | null = null;
+      try {
+        let hasError = false;
+        let toolCounter = 0;
 
-  console.log();
+        for await (const event of runClaude({ prompt, model, skipPermissions: true })) {
+          if (event.type === 'assistant') {
+            const messages = parseAssistantMessage(event);
 
-  // Get final usage for delta calculation
-  const finalUsage = await getSubscriptionUsage();
-  let usageDelta: number | undefined;
-  if (result.usage.before !== null && result.usage.after !== null) {
-    usageDelta = result.usage.after - result.usage.before;
-  }
+            for (const msg of messages) {
+              if (msg.text) {
+                // Get first paragraph or substantial text for status (allow multi-line display)
+                const firstParagraph = msg.text.split('\n\n')[0]?.trim().replace(/\n/g, ' ');
+                if (firstParagraph && firstParagraph.length > 0 && !firstParagraph.startsWith('#') && !firstParagraph.startsWith('`')) {
+                  // Allow up to 300 chars for multi-line status display
+                  onStatusUpdate(firstParagraph.length > 300 ? firstParagraph.slice(0, 297) + '...' : firstParagraph);
+                }
+              }
 
-  if (result.success) {
-    let usageInfo: string | undefined;
-    if (finalUsage.ok) {
-      usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
-      if (usageDelta !== undefined && usageDelta > 0) {
-        usageInfo += ` ${amber(`(+${usageDelta.toFixed(1)}%)`)}`;
+              if (msg.toolUse) {
+                // Mark previous tool as completed
+                if (currentToolId) {
+                  onToolUse({
+                    id: currentToolId,
+                    name: '',
+                    status: 'success',
+                    endTime: Date.now(),
+                    input: {},
+                  });
+                }
+
+                toolCounter++;
+                const toolId = `plan-${toolCounter}`;
+                currentToolId = toolId;
+
+                // Extract input from tool use
+                const toolInput = msg.toolUse.input ?? {};
+
+                // Emit running tool
+                onToolUse({
+                  id: toolId,
+                  name: msg.toolUse.name,
+                  status: 'running',
+                  startTime: Date.now(),
+                  input: toolInput as Record<string, unknown>,
+                });
+              }
+            }
+          } else if (event.type === 'result') {
+            const data = event.data as Record<string, unknown>;
+            hasError = data.is_error === true;
+
+            // Mark last tool as completed
+            if (currentToolId) {
+              onToolUse({
+                id: currentToolId,
+                name: '',
+                status: hasError ? 'error' : 'success',
+                endTime: Date.now(),
+                input: {},
+              });
+              currentToolId = null;
+            }
+          }
+        }
+
+        return {
+          success: !hasError,
+          outputPath: 'IMPLEMENTATION_PLAN.md',
+        };
+      } catch (e) {
+        // Mark last tool as error if running
+        if (currentToolId) {
+          onToolUse({
+            id: currentToolId,
+            name: '',
+            status: 'error',
+            endTime: Date.now(),
+            input: {},
+          });
+        }
+        return {
+          success: false,
+          error: e instanceof Error ? e.message : 'Unknown error',
+        };
       }
-    }
+    },
+  });
 
-    if (isVibeMode()) {
-      console.log(successBox({
-        title: 'Plan Generated!',
-        details: ['Implementation plan: IMPLEMENTATION_PLAN.md'],
-        usageInfo,
-      }));
-    } else {
-      console.log(successBox({
-        title: 'Plan Generated!',
-        details: ['Implementation plan: IMPLEMENTATION_PLAN.md'],
-        usageInfo,
-        nextSteps: [
-          { text: 'Review the plan in', command: 'IMPLEMENTATION_PLAN.md' },
-          { text: 'Run', command: 'ralph work' },
-          { text: 'Or run', command: 'ralph spec' },
-        ],
-      }));
-    }
-
+  if (success) {
     // Continue vibe flow if active
     await continueVibeFlow('plan');
+    // Exit cleanly if not in vibe mode (vibe mode handles its own exit)
+    if (!isVibeMode()) {
+      Deno.exit(0);
+    }
   } else {
-    console.log(errorBox({
-      title: 'Planning failed',
-      description: 'Check the error above and try again.',
-    }));
     Deno.exit(1);
   }
 }

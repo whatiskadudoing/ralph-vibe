@@ -24,6 +24,13 @@ import {
 } from './colors.ts';
 import { BOX_ROUNDED, SPINNER_DOTS } from './symbols.ts';
 import { createBox } from './box.ts';
+import {
+  calculateCostBreakdown,
+  calculateCacheSavings,
+  calculateCacheEfficiency,
+  formatCost,
+  type CostBreakdown,
+} from '../services/cost_calculator.ts';
 
 // ============================================================================
 // Types
@@ -62,6 +69,12 @@ export interface UsageStats {
   readonly cacheWriteTokens?: number;
   /** Total cost in dollars (estimated). */
   readonly costUsd?: number;
+  /** Detailed cost breakdown. */
+  readonly costBreakdown?: CostBreakdown;
+  /** Cache efficiency percentage (0-100). */
+  readonly cacheEfficiency?: number;
+  /** Cache savings in dollars. */
+  readonly cacheSavings?: number;
   /** Duration in seconds. */
   readonly durationSec: number;
   /** Number of tool operations. */
@@ -338,8 +351,8 @@ export async function runAndRender(
         const data = event.data as Record<string, unknown>;
         const isError = data.is_error === true;
 
-        // Extract usage from result if available
-        const resultUsage = extractUsage(data, stats);
+        // Extract usage from result if available (pass model from options)
+        const resultUsage = extractUsage(data, stats, options.model ?? 'opus');
 
         if (isError) {
           renderError('Claude encountered an error');
@@ -530,6 +543,7 @@ function truncate(str: string, maxLength: number): string {
 function extractUsage(
   data: Record<string, unknown>,
   stats: { total: number; elapsed: number },
+  model: string = 'opus',
 ): UsageStats {
   // Try to extract token usage from various possible locations in the result
   const usage = data.usage as Record<string, number> | undefined;
@@ -543,10 +557,44 @@ function extractUsage(
   const cacheReadTokens = usage?.cache_read_input_tokens ?? resultUsage?.cache_read_input_tokens;
   const cacheWriteTokens = usage?.cache_creation_input_tokens ?? resultUsage?.cache_creation_input_tokens;
 
-  // Estimate cost (Opus pricing: $15/M input, $75/M output as of 2024)
+  // Calculate cost using cost calculator service
   let costUsd: number | undefined;
+  let costBreakdown: CostBreakdown | undefined;
+  let cacheEfficiency: number | undefined;
+  let cacheSavings: number | undefined;
+
   if (inputTokens !== undefined && outputTokens !== undefined) {
-    costUsd = (inputTokens * 15 + outputTokens * 75) / 1_000_000;
+    // Calculate detailed cost breakdown
+    costBreakdown = calculateCostBreakdown(
+      {
+        inputTokens,
+        outputTokens,
+        cacheReadTokens,
+        cacheWriteTokens,
+      },
+      model,
+    );
+    costUsd = costBreakdown.total;
+
+    // Calculate cache efficiency if cache is being used
+    if (cacheReadTokens !== undefined && cacheReadTokens > 0) {
+      cacheEfficiency = calculateCacheEfficiency({
+        inputTokens,
+        outputTokens,
+        cacheReadTokens,
+        cacheWriteTokens,
+      });
+
+      cacheSavings = calculateCacheSavings(
+        {
+          inputTokens,
+          outputTokens,
+          cacheReadTokens,
+          cacheWriteTokens,
+        },
+        model,
+      );
+    }
   }
 
   return {
@@ -555,6 +603,9 @@ function extractUsage(
     cacheReadTokens,
     cacheWriteTokens,
     costUsd,
+    costBreakdown,
+    cacheEfficiency,
+    cacheSavings,
     durationSec: stats.elapsed,
     operations: stats.total,
   };
@@ -562,7 +613,7 @@ function extractUsage(
 
 /**
  * Formats usage stats for display.
- * Note: Cost is not shown for Claude Code subscription users.
+ * Shows cost information including cache efficiency and savings.
  */
 export function formatUsageStats(usage: UsageStats, model?: string): string {
   const parts: string[] = [];
@@ -591,10 +642,26 @@ export function formatUsageStats(usage: UsageStats, model?: string): string {
 
   if (usage.inputTokens !== undefined && usage.outputTokens !== undefined) {
     const totalTokens = usage.inputTokens + usage.outputTokens;
-    parts.push(`${formatTokens(totalTokens)} tokens`);
+    let tokensDisplay = `${formatTokens(totalTokens)} tokens`;
+
+    // Add cost if available
+    if (usage.costUsd !== undefined) {
+      tokensDisplay += ` (${formatCost(usage.costUsd)})`;
+    }
+
+    parts.push(tokensDisplay);
   }
 
-  // Don't show cost - not relevant for Claude Code subscription users
+  // Show cache efficiency and savings if available
+  if (usage.cacheEfficiency !== undefined && usage.cacheEfficiency > 0) {
+    let cacheDisplay = `Cache: ${usage.cacheEfficiency.toFixed(0)}%`;
+
+    if (usage.cacheSavings !== undefined && usage.cacheSavings > 0) {
+      cacheDisplay += ` (saved ${formatCost(usage.cacheSavings)})`;
+    }
+
+    parts.push(cacheDisplay);
+  }
 
   return parts.join(' · ');
 }
@@ -1018,7 +1085,7 @@ export async function runIterationInBox(
 
         const data = event.data as Record<string, unknown>;
         const isError = data.is_error === true;
-        const resultUsage = extractUsage(data, stats);
+        const resultUsage = extractUsage(data, stats, options.model ?? model);
 
         // Add per-model breakdown
         const byModel: UsageStats['byModel'] = {};

@@ -86,7 +86,14 @@ export function renderBuildPrompt(): string {
     task: "[task name]"
     validation: pass/fail
     EXIT_SIGNAL: true/false
+    SLC_COMPLETE: true/false
     \`\`\`
+
+    **SLC_COMPLETE Guide:**
+    - \`true\` = ALL specs in \`specs/*\` are fully implemented at their target depth
+    - \`false\` = Current SLC release is done, but Future Work section has items for next release
+
+    Set \`SLC_COMPLETE: true\` ONLY when there are no more features to build.
   `).trim();
 }
 
@@ -151,7 +158,14 @@ export function renderBuildPromptForked(): string {
     task: "[task name]"
     validation: pass/fail
     EXIT_SIGNAL: true/false
+    SLC_COMPLETE: true/false
     \`\`\`
+
+    **SLC_COMPLETE Guide:**
+    - \`true\` = ALL specs in \`specs/*\` are fully implemented at their target depth
+    - \`false\` = Current SLC release is done, but Future Work section has items for next release
+
+    Set \`SLC_COMPLETE: true\` ONLY when there are no more features to build.
   `).trim();
 }
 
@@ -197,6 +211,11 @@ export function renderPlanPrompt(): string {
     1b. **Study** \`specs/README.md\` for the activity map index
     1c. **Study** \`IMPLEMENTATION_PLAN.md\` if present (may be stale)
     1d. **Study** project files to understand tech stack and patterns
+    1e. **Review** \`research/\` folder if present:
+        - \`research/readiness.md\` - Are we ready to build?
+        - \`research/inspiration.md\` - What similar projects exist?
+        - \`research/apis/\` - What APIs are available and verified?
+        - \`research/approaches/\` - What implementation patterns were found?
 
     ## Phase 2: Gap Analysis
 
@@ -205,6 +224,8 @@ export function renderPlanPrompt(): string {
     3. Search for: TODOs, placeholders, minimal implementations, skipped tests
     4. **Compare** specifications against actual implementation
     5. **Identify gaps** between specs and reality
+    6. **Cross-reference** gaps with \`research/apis/\` - do we have what we need?
+    7. **Cross-reference** gaps with \`research/approaches/\` - do we know HOW to build it?
 
     ## Phase 3: Journey Sequencing & SLC Release Recommendation
 
@@ -263,7 +284,7 @@ export function renderPlanPrompt(): string {
     - **One meaningful commit** - a coherent, complete unit of work
     - **Specific** - "Implement Upload Photo activity at Basic depth" not "Add upload"
     - **Measurable** - clear success criteria
-    - **Linked** - cite specs and files: \`[spec: X] [file: Y]\`
+    - **Linked** - cite specs, files, AND research: \`[spec: X] [file: Y] [research: Z]\`
 
     **Anti-patterns to AVOID:**
     - Splitting related work (error types + error UI + retry = ONE task)
@@ -458,7 +479,7 @@ export function renderSynthesisPrompt(analysis: string): string {
     - **One meaningful commit** - a coherent, complete unit of work
     - **Specific** - "Implement Upload Photo at Basic depth" not "Add upload"
     - **Measurable** - clear success criteria
-    - **Linked** - cite specs and files: \`[spec: X] [file: Y]\`
+    - **Linked** - cite specs, files, AND research: \`[spec: X] [file: Y] [research: Z]\`
 
     **Anti-patterns to AVOID:**
     - Splitting related work into separate tasks
@@ -1489,5 +1510,334 @@ export function renderInitialAudienceJtbd(): string {
     | Activity | JTBD | Description |
     |----------|------|-------------|
     | (TBD) | (TBD) | (TBD) |
+  `).trim();
+}
+
+/**
+ * Generates the PROMPT_research.md content.
+ * This guides Claude to research APIs, find inspiration, and validate before planning.
+ */
+export function renderResearchPrompt(): string {
+  return dedent(`
+    # Research Mode - Discovery & Validation
+
+    You are performing **RESEARCH & DISCOVERY** before planning.
+
+    **Goal:** Gather inspiration, validate APIs, and document sources so implementation has reference material.
+
+    **Output:** \`research/\` folder with structured documentation and source URLs.
+
+    ---
+
+    ## Pre-Requisites
+
+    Before researching, you should have:
+    - \`AUDIENCE_JTBD.md\` populated (know WHO you're building for)
+    - \`specs/\` folder with activity specs (know WHAT you're building)
+
+    If these don't exist, run \`ralph audience\` and \`ralph start\` first.
+
+    ---
+
+    ## Model Strategy
+
+    - Use **parallel Sonnet subagents** for web search, GitHub search, and API testing
+    - Use **Opus** (yourself) for synthesis and readiness assessment
+    - Run searches **in parallel** to maximize efficiency
+
+    ---
+
+    ## Phase R1: Competitive & Inspiration Research (Enhanced)
+
+    **Run parallel Sonnet agents** to search. Always prioritize **2025/2026 technology** - add year to searches.
+
+    ### 1. Similar Products - Tech Stack Analysis
+    Search for apps solving similar problems:
+    - "[problem domain] app 2025"
+    - "[feature] tool 2026"
+    - "best [category] apps"
+
+    **For each product/repo found, document:**
+    - **Tech Stack**: What language? What framework? What database? What hosting?
+    - **AI/ML Components**: What models? Open source or proprietary?
+    - **Key Libraries**: What dependencies solve the hard problems?
+    - **Architecture Patterns**: Monolith? Microservices? Serverless? Edge? Mobile?
+
+    ### 2. GitHub Repositories
+    Search for reference implementations:
+    - "[feature] site:github.com 2025"
+    - "[tech stack] [feature] example"
+    - Open source projects with similar functionality
+
+    **Document:** Key files to study, tech stack used, why it's useful, which activity it's relevant for.
+
+    ### 3. Technical Articles & Tutorials
+    Search for implementation guidance:
+    - "How to implement [feature] 2025"
+    - "[tech stack] [feature] tutorial"
+
+    **Document:** Key insights, code patterns, gotchas to avoid.
+
+    **Output:** Write findings to \`research/inspiration.md\` with tech stack breakdown for each reference.
+
+    ---
+
+    ## Phase R2: API Discovery & Documentation (Enhanced)
+
+    **Run parallel Sonnet agents** to find API documentation. Compare multiple options!
+
+    ### For Each External Service Needed:
+
+    1. **Find official docs** - Search for official API documentation
+    2. **Check for llms.txt** - Try \`https://[service].com/llms.txt\`
+    3. **Find authentication method** - API key, OAuth, etc.
+    4. **Compare multiple API options** - Don't just use the first result!
+
+    **For each API, document:**
+    - **Pricing tiers** - What's free? What scales? Cost per 1K requests?
+    - **Rate limits** - Will it work at our scale? Burst limits?
+    - **SDK quality** - Has SDK for our language? Good docs? Active maintenance?
+    - **Reliability** - Uptime SLA? Status page?
+
+    **Output:** Create \`research/apis/[service-name].md\` for each service:
+    \`\`\`markdown
+    # [Service Name] API
+
+    ## Overview
+    [What this API does]
+
+    ## Alternatives Considered
+    | Service | Pros | Cons | Pricing | Our Pick? |
+    |---------|------|------|---------|-----------|
+    | [API 1] | ... | ... | ... | ... |
+    | [API 2] | ... | ... | ... | ... |
+
+    ## Chosen API: [Name]
+    **Why:** [reasoning]
+
+    ## Authentication
+    [method, setup instructions]
+
+    ## Pricing
+    - Free tier: [limits]
+    - Paid: [pricing model]
+    - Rate limits: [requests/sec, daily limits]
+
+    ## Endpoints
+    [curl examples with responses]
+
+    ## SDK/Library
+    - Package: [package name for our language/ecosystem]
+    - Language support: [list supported languages]
+    - Docs quality: [rating]
+
+    ## Sources
+    - [URL 1]
+    - [URL 2]
+    \`\`\`
+
+    ---
+
+    ## Phase R3: API Validation (Hands-On Testing)
+
+    **Actually test the APIs** - don't just document:
+
+    1. **Run curl commands** to verify endpoints work
+    2. **Check credentials** - Do we have API keys? Are they in environment?
+    3. **Test happy path** - Does the basic request work?
+    4. **Test error cases** - What happens on invalid input?
+
+    Use the Bash tool to run curl commands and verify responses.
+
+    **Output:** Write results to \`research/api-validation.md\`
+
+    ---
+
+    ## Phase R4: Technical Approach Research (Enhanced)
+
+    **Run parallel Sonnet agents** to research implementation approaches. Be SPECIFIC about algorithms and libraries.
+
+    ### For Each Feature Requiring Algorithms/Complex Logic:
+
+    1. **Search for patterns** - "How to implement [feature] in [tech stack] 2025"
+    2. **Name the algorithm** - e.g., "Levenshtein distance", "BM25 search", "cosine similarity"
+    3. **Find the best library** - Compare packages for our language/ecosystem
+    4. **If AI needed** - Compare options: cloud APIs vs local models (Ollama, vLLM, etc.)
+
+    **Output:** Create \`research/approaches/[feature-name].md\` for each:
+
+    \`\`\`markdown
+    ## [Feature Name]
+
+    ### Problem
+    [What we need to solve]
+
+    ### Algorithm/Approach
+    - **Name:** [algorithm name, e.g., "TF-IDF with BM25 ranking"]
+    - **Why:** [why this approach fits our use case]
+    - **Complexity:** [O(n), space requirements]
+
+    ### Library Options (2025/2026)
+    | Library | Stars | Last Update | Language Support | Size/Deps | Recommendation |
+    |---------|-------|-------------|------------------|-----------|----------------|
+    | lib-a   | 5k    | 2025-01     | [languages]      | light     | Best for X     |
+    | lib-b   | 2k    | 2024-06     | [languages]      | heavy     | Too complex    |
+
+    ### AI Model Options (if applicable)
+    | Model | Open Source? | Cost | Quality | Latency | Our Pick |
+    |-------|--------------|------|---------|---------|----------|
+    | GPT-4 | No           | $$   | High    | 1-2s    | ...      |
+    | Llama 3 | Yes        | Free | Good    | 500ms   | ...      |
+    | Claude | No          | $$   | High    | 1s      | ...      |
+
+    ### Decision for Our Project
+    **Recommended:** [library/approach name]
+    **Reasoning:** [why this is best for our specific project - consider cost, complexity, team skills]
+
+    ### Implementation Notes
+    [Key code patterns, gotchas, setup steps]
+
+    ### Sources
+    - [URL 1]
+    - [URL 2]
+    \`\`\`
+
+    ---
+
+    ## Phase R5: Readiness Assessment
+
+    **Final check before planning:**
+
+    1. **All critical APIs documented?** - Check \`research/apis/\`
+    2. **All APIs tested?** - Check \`research/api-validation.md\`
+    3. **Technical approaches identified?** - Check \`research/approaches/\`
+    4. **Inspiration gathered?** - Check \`research/inspiration.md\`
+
+    **Output:** Write to \`research/readiness.md\`
+
+    \`\`\`markdown
+    # Build Readiness Assessment
+
+    ## Ready to Build
+    | Component | Status | Reference |
+    |-----------|--------|-----------|
+    | [Feature 1] | Ready | \`research/approaches/x.md\` |
+
+    ## Risks
+    | Risk | Mitigation |
+    |------|------------|
+    | [risk] | [mitigation] |
+
+    ## Blockers
+    | Blocker | Action Required |
+    |---------|-----------------|
+    | [blocker] | [action] |
+
+    ## Decision: Ready to Plan?
+    - [ ] All critical APIs verified working
+    - [ ] All required credentials available
+    - [ ] Technical approaches identified
+    - [ ] No unresolved blockers
+
+    **Verdict:** READY / BLOCKED
+    \`\`\`
+
+    ---
+
+    ## Critical Rules
+
+    - **Research only.** Do NOT implement anything.
+    - **Document sources.** Every finding needs a URL.
+    - **Test, don't assume.** Run actual curl commands.
+    - **Be thorough.** Better to over-research than under-research.
+    - **Persist knowledge.** Everything goes in \`research/\` folder.
+
+    ---
+
+    ## Output Structure
+
+    After research is complete, you should have:
+
+    \`\`\`
+    research/
+    ├── inspiration.md              # Similar products, GitHub repos, articles
+    ├── api-validation.md           # Test results for all APIs
+    ├── readiness.md                # Final readiness assessment
+    ├── apis/
+    │   └── [service-name].md       # API reference per service
+    └── approaches/
+        └── [feature-name].md       # Implementation approaches per feature
+    \`\`\`
+
+    ---
+
+    ## Completion
+
+    Research is complete when:
+
+    1. \`research/readiness.md\` exists
+    2. Readiness verdict is **READY** or blockers are clearly documented
+    3. All critical APIs have been tested (not just documented)
+
+    Then proceed to \`ralph plan\` which will reference the \`research/\` folder.
+
+    ---
+
+    **Start now.** Read AUDIENCE_JTBD.md and specs/ first, then begin research.
+  `).trim();
+}
+
+/**
+ * Generates the initial research folder README.
+ */
+export function renderInitialResearchReadme(): string {
+  return dedent(`
+    # Research & Discovery
+
+    This folder contains research findings gathered before implementation planning.
+
+    **Generated by:** \`ralph research\`
+    **Used by:** \`ralph plan\` and \`ralph work\`
+
+    ---
+
+    ## Folder Structure
+
+    \`\`\`
+    research/
+    ├── README.md                   # This file
+    ├── inspiration.md              # Similar products, GitHub repos, articles
+    ├── api-validation.md           # Test results for all APIs
+    ├── readiness.md                # Build readiness assessment
+    ├── apis/
+    │   └── [service-name].md       # API reference per service
+    └── approaches/
+        └── [feature-name].md       # Implementation patterns per feature
+    \`\`\`
+
+    ---
+
+    ## How to Use
+
+    ### During Planning (\`ralph plan\`)
+
+    The planner will:
+    1. Check \`readiness.md\` for blockers
+    2. Reference \`apis/\` for available endpoints
+    3. Reference \`approaches/\` for implementation patterns
+    4. Link relevant docs to each task
+
+    ### During Implementation (\`ralph work\`)
+
+    When working on a task:
+    1. Check the task's **Research:** link
+    2. Review the referenced document for patterns and examples
+    3. Use **Sources** section for external references if stuck
+
+    ---
+
+    ## Sources
+
+    Every document should end with a **Sources** section listing URLs.
   `).trim();
 }

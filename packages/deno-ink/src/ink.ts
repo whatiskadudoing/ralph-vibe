@@ -53,21 +53,39 @@ const CURSOR_HOME = "\x1b[H";
 const CLEAR_SCREEN = "\x1b[2J";
 
 /**
- * Erase lines from current position upward.
- * This mimics log-update/ansi-escapes eraseLines behavior.
- * After erasing, cursor is at the beginning of the topmost erased line.
+ * Move cursor up N lines.
+ */
+function moveCursorUp(count: number): string {
+  if (count <= 0) return "";
+  return `\x1b[${count}A`;
+}
+
+/**
+ * Erase lines - mimics ansi-escapes eraseLines from log-update.
+ * Erases `count` lines from the current cursor position upward.
+ * After erasing, cursor is positioned at the start of the topmost erased line.
+ *
+ * This matches the behavior of: https://github.com/sindresorhus/ansi-escapes
+ * eraseLines(count) = cursorUp(count-1) + eraseCurrentLineAndBelow
  */
 function eraseLines(count: number): string {
   if (count <= 0) return "";
 
   let result = "";
+
+  // Move to start of current line
+  result += CURSOR_TO_START;
+
+  // For each line we need to erase (going up from current position)
   for (let i = 0; i < count; i++) {
-    result += ERASE_LINE; // Erase current line
+    // Erase the entire line
+    result += ERASE_LINE;
+    // Move up one line (except for the last iteration)
     if (i < count - 1) {
-      result += CURSOR_UP; // Move up (except on last iteration)
+      result += CURSOR_UP;
     }
   }
-  result += CURSOR_TO_START; // Return to start of line
+
   return result;
 }
 import { InkProvider } from "./components/InkProvider.tsx";
@@ -124,6 +142,9 @@ export interface InkInstance {
 }
 
 export class Ink {
+  // Shared encoder to avoid GC pressure (was creating new one per write)
+  private static readonly textEncoder = new TextEncoder();
+
   private readonly options: Required<Omit<InkOptions, "onRender">> & Pick<InkOptions, "onRender">;
   private readonly rootNode: DOMElement;
   private readonly reconciler: ReturnType<typeof createReconciler>;
@@ -132,6 +153,7 @@ export class Ink {
   private lastOutput: string = "";
   private lastHeight: number = 0;
   private lastWidth: number = 0;
+  private lastTerminalHeight: number = 0; // Track terminal height for resize
   private maxHeight: number = 0; // Track max height for proper clearing
   private firstRender: boolean = true;
   private exitPromise: Promise<void>;
@@ -149,6 +171,7 @@ export class Ink {
   private patchedConsole: PatchedConsole | null = null;
   private readonly inCI: boolean;
   private readonly isScreenReaderEnabled: boolean;
+  private finalOutput: string | null = null; // Output to print on unmount
 
   constructor(options: InkOptions = {}) {
     // Detect CI environment
@@ -238,19 +261,23 @@ export class Ink {
     try {
       const initialSize = Deno.consoleSize();
       this.lastWidth = initialSize.columns;
+      this.lastTerminalHeight = initialSize.rows;
     } catch {
       this.lastWidth = 80;
+      this.lastTerminalHeight = 24;
     }
 
     this.resizeCheckInterval = setInterval(() => {
       try {
         const size = Deno.consoleSize();
-        if (size.columns !== this.lastWidth) {
-          const widthDecreased = size.columns < this.lastWidth;
+        const widthChanged = size.columns !== this.lastWidth;
+        const heightChanged = size.rows !== this.lastTerminalHeight;
 
+        if (widthChanged || heightChanged) {
           // Width changed - need to do a full clear because layout will change
           this.forceFullClear = true;
           this.lastWidth = size.columns;
+          this.lastTerminalHeight = size.rows;
 
           // On resize, we need to erase the maximum height we've ever used
           // Don't reset lastHeight - we need it to properly erase on next render
@@ -261,7 +288,16 @@ export class Ink {
       } catch {
         // Ignore
       }
-    }, 50) as unknown as number; // Check more frequently
+    }, 500) as unknown as number; // Check every 500ms (was 50ms)
+  }
+
+  /**
+   * Set the final output to be printed when the app unmounts.
+   * This output is printed to the terminal after exiting the alternate screen buffer,
+   * so it persists in terminal history (scrollback).
+   */
+  setFinalOutput(output: string): void {
+    this.finalOutput = output;
   }
 
   private fullClear(): void {
@@ -403,6 +439,10 @@ export class Ink {
 
     // In full-screen mode, use simpler approach: move to home and redraw
     if (this.options.fullScreen) {
+      // On resize (forceFullClear), clear entire screen to remove artifacts
+      if (this.forceFullClear) {
+        frameBuffer += CLEAR_SCREEN;
+      }
       frameBuffer += CURSOR_HOME;
       const lines = output.split("\n");
       for (let i = 0; i < lines.length; i++) {
@@ -411,8 +451,8 @@ export class Ink {
           frameBuffer += "\n";
         }
       }
-      // Clear any remaining lines from previous render
-      if (this.lastHeight > lines.length) {
+      // Clear any remaining lines from previous render (when content shrinks)
+      if (!this.forceFullClear && this.lastHeight > lines.length) {
         for (let i = lines.length; i < this.lastHeight; i++) {
           frameBuffer += "\n" + ERASE_LINE;
         }
@@ -434,33 +474,24 @@ export class Ink {
       return;
     }
 
-    // Regular mode: erase previous output and redraw
-    // On subsequent renders, erase previous output first
-    // This uses the eraseLines approach (like log-update) which erases from
-    // current position upward, handling terminal reflow correctly
+    // Regular mode: erase previous output, then write new output
+    // Matching ansi-escapes eraseLines behavior used by log-update
+
+    // Add trailing newline to output (like original Ink does)
+    const outputWithNewline = output + "\n";
+    const newHeight = outputWithNewline.split("\n").length;
+
+    // Erase previous output first (except on first render)
     if (!this.firstRender && this.lastHeight > 0) {
-      const eraseCount = this.forceFullClear
-        ? Math.max(this.lastHeight, this.maxHeight)
-        : this.lastHeight;
-      frameBuffer += eraseLines(eraseCount);
+      // eraseLines erases from current position upward
+      // After previous render, cursor is at start of line lastHeight
+      // (which is the empty line after trailing newline)
+      frameBuffer += eraseLines(this.lastHeight);
     }
     this.firstRender = false;
 
-    // Split output into lines and write each with clear-to-end-of-line
-    const lines = output.split("\n");
-    const newHeight = lines.length;
-
-    for (let i = 0; i < lines.length; i++) {
-      frameBuffer += lines[i] + CLEAR_TO_EOL;
-      if (i < lines.length - 1) {
-        frameBuffer += "\n";
-      }
-    }
-
-    // DON'T add trailing newline - cursor must stay at end of last content line
-    // so that eraseLines(lastHeight) erases all content lines correctly.
-    // eraseLines erases current line then moves up, so we need to be ON the last
-    // content line, not below it.
+    // Write new output (already has trailing newline)
+    frameBuffer += outputWithNewline;
 
     // Write everything at once
     this.writeSync(frameBuffer);
@@ -542,8 +573,7 @@ export class Ink {
   }
 
   private writeSync(data: string): void {
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(data);
+    const bytes = Ink.textEncoder.encode(data);
     Deno.stdout.writeSync(bytes);
   }
 
@@ -554,21 +584,22 @@ export class Ink {
         this.exitError = error;
         this.unmount();
       },
+      setFinalOutput: (output: string) => {
+        this.setFinalOutput(output);
+      },
     };
 
     const stdoutContext: StdoutContextValue = {
       stdout: this.options.stdout,
       write: (data: string) => {
-        const encoder = new TextEncoder();
-        this.options.stdout.writeSync(encoder.encode(data));
+        this.options.stdout.writeSync(Ink.textEncoder.encode(data));
       },
     };
 
     const stderrContext: StderrContextValue = {
       stderr: this.options.stderr,
       write: (data: string) => {
-        const encoder = new TextEncoder();
-        this.options.stderr.writeSync(encoder.encode(data));
+        this.options.stderr.writeSync(Ink.textEncoder.encode(data));
       },
     };
 
@@ -637,6 +668,14 @@ export class Ink {
       // Exit alternate screen buffer if we were in full-screen mode
       if (this.options.fullScreen) {
         this.writeSync(EXIT_ALT_SCREEN);
+
+        // Print final output AFTER exiting alternate buffer so it persists
+        if (this.finalOutput) {
+          this.writeSync(this.finalOutput);
+          if (!this.finalOutput.endsWith("\n")) {
+            this.writeSync("\n");
+          }
+        }
       }
     }
 

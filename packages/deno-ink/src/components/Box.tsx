@@ -4,6 +4,8 @@ import type { Styles } from "../styles.ts";
 
 export interface BoxProps extends Styles {
   children?: ReactNode;
+  /** React key for list rendering */
+  key?: React.Key;
 }
 
 export function Box({ children, ...props }: BoxProps): React.ReactElement {

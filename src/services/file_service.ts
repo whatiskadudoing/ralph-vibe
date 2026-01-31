@@ -277,3 +277,17 @@ export function getAgentsMdPath(projectDir?: string): string {
 export function getAudienceJtbdPath(projectDir?: string): string {
   return join(projectDir ?? getCwd(), 'AUDIENCE_JTBD.md');
 }
+
+/**
+ * Gets the research prompt file path.
+ */
+export function getResearchPromptPath(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'PROMPT_research.md');
+}
+
+/**
+ * Gets the research directory path.
+ */
+export function getResearchDir(projectDir?: string): string {
+  return join(projectDir ?? getCwd(), 'research');
+}
