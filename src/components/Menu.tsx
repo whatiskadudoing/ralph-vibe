@@ -5,8 +5,8 @@
  * Inspired by VS Code command palette and Charm.sh gum.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // ============================================================================
 // MENU ITEM - Single menu item
@@ -144,17 +144,18 @@ export function Menu({
           );
         }
         return (
-          <MenuItem
-            key={item.id}
-            label={item.label}
-            icon={item.icon}
-            shortcut={item.shortcut}
-            selected={item.id === selectedId}
-            disabled={item.disabled}
-            danger={item.danger}
-            selectedColor={selectedColor}
-            description={item.description}
-          />
+          <React.Fragment key={item.id}>
+            <MenuItem
+              label={item.label}
+              icon={item.icon}
+              shortcut={item.shortcut}
+              selected={item.id === selectedId}
+              disabled={item.disabled}
+              danger={item.danger}
+              selectedColor={selectedColor}
+              description={item.description}
+            />
+          </React.Fragment>
         );
       })}
       {footer && (

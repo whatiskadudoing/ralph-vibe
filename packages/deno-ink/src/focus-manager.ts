@@ -38,11 +38,11 @@ export function createFocusManager(): FocusManager {
 
     if (currentIndex === -1) {
       // No current focus, focus the first item
-      activeId = activeFocusables[0].id;
+      activeId = activeFocusables[0]!.id;
     } else {
       // Move to next, wrap around
       const nextIndex = (currentIndex + 1) % activeFocusables.length;
-      activeId = activeFocusables[nextIndex].id;
+      activeId = activeFocusables[nextIndex]!.id;
     }
 
     notify();
@@ -58,11 +58,11 @@ export function createFocusManager(): FocusManager {
 
     if (currentIndex === -1) {
       // No current focus, focus the last item
-      activeId = activeFocusables[activeFocusables.length - 1].id;
+      activeId = activeFocusables[activeFocusables.length - 1]!.id;
     } else {
       // Move to previous, wrap around
       const prevIndex = (currentIndex - 1 + activeFocusables.length) % activeFocusables.length;
-      activeId = activeFocusables[prevIndex].id;
+      activeId = activeFocusables[prevIndex]!.id;
     }
 
     notify();
@@ -106,7 +106,7 @@ export function createFocusManager(): FocusManager {
     // If the removed item was focused, focus the next available
     if (activeId === id) {
       const activeFocusables = getActiveFocusables();
-      activeId = activeFocusables.length > 0 ? activeFocusables[0].id : undefined;
+      activeId = activeFocusables.length > 0 ? activeFocusables[0]!.id : undefined;
     }
 
     notify();
@@ -128,7 +128,7 @@ export function createFocusManager(): FocusManager {
       // If this was the focused item, move focus
       if (activeId === id) {
         const activeFocusables = getActiveFocusables();
-        activeId = activeFocusables.length > 0 ? activeFocusables[0].id : undefined;
+        activeId = activeFocusables.length > 0 ? activeFocusables[0]!.id : undefined;
       }
 
       notify();
@@ -143,7 +143,7 @@ export function createFocusManager(): FocusManager {
     if (activeId === undefined) {
       const activeFocusables = getActiveFocusables();
       if (activeFocusables.length > 0) {
-        activeId = activeFocusables[0].id;
+        activeId = activeFocusables[0]!.id;
       }
     }
 

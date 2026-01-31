@@ -473,15 +473,16 @@ async function workAction(options: WorkOptions): Promise<void> {
             const data = event.data as Record<string, unknown>;
             hasError = data.is_error === true;
 
-            // Extract token data from result event
-            // Result format: { total_cost_usd, usage: { input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens } }
+            // Extract token data from result event with robust fallback pattern
+            // Result format: { total_cost_usd, usage: { input_tokens, ... } } or { result: { usage: { ... } } }
             const usage = data.usage as Record<string, number> | undefined;
-            if (usage) {
-              inputTokens = usage.input_tokens;
-              outputTokens = usage.output_tokens;
-              cacheReadTokens = usage.cache_read_input_tokens;
-              cacheWriteTokens = usage.cache_creation_input_tokens;
-            }
+            const result = data.result as Record<string, unknown> | undefined;
+            const resultUsage = result?.usage as Record<string, number> | undefined;
+
+            inputTokens = usage?.input_tokens ?? resultUsage?.input_tokens ?? 0;
+            outputTokens = usage?.output_tokens ?? resultUsage?.output_tokens ?? 0;
+            cacheReadTokens = usage?.cache_read_input_tokens ?? resultUsage?.cache_read_input_tokens ?? 0;
+            cacheWriteTokens = usage?.cache_creation_input_tokens ?? resultUsage?.cache_creation_input_tokens ?? 0;
             if (typeof data.total_cost_usd === 'number') {
               totalCostUsd = data.total_cost_usd;
             }

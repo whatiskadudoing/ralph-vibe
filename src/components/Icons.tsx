@@ -5,6 +5,7 @@
  * These icons render well in most terminal emulators.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 
 // ============================================================================

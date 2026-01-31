@@ -5,8 +5,8 @@
  * Inspired by Charm.sh patterns and modern terminal UIs.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // ============================================================================
 // TABS - Tab container with navigation
@@ -109,16 +109,17 @@ export function TabBar({
   return (
     <Box gap={gap}>
       {tabs.map((tab) => (
-        <Tab
-          key={tab.id}
-          label={tab.label}
-          icon={tab.icon}
-          badge={tab.badge}
-          isActive={tab.id === activeTab}
-          disabled={tab.disabled}
-          variant={variant}
-          activeColor={activeColor}
-        />
+        <React.Fragment key={tab.id}>
+          <Tab
+            label={tab.label}
+            icon={tab.icon}
+            badge={tab.badge}
+            isActive={tab.id === activeTab}
+            disabled={tab.disabled}
+            variant={variant}
+            activeColor={activeColor}
+          />
+        </React.Fragment>
       ))}
     </Box>
   );

@@ -4,6 +4,7 @@
  * Code display components using deno-ink.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 
 export interface CodeBlockProps {

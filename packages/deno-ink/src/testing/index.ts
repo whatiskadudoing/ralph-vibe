@@ -125,6 +125,7 @@ export async function render(
   // Create context values
   const appContext: AppContextValue = {
     exit: () => {},
+    setFinalOutput: () => {},
   };
 
   const stdoutContext: StdoutContextValue = {

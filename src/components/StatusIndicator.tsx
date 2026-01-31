@@ -4,6 +4,7 @@
  * Status indicator component with icons using deno-ink.
  */
 
+import React from "react";
 import { Box, Text, Spinner } from "@ink/mod.ts";
 
 export type StatusType =

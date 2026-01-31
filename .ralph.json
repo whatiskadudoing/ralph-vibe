@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "paths": {
+    "specs": "specs",
+    "plan": "IMPLEMENTATION_PLAN.md",
+    "agents": "AGENTS.md",
+    "audienceJtbd": "AUDIENCE_JTBD.md",
+    "buildPrompt": "PROMPT_build.md",
+    "planPrompt": "PROMPT_plan.md",
+    "startPrompt": "PROMPT_start.md",
+    "specPrompt": "PROMPT_spec.md",
+    "audiencePrompt": "PROMPT_audience.md"
+  },
+  "work": {
+    "model": "opus",
+    "maxIterations": 25,
+    "autoPush": true,
+    "stopOnFailure": false,
+    "cooldown": 5
+  }
+}

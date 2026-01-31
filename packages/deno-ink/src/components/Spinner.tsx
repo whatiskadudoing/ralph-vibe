@@ -24,15 +24,15 @@ export function Spinner({
   color,
 }: SpinnerProps): React.ReactElement {
   const [frame, setFrame] = useState(0);
-  const spinner = spinners[type] || spinners.dots;
+  const spinner = spinners[type] ?? spinners.dots;
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setFrame((f: number) => (f + 1) % spinner.frames.length);
-    }, spinner.interval);
+      setFrame((f: number) => (f + 1) % spinner!.frames.length);
+    }, spinner!.interval);
 
     return () => clearInterval(timer);
-  }, [spinner.frames.length, spinner.interval]);
+  }, [spinner!.frames.length, spinner!.interval]);
 
-  return React.createElement(Text, { color }, spinner.frames[frame]);
+  return React.createElement(Text, { color }, spinner!.frames[frame]);
 }

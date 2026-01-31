@@ -803,53 +803,86 @@ function buildWorkFinalOutput(options: {
     lines.push(`${ansi.red}${ansi.bold}✗ ${options.title}${ansi.reset}`);
   }
 
-  // Stats summary
-  const totalTokens = options.stats.totalInputTokens + options.stats.totalOutputTokens;
+  // Stats summary (one-liner)
   const statsStr = [
     formatDuration(options.stats.totalDurationSec),
     `${options.stats.totalIterations} iterations`,
     `${options.stats.totalOperations} ops`,
   ].join(" · ");
-
   lines.push(`${ansi.dimGray}${statsStr}${ansi.reset}`);
+  lines.push("");
 
-  // Token summary (primary metric for subscription users)
+  // Token breakdown
+  const totalTokens = options.stats.totalInputTokens + options.stats.totalOutputTokens;
   if (totalTokens > 0) {
-    const tokenStr = `${formatTokens(totalTokens)} tokens (${formatTokens(options.stats.totalInputTokens)} in / ${formatTokens(options.stats.totalOutputTokens)} out)`;
-    lines.push(`${ansi.cyan}${tokenStr}${ansi.reset}`);
+    lines.push(`${ansi.bold}Tokens${ansi.reset}`);
+    lines.push(`  ${ansi.cyan}↓${ansi.reset} ${formatTokens(options.stats.totalInputTokens).padStart(8)} ${ansi.dimGray}input tokens${ansi.reset}`);
+    lines.push(`  ${ansi.green}↑${ansi.reset} ${formatTokens(options.stats.totalOutputTokens).padStart(8)} ${ansi.dimGray}output tokens${ansi.reset}`);
+
+    if (options.stats.cacheTokensSaved > 0) {
+      lines.push(`  ${ansi.magenta}●${ansi.reset} ${formatTokens(options.stats.cacheTokensSaved).padStart(8)} ${ansi.dimGray}cache read (saved)${ansi.reset}`);
+    }
+
+    if (options.stats.cacheWriteTokens > 0) {
+      lines.push(`  ${ansi.dimGray}○${ansi.reset} ${ansi.dimGray}${formatTokens(options.stats.cacheWriteTokens).padStart(8)} cache write${ansi.reset}`);
+    }
+
+    const grandTotal = totalTokens + options.stats.cacheTokensSaved;
+    lines.push(`  ${ansi.dimGray}${'─'.repeat(20)}${ansi.reset}`);
+    lines.push(`  ${ansi.yellow}Σ${ansi.reset} ${ansi.bold}${formatTokens(grandTotal).padStart(8)}${ansi.reset} ${ansi.dimGray}total processed${ansi.reset}`);
+    lines.push("");
   }
 
-  // Cost summary
+  // Cache efficiency (prominent)
+  if (options.stats.cacheTokensSaved > 0 && options.stats.totalInputTokens > 0) {
+    const totalInput = options.stats.totalInputTokens + options.stats.cacheTokensSaved;
+    const efficiency = (options.stats.cacheTokensSaved / totalInput) * 100;
+    lines.push(`${ansi.bold}Cache Efficiency${ansi.reset} ${ansi.magenta}${ansi.bold}${efficiency.toFixed(1)}%${ansi.reset} ${ansi.dimGray}(${formatTokens(options.stats.cacheTokensSaved)} tokens saved)${ansi.reset}`);
+    lines.push("");
+  }
+
+  // Cost breakdown
   if (options.stats.totalCost && options.stats.totalCost.total > 0) {
-    const costStr = options.stats.cacheSavings > 0
-      ? `${formatCost(options.stats.totalCost.total)} (saved ${formatCost(options.stats.cacheSavings)} from cache)`
-      : formatCost(options.stats.totalCost.total);
-    lines.push(`${ansi.green}💰 ${costStr}${ansi.reset}`);
-  }
+    lines.push(`${ansi.bold}Cost${ansi.reset}`);
+    if (options.stats.totalCost.input > 0) {
+      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.input).padStart(10)} ${ansi.dimGray}input tokens${ansi.reset}`);
+    }
+    if (options.stats.totalCost.output > 0) {
+      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.output).padStart(10)} ${ansi.dimGray}output tokens${ansi.reset}`);
+    }
+    if (options.stats.totalCost.cacheWrite > 0) {
+      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.cacheWrite).padStart(10)} ${ansi.dimGray}cache write${ansi.reset}`);
+    }
+    if (options.stats.totalCost.cacheRead > 0) {
+      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.cacheRead).padStart(10)} ${ansi.dimGray}cache read${ansi.reset}`);
+    }
+    lines.push(`  ${ansi.dimGray}${'─'.repeat(20)}${ansi.reset}`);
+    lines.push(`  ${ansi.green}💰${ansi.reset} ${ansi.bold}${formatCost(options.stats.totalCost.total).padStart(10)}${ansi.reset} ${ansi.dimGray}total cost${ansi.reset}`);
 
-  // Cache savings
-  if (options.stats.cacheTokensSaved > 0) {
-    lines.push(`${ansi.dimGray}${formatTokens(options.stats.cacheTokensSaved)} tokens saved by cache${ansi.reset}`);
+    if (options.stats.cacheSavings > 0) {
+      lines.push(`       ${ansi.magenta}-${formatCost(options.stats.cacheSavings)}${ansi.reset} ${ansi.dimGray}saved by cache${ansi.reset}`);
+    }
+    lines.push("");
   }
 
   // Completed tasks
   if (options.completedTasks.length > 0) {
-    lines.push("");
+    lines.push(`${ansi.bold}Completed${ansi.reset}`);
     for (const task of options.completedTasks) {
-      lines.push(`${ansi.dimGray}→${ansi.reset} ${ansi.green}✓${ansi.reset} ${truncateTask(task, 50)}`);
+      lines.push(`  ${ansi.green}✓${ansi.reset} ${truncateTask(task, 60)}`);
     }
+    lines.push("");
   }
 
   // Next steps
   if (options.nextSteps && options.nextSteps.length > 0) {
-    lines.push("");
-    lines.push(`${ansi.bold}Next:${ansi.reset}`);
+    lines.push(`${ansi.bold}Next Steps${ansi.reset}`);
     for (const step of options.nextSteps) {
-      lines.push(`  ${ansi.orange}${step}${ansi.reset}`);
+      lines.push(`  ${ansi.orange}▸${ansi.reset} ${step}`);
     }
+    lines.push("");
   }
 
-  lines.push("");
   return lines.join("\n");
 }
 

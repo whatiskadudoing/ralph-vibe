@@ -98,10 +98,10 @@ export function LoadingPhrase({
   );
 
   useEffect(() => {
-    if (staticPhrase) return;
+    if (staticPhrase) return undefined;
 
     const timer = setInterval(() => {
-      setPhraseIndex((prev) => {
+      setPhraseIndex((prev: number) => {
         let next = Math.floor(Math.random() * phrases.length);
         // Avoid repeating the same phrase
         while (next === prev && phrases.length > 1) {
@@ -369,10 +369,10 @@ export function SkeletonLoader({
   const chars = ["░", "▒", "░"];
 
   useEffect(() => {
-    if (!animate) return;
+    if (!animate) return undefined;
 
     const timer = setInterval(() => {
-      setPhase((prev) => (prev + 1) % chars.length);
+      setPhase((prev: number) => (prev + 1) % chars.length);
     }, 300);
     return () => clearInterval(timer);
   }, [animate, chars.length]);
@@ -384,10 +384,10 @@ export function SkeletonLoader({
   return (
     <Box flexDirection="column" gap={gap}>
       {Array.from({ length: lines }).map((_, i) => {
-        const lineWidth = widths[i] || widths[0];
+        const lineWidth = widths[i] || widths[0]!;
         return (
           <Text key={i} dimColor>
-            {chars[phase].repeat(lineWidth)}
+            {chars[phase]!.repeat(lineWidth)}
           </Text>
         );
       })}
@@ -556,13 +556,14 @@ export function BatchOperations({
         </Box>
       )}
       {operations.map((op) => (
-        <OperationStatus
-          key={op.id}
-          operation={op.operation}
-          status={op.status}
-          error={op.error}
-          duration={op.duration}
-        />
+        <React.Fragment key={op.id}>
+          <OperationStatus
+            operation={op.operation}
+            status={op.status}
+            error={op.error}
+            duration={op.duration}
+          />
+        </React.Fragment>
       ))}
       {showSummary && (
         <Box marginTop={1}>

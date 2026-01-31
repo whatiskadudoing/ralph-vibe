@@ -5,8 +5,8 @@
  * All components support customizable colors, borders, and spacing.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // ============================================================================
 // COLUMNS - Horizontal split with flexible widths

@@ -182,7 +182,6 @@ const runResearch = async (
 
               if (msg.toolUse) {
                 operationCount++;
-                const toolDisplay = formatToolUse(msg.toolUse);
 
                 // Create EnhancedToolCall
                 const enhancedTool: EnhancedToolCall = {
@@ -190,7 +189,7 @@ const runResearch = async (
                   name: msg.toolUse.name,
                   status: 'running',
                   startTime: Date.now(),
-                  result: toolDisplay,
+                  input: msg.toolUse.input ?? {},
                 };
 
                 onToolUse(enhancedTool);

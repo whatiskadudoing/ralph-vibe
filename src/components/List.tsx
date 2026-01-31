@@ -4,6 +4,7 @@
  * List component with multiple styles using deno-ink.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 import { StatusIndicator, type StatusType } from "./StatusIndicator.tsx";
 
@@ -80,16 +81,17 @@ function ListItemRow({
           <StatusIndicator type={item.status} text={item.text} />
         </Box>
         {item.subItems?.map((subItem, i) => (
-          <ListItemRow
-            key={i}
-            item={normalizeItem(subItem)}
-            index={i}
-            style={style}
-            bullet={bullet}
-            bulletColor={bulletColor}
-            itemColor={itemColor}
-            depth={depth + 1}
-          />
+          <React.Fragment key={i}>
+            <ListItemRow
+              item={normalizeItem(subItem)}
+              index={i}
+              style={style}
+              bullet={bullet}
+              bulletColor={bulletColor}
+              itemColor={itemColor}
+              depth={depth + 1}
+            />
+          </React.Fragment>
         ))}
       </Box>
     );
@@ -129,16 +131,17 @@ function ListItemRow({
         <Text color={textColor}>{item.text}</Text>
       </Box>
       {item.subItems?.map((subItem, i) => (
-        <ListItemRow
-          key={i}
-          item={normalizeItem(subItem)}
-          index={i}
-          style={style}
-          bullet={bullet}
-          bulletColor={bulletColor}
-          itemColor={itemColor}
-          depth={depth + 1}
-        />
+        <React.Fragment key={i}>
+          <ListItemRow
+            item={normalizeItem(subItem)}
+            index={i}
+            style={style}
+            bullet={bullet}
+            bulletColor={bulletColor}
+            itemColor={itemColor}
+            depth={depth + 1}
+          />
+        </React.Fragment>
       ))}
     </Box>
   );

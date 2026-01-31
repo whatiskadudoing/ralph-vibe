@@ -268,7 +268,7 @@ export function renderNode(
     // Write each line
     const lines = styledText.split("\n");
     for (let i = 0; i < lines.length; i++) {
-      context.output.write(innerX, innerY + i, lines[i]);
+      context.output.write(innerX, innerY + i, lines[i]!);
     }
 
     return;

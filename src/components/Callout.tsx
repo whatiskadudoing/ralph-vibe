@@ -4,8 +4,8 @@
  * Callout and highlight components using deno-ink.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 export type CalloutType = "note" | "tip" | "important" | "warning" | "caution";
 
@@ -154,15 +154,16 @@ export function Steps({ steps, currentStep = 0 }: StepsProps): React.ReactElemen
   return (
     <Box flexDirection="column" gap={1}>
       {steps.map((step, index) => (
-        <Step
-          key={index}
-          number={index + 1}
-          title={step.title}
-          completed={step.completed ?? index < currentStep}
-          active={index === currentStep}
-        >
-          {step.description && <Text dimColor>{step.description}</Text>}
-        </Step>
+        <React.Fragment key={index}>
+          <Step
+            number={index + 1}
+            title={step.title}
+            completed={step.completed ?? index < currentStep}
+            active={index === currentStep}
+          >
+            {step.description && <Text dimColor>{step.description}</Text>}
+          </Step>
+        </React.Fragment>
       ))}
     </Box>
   );

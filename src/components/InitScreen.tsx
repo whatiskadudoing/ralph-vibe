@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Text, render, useApp, useFinalOutput, Spinner } from "../../packages/deno-ink/src/mod.ts";
+import { Box, Text, render, useApp, useFinalOutput, Spinner, useInput } from "../../packages/deno-ink/src/mod.ts";
 import type { ProjectFile } from "@/services/project_service.ts";
 import {
   CommandBox,
@@ -61,7 +61,6 @@ function FileSelector({
   onCancel,
 }: FileSelectorProps): React.ReactElement {
   const [focusedIndex, setFocusedIndex] = useState(0);
-  const { useInput } = require("../../packages/deno-ink/src/mod.ts");
 
   useInput((input: string, key: { escape?: boolean; upArrow?: boolean; downArrow?: boolean; return?: boolean }) => {
     if (key.escape) {
@@ -274,6 +273,7 @@ function InitScreen({
       }, 100);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [phase, createdFiles, onComplete, exit, setFinalOutput, vibeMode]);
 
   const existingFiles = projectFiles.filter((f: ProjectFileInfo) => f.exists);

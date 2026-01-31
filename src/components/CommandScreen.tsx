@@ -150,6 +150,8 @@ export const ansi = {
   dimGray: "\x1b[38;2;102;102;102m",
   cyan: "\x1b[38;2;0;255;255m",
   red: "\x1b[38;2;255;95;95m",
+  magenta: "\x1b[38;2;255;0;255m",
+  yellow: "\x1b[38;2;255;255;0m",
 };
 
 export function buildFinalOutput(options: {

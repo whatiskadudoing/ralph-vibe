@@ -5,8 +5,8 @@
  * Inspired by Charm.sh's dialog patterns and Gemini CLI.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // ============================================================================
 // MODAL - Overlay container with backdrop
@@ -20,7 +20,7 @@ export interface ModalProps {
   /** Title icon */
   titleIcon?: string;
   /** Modal content */
-  children: ReactNode;
+  children?: ReactNode;
   /** Footer content (buttons, etc.) */
   footer?: ReactNode;
   /** Border style */
@@ -418,7 +418,7 @@ export function ActionSheet({
 
 export interface PopoverProps {
   /** Popover content */
-  children: ReactNode;
+  children?: ReactNode;
   /** Border color */
   borderColor?: string;
   /** Padding */

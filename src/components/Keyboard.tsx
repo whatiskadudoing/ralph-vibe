@@ -4,8 +4,8 @@
  * Keyboard shortcut display components using deno-ink.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 export interface KeyProps {
   /** Key label (e.g., "Enter", "Ctrl", "A") */
@@ -44,7 +44,7 @@ export function KeyCombo({ keys, separator = "+" }: KeyComboProps): React.ReactE
       {keys.map((key, index) => (
         <Box key={index}>
           {index > 0 && <Text dimColor>{separator}</Text>}
-          <Key>{key}</Key>
+          <Key children={key} />
         </Box>
       ))}
     </Box>
@@ -85,7 +85,9 @@ export function ShortcutList({ shortcuts }: ShortcutListProps): React.ReactEleme
   return (
     <Box flexDirection="column">
       {shortcuts.map((shortcut, index) => (
-        <Shortcut key={index} keys={shortcut.keys} description={shortcut.description} />
+        <React.Fragment key={index}>
+          <Shortcut keys={shortcut.keys} description={shortcut.description} />
+        </React.Fragment>
       ))}
     </Box>
   );

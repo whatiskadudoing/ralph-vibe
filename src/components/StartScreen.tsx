@@ -128,14 +128,15 @@ function StartScreen({
 
       <Box flexDirection="column">
         {options.map((option, i) => (
-          <Checkbox
-            key={option.key}
-            label={option.label}
-            description={option.description}
-            checked={option.checked}
-            focused={i === focusedIndex}
-            disabled={option.disabled}
-          />
+          <React.Fragment key={option.key}>
+            <Checkbox
+              label={option.label}
+              description={option.description}
+              checked={option.checked}
+              focused={i === focusedIndex}
+              disabled={option.disabled}
+            />
+          </React.Fragment>
         ))}
       </Box>
 

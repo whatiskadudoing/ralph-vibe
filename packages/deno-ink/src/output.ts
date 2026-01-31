@@ -82,7 +82,7 @@ export class Output {
     // Find last non-empty line
     let lastNonEmpty = -1;
     for (let i = this.lines.length - 1; i >= 0; i--) {
-      if (this.lines[i] && stripAnsi(this.lines[i]).trim()) {
+      if (this.lines[i] && stripAnsi(this.lines[i]!).trim()) {
         lastNonEmpty = i;
         break;
       }
@@ -110,7 +110,7 @@ export class Output {
   getHeight(): number {
     let lastNonEmpty = 0;
     for (let i = 0; i < this.lines.length; i++) {
-      if (this.lines[i] && stripAnsi(this.lines[i]).trim()) {
+      if (this.lines[i] && stripAnsi(this.lines[i]!).trim()) {
         lastNonEmpty = i + 1;
       }
     }

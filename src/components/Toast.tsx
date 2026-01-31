@@ -5,8 +5,8 @@
  * Inspired by modern UI patterns and terminal notification systems.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // ============================================================================
 // TOAST - Ephemeral notification message
@@ -119,12 +119,13 @@ export function ToastContainer({
       gap={gap}
     >
       {visibleToasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          type={toast.type}
-          message={toast.message}
-          icon={toast.icon}
-        />
+        <React.Fragment key={toast.id}>
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            icon={toast.icon}
+          />
+        </React.Fragment>
       ))}
       {hiddenCount > 0 && (
         <Text dimColor>  +{hiddenCount} more...</Text>

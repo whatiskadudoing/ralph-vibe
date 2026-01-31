@@ -4,6 +4,7 @@
  * Table component for aligned column display using deno-ink.
  */
 
+import React from "react";
 import { Box, Text, measureText } from "@ink/mod.ts";
 
 export type ColumnAlign = "left" | "right" | "center";

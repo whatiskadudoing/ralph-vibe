@@ -5,8 +5,8 @@
  * Creates a box with a title integrated into the top border.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text, type Styles } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 export type BorderStyle = "single" | "round" | "double" | "bold";
 

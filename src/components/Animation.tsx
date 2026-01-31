@@ -47,13 +47,14 @@ export function Typewriter({
   useEffect(() => {
     if (displayedLength < text.length) {
       const timer = setTimeout(() => {
-        setDisplayedLength((prev) => prev + 1);
+        setDisplayedLength((prev: number) => prev + 1);
       }, delay);
       return () => clearTimeout(timer);
     } else if (!isComplete) {
       setIsComplete(true);
       onComplete?.();
     }
+    return undefined;
   }, [displayedLength, text.length, delay, isComplete, onComplete]);
 
   return (
@@ -93,7 +94,7 @@ export function Pulse({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIsDim((prev) => !prev);
+      setIsDim((prev: boolean) => !prev);
     }, speed);
     return () => clearInterval(timer);
   }, [speed]);
@@ -130,7 +131,7 @@ export function Blink({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setVisible((prev) => !prev);
+      setVisible((prev: boolean) => !prev);
     }, interval);
     return () => clearInterval(timer);
   }, [interval]);
@@ -171,12 +172,13 @@ export function FadeIn({
   useEffect(() => {
     if (phase < maxPhase) {
       const timer = setTimeout(() => {
-        setPhase((prev) => prev + 1);
+        setPhase((prev: number) => prev + 1);
       }, duration);
       return () => clearTimeout(timer);
     } else {
       onComplete?.();
     }
+    return undefined;
   }, [phase, duration, onComplete]);
 
   if (phase === 0) {
@@ -188,7 +190,7 @@ export function FadeIn({
   }
 
   // During fade, show intensity character
-  return <Text dimColor>{FADE_CHARS[phase - 1].repeat(children.length)}</Text>;
+  return <Text dimColor>{FADE_CHARS[phase - 1]!.repeat(children.length)}</Text>;
 }
 
 // ============================================================================
@@ -213,7 +215,7 @@ export function Wave({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setOffset((prev) => (prev + 1) % colors.length);
+      setOffset((prev: number) => (prev + 1) % colors.length);
     }, speed);
     return () => clearInterval(timer);
   }, [speed, colors.length]);
@@ -257,10 +259,10 @@ export function Rainbow({
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
-    if (!animate) return;
+    if (!animate) return undefined;
 
     const timer = setInterval(() => {
-      setOffset((prev) => (prev + 1) % RAINBOW_COLORS.length);
+      setOffset((prev: number) => (prev + 1) % RAINBOW_COLORS.length);
     }, speed);
     return () => clearInterval(timer);
   }, [speed, animate]);
@@ -306,7 +308,7 @@ export function Shimmer({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setShimmerPos((prev) => (prev + 1) % (children.length + 3));
+      setShimmerPos((prev: number) => (prev + 1) % (children.length + 3));
     }, speed);
     return () => clearInterval(timer);
   }, [speed, children.length]);
@@ -354,7 +356,7 @@ export function Bounce({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setIsUp((prev) => !prev);
+      setIsUp((prev: boolean) => !prev);
     }, speed);
     return () => clearInterval(timer);
   }, [speed]);
@@ -452,7 +454,7 @@ export function Marquee({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setOffset((prev) => (prev + 1) % (children.length + gap));
+      setOffset((prev: number) => (prev + 1) % (children.length + gap));
     }, speed);
     return () => clearInterval(timer);
   }, [speed, children.length, gap]);
@@ -546,7 +548,7 @@ export function LoadingDots({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setVisibleDots((prev) => (prev + 1) % (count + 1));
+      setVisibleDots((prev: number) => (prev + 1) % (count + 1));
     }, speed);
     return () => clearInterval(timer);
   }, [speed, count]);
@@ -584,15 +586,15 @@ export function Skeleton({
   const chars = ["░", "▒", "▓", "▒"];
 
   useEffect(() => {
-    if (!animate) return;
+    if (!animate) return undefined;
 
     const timer = setInterval(() => {
-      setPhase((prev) => (prev + 1) % chars.length);
+      setPhase((prev: number) => (prev + 1) % chars.length);
     }, speed);
     return () => clearInterval(timer);
   }, [speed, animate, chars.length]);
 
-  const line = chars[phase].repeat(width);
+  const line = chars[phase]!.repeat(width);
 
   return (
     <Box flexDirection="column">

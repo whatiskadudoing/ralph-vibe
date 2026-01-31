@@ -4,8 +4,8 @@
  * Dashboard layout components using deno-ink.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // Grid layout
 export interface GridProps {

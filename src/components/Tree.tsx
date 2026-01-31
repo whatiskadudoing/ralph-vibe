@@ -4,6 +4,7 @@
  * Tree view component for hierarchical data using deno-ink.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 
 export interface TreeNode {
@@ -78,14 +79,15 @@ function TreeNodeRow({
         <Text color={node.color}>{node.label}</Text>
       </Box>
       {hasChildren && node.expanded !== false && node.children?.map((child, index) => (
-        <TreeNodeRow
-          key={index}
-          node={child}
-          isLast={index === (node.children?.length ?? 0) - 1}
-          prefix={childPrefix}
-          chars={chars}
-          guides={guides}
-        />
+        <React.Fragment key={index}>
+          <TreeNodeRow
+            node={child}
+            isLast={index === (node.children?.length ?? 0) - 1}
+            prefix={childPrefix}
+            chars={chars}
+            guides={guides}
+          />
+        </React.Fragment>
       ))}
     </Box>
   );
@@ -101,14 +103,15 @@ export function Tree({
   return (
     <Box flexDirection="column">
       {nodes.map((node, index) => (
-        <TreeNodeRow
-          key={index}
-          node={node}
-          isLast={index === nodes.length - 1}
-          prefix=""
-          chars={chars}
-          guides={guides}
-        />
+        <React.Fragment key={index}>
+          <TreeNodeRow
+            node={node}
+            isLast={index === nodes.length - 1}
+            prefix=""
+            chars={chars}
+            guides={guides}
+          />
+        </React.Fragment>
       ))}
     </Box>
   );

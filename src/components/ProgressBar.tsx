@@ -4,6 +4,7 @@
  * Progress bar component using deno-ink.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 
 export interface ProgressBarProps {

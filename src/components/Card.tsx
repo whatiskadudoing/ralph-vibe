@@ -4,8 +4,8 @@
  * Card component for grouped content using deno-ink.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 export interface CardProps {
   /** Card title */

@@ -22,7 +22,7 @@ import type { SubscriptionUsage } from "@/services/usage_service.ts";
 // Types
 // ============================================================================
 
-export interface TokenBreakdown {
+export interface TokenBreakdownData {
   input: number;
   output: number;
   cacheRead?: number;
@@ -36,7 +36,7 @@ export interface StatsDelta {
 
 export interface StatsBarProps {
   /** Token breakdown */
-  tokens: TokenBreakdown;
+  tokens: TokenBreakdownData;
 
   /** Cost breakdown (optional, for API users) */
   cost?: CostBreakdown;
@@ -93,7 +93,7 @@ function CompactStats({
   delta,
   showCost = true,
 }: {
-  tokens: TokenBreakdown;
+  tokens: TokenBreakdownData;
   cost?: CostBreakdown;
   cacheEfficiency?: number;
   delta?: StatsDelta;
@@ -150,7 +150,7 @@ function FullStats({
   delta,
   showCost = true,
 }: {
-  tokens: TokenBreakdown;
+  tokens: TokenBreakdownData;
   cost?: CostBreakdown;
   cacheEfficiency?: number;
   delta?: StatsDelta;
@@ -262,7 +262,7 @@ export function TokenStatsBar({
   compact = false,
   delta,
 }: {
-  tokens: TokenBreakdown;
+  tokens: TokenBreakdownData;
   cacheEfficiency?: number;
   usage?: SubscriptionUsage;
   compact?: boolean;
@@ -290,7 +290,7 @@ export function CostStatsBar({
   compact = false,
   delta,
 }: {
-  tokens: TokenBreakdown;
+  tokens: TokenBreakdownData;
   cost: CostBreakdown;
   cacheEfficiency?: number;
   compact?: boolean;

@@ -6,8 +6,8 @@
  * These are display components for showing input states.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 // Input field display (shows current value state)
 export interface InputFieldProps {
@@ -146,13 +146,14 @@ export function RadioGroup({
     <Box flexDirection="column">
       {label && <Text bold>{label}</Text>}
       {options.map((option, index) => (
-        <Radio
-          key={option.value}
-          label={option.label}
-          selected={option.value === value}
-          focused={index === focusedIndex}
-          disabled={option.disabled}
-        />
+        <React.Fragment key={option.value}>
+          <Radio
+            label={option.label}
+            selected={option.value === value}
+            focused={index === focusedIndex}
+            disabled={option.disabled}
+          />
+        </React.Fragment>
       ))}
     </Box>
   );

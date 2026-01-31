@@ -5,7 +5,7 @@
  */
 
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 
 export type AlertType = "info" | "success" | "warning" | "error" | "tip";
 

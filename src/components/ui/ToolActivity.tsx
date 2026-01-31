@@ -215,6 +215,15 @@ export function getActivityDescription(tool: EnhancedToolCall): string {
 
     case "WebFetch": {
       const url = String(input.url ?? "");
+      const prompt = String(input.prompt ?? "");
+
+      // If there's a prompt, show what we're looking for
+      if (prompt && prompt.length > 0) {
+        const shortPrompt = prompt.length > 40 ? prompt.slice(0, 37) + "..." : prompt;
+        return `Fetching: ${shortPrompt}${suffix}`;
+      }
+
+      // Otherwise just show the URL
       try {
         const hostname = new URL(url).hostname;
         return `Fetching ${hostname}${suffix}`;
@@ -225,10 +234,12 @@ export function getActivityDescription(tool: EnhancedToolCall): string {
 
     case "WebSearch": {
       const query = String(input.query ?? "");
-      const shortQuery = query.length > 25
-        ? query.slice(0, 22) + "..."
+      // Show full query without truncation for better context
+      const maxQueryLength = 50;
+      const displayQuery = query.length > maxQueryLength
+        ? query.slice(0, maxQueryLength - 3) + "..."
         : query;
-      return `Searching "${shortQuery}"${suffix}`;
+      return `Searching "${displayQuery}"${suffix}`;
     }
 
     case "NotebookEdit":
@@ -329,67 +340,142 @@ export function getToolColor(name: string): string {
 }
 
 /**
- * Extract and truncate input preview from tool
+ * Format tool input for display - shows the most relevant information for each tool type.
+ * For WebFetch and WebSearch, shows full details without truncation for better user understanding.
  */
-export function getInputPreview(tool: EnhancedToolCall, maxLength = 40): string {
+export function formatToolInput(tool: EnhancedToolCall): { primary: string; secondary?: string } {
   const { name, input } = tool;
 
   switch (name) {
-    case "Read":
-    case "Write":
+    case "Read": {
+      const path = String(input.file_path ?? input.path ?? "");
+      const parts = path.split("/");
+      const shortPath = parts.length > 2 ? parts.slice(-2).join("/") : path;
+      // Show line range if specified
+      const offset = input.offset as number | undefined;
+      const limit = input.limit as number | undefined;
+      if (offset !== undefined || limit !== undefined) {
+        const range = offset !== undefined && limit !== undefined
+          ? `lines ${offset}-${offset + limit}`
+          : offset !== undefined ? `from line ${offset}` : `first ${limit} lines`;
+        return { primary: shortPath, secondary: range };
+      }
+      return { primary: shortPath };
+    }
+
+    case "Write": {
+      const path = String(input.file_path ?? input.path ?? "");
+      const parts = path.split("/");
+      const shortPath = parts.length > 2 ? parts.slice(-2).join("/") : path;
+      const content = String(input.content ?? "");
+      const lines = content.split("\n").length;
+      return { primary: shortPath, secondary: `${lines} lines` };
+    }
+
     case "Edit": {
       const path = String(input.file_path ?? input.path ?? "");
-      // Show just the filename or last 2 path segments
       const parts = path.split("/");
-      if (parts.length > 2) {
-        return parts.slice(-2).join("/");
+      const shortPath = parts.length > 2 ? parts.slice(-2).join("/") : path;
+      // Show what's being changed
+      const oldStr = String(input.old_string ?? "").trim();
+      const newStr = String(input.new_string ?? "").trim();
+      if (oldStr && newStr) {
+        // Truncate and show the change
+        const oldPreview = (oldStr.split("\n")[0] ?? "").slice(0, 30);
+        const newPreview = (newStr.split("\n")[0] ?? "").slice(0, 30);
+        return { primary: shortPath, secondary: `"${oldPreview}..." → "${newPreview}..."` };
       }
-      return path;
+      return { primary: shortPath };
     }
 
     case "Bash": {
       const cmd = String(input.command ?? "");
-      return cmd.length > maxLength ? cmd.slice(0, maxLength - 3) + "..." : cmd;
+      const desc = String(input.description ?? "");
+      if (desc) {
+        return { primary: cmd.slice(0, 50), secondary: desc };
+      }
+      return { primary: cmd };
     }
 
     case "Glob": {
-      return String(input.pattern ?? "");
+      const pattern = String(input.pattern ?? "");
+      const path = String(input.path ?? "");
+      if (path) {
+        return { primary: pattern, secondary: `in ${path}` };
+      }
+      return { primary: pattern };
     }
 
     case "Grep": {
       const pattern = String(input.pattern ?? "");
-      return pattern.length > maxLength ? pattern.slice(0, maxLength - 3) + "..." : pattern;
+      const path = String(input.path ?? "");
+      const glob = String(input.glob ?? "");
+      const secondary = path ? `in ${path}` : glob ? `*.${glob}` : undefined;
+      return { primary: `/${pattern}/`, secondary };
     }
 
     case "Task": {
       const desc = String(input.description ?? input.task ?? "");
-      return `"${desc.length > maxLength - 2 ? desc.slice(0, maxLength - 5) + "..." : desc}"`;
+      const model = String(input.model ?? "");
+      if (model) {
+        return { primary: `"${desc}"`, secondary: `[${model}]` };
+      }
+      return { primary: `"${desc}"` };
+    }
+
+    case "TodoWrite": {
+      const todos = input.todos as Array<{ content?: string; status?: string }> | undefined;
+      if (todos && todos.length > 0) {
+        const pending = todos.filter(t => t.status === "pending").length;
+        const completed = todos.filter(t => t.status === "completed").length;
+        return { primary: `${todos.length} tasks`, secondary: `${completed} done, ${pending} pending` };
+      }
+      return { primary: "updating tasks" };
     }
 
     case "WebFetch": {
       const url = String(input.url ?? "");
-      try {
-        const hostname = new URL(url).hostname;
-        return hostname;
-      } catch {
-        return url.slice(0, maxLength);
-      }
+      const prompt = String(input.prompt ?? "");
+      // Show full URL and prompt on separate lines if needed
+      return {
+        primary: url,
+        secondary: prompt ? `Q: ${prompt}` : undefined
+      };
     }
 
     case "WebSearch": {
       const query = String(input.query ?? "");
-      return `"${query.length > maxLength - 2 ? query.slice(0, maxLength - 5) + "..." : query}"`;
+      // Show full query without truncation
+      return { primary: `"${query}"` };
     }
 
     default:
       // Return first string value found
       for (const value of Object.values(input)) {
         if (typeof value === "string" && value.length > 0) {
-          return value.length > maxLength ? value.slice(0, maxLength - 3) + "..." : value;
+          return { primary: value };
         }
       }
-      return "";
+      return { primary: "" };
   }
+}
+
+/**
+ * Extract and truncate input preview from tool
+ */
+export function getInputPreview(tool: EnhancedToolCall, maxLength = 40): string {
+  const formatted = formatToolInput(tool);
+
+  // For single-line display, combine primary and secondary with truncation
+  if (formatted.secondary) {
+    const combined = `${formatted.primary} - ${formatted.secondary}`;
+    return combined.length > maxLength ? combined.slice(0, maxLength - 3) + "..." : combined;
+  }
+
+  // Just truncate primary if too long
+  return formatted.primary.length > maxLength
+    ? formatted.primary.slice(0, maxLength - 3) + "..."
+    : formatted.primary;
 }
 
 /**
@@ -411,9 +497,9 @@ export function getModelBadge(model?: string): string {
 export function getModelBadgeColor(model?: string): string {
   if (!model) return colors.dim;
 
-  if (model.includes("opus")) return MODEL_COLORS["opus"];
-  if (model.includes("sonnet")) return MODEL_COLORS["sonnet"];
-  if (model.includes("haiku")) return MODEL_COLORS["haiku"];
+  if (model.includes("opus")) return MODEL_COLORS["opus"]!;
+  if (model.includes("sonnet")) return MODEL_COLORS["sonnet"]!;
+  if (model.includes("haiku")) return MODEL_COLORS["haiku"]!;
 
   return colors.dim;
 }
@@ -599,45 +685,16 @@ function formatFileSize(bytes: number): string {
  * Extract detail string from tool input
  */
 function extractDetail(tool: EnhancedToolCall): string {
-  const { name, input } = tool;
+  const { input } = tool;
 
   // Handle legacy format where detail was stored directly
   if (input.detail && typeof input.detail === "string") {
     return input.detail;
   }
 
-  switch (name) {
-    case "Glob":
-      return String(input.pattern ?? input.path ?? "");
-    case "Grep":
-      return String(input.pattern ?? "");
-    case "Read":
-    case "Write":
-    case "Edit": {
-      const path = String(input.file_path ?? input.path ?? "");
-      // Show just the filename
-      const filename = path.split("/").pop() ?? path;
-      return filename;
-    }
-    case "Bash": {
-      const cmd = String(input.command ?? "");
-      // Truncate long commands
-      return cmd.length > 40 ? cmd.slice(0, 37) + "..." : cmd;
-    }
-    case "Task":
-      return String(input.description ?? input.task ?? "").slice(0, 30);
-    case "WebFetch":
-    case "WebSearch":
-      return String(input.url ?? input.query ?? "").slice(0, 40);
-    default:
-      // Fallback to first string value in input
-      for (const value of Object.values(input)) {
-        if (typeof value === "string" && value.length > 0) {
-          return value.slice(0, 40);
-        }
-      }
-      return "";
-  }
+  // Use formatToolInput for consistent formatting
+  const formatted = formatToolInput(tool);
+  return formatted.primary;
 }
 
 /**
@@ -667,35 +724,16 @@ function extractDetailSmart(tool: EnhancedToolCall, maxWidth: number): string {
     return truncate(input.detail, maxWidth);
   }
 
-  switch (name) {
-    case "Glob":
-      return truncate(String(input.pattern ?? input.path ?? ""), maxWidth);
-    case "Grep":
-      return truncate(String(input.pattern ?? ""), maxWidth);
-    case "Read":
-    case "Write":
-    case "Edit": {
-      const path = String(input.file_path ?? input.path ?? "");
-      return formatPathSmart(path, maxWidth);
-    }
-    case "Bash": {
-      const cmd = String(input.command ?? "");
-      return truncate(cmd, maxWidth);
-    }
-    case "Task":
-      return truncate(String(input.description ?? input.task ?? ""), maxWidth);
-    case "WebFetch":
-    case "WebSearch":
-      return truncate(String(input.url ?? input.query ?? ""), maxWidth);
-    default:
-      // Fallback to first string value in input
-      for (const value of Object.values(input)) {
-        if (typeof value === "string" && value.length > 0) {
-          return truncate(value, maxWidth);
-        }
-      }
-      return "";
+  // Use formatToolInput for consistent formatting
+  const formatted = formatToolInput(tool);
+
+  // Special handling for path-based tools
+  if (name === "Read" || name === "Write" || name === "Edit") {
+    return formatPathSmart(formatted.primary, maxWidth);
   }
+
+  // For other tools, just truncate if needed
+  return truncate(formatted.primary, maxWidth);
 }
 
 // ============================================================================
@@ -874,35 +912,47 @@ function ToolRow({
   }
 
   // Traditional display: tool name + detail
-  const detail = extractDetail(tool);
+  const formatted = formatToolInput(tool);
+  const hasSecondaryInfo = formatted.secondary !== undefined;
 
   return (
-    <Box flexDirection="row">
-      <Text color={colors.dim}>  </Text>
+    <Box flexDirection="column">
+      {/* Primary row */}
+      <Box flexDirection="row">
+        <Text color={colors.dim}>  </Text>
 
-      {/* Icon column */}
-      {isRunning ? (
-        <SpinnerIcon color={iconColor} />
-      ) : (
-        <Text color={dimRow ? colors.dim : iconColor}>{icon}</Text>
+        {/* Icon column */}
+        {isRunning ? (
+          <SpinnerIcon color={iconColor} />
+        ) : (
+          <Text color={dimRow ? colors.dim : iconColor}>{icon}</Text>
+        )}
+        <Text> </Text>
+
+        {/* Tool name column */}
+        <Text color={textColor}>{padEnd(tool.name, COL_TOOL_NAME)}</Text>
+
+        {/* Detail column (flexible width) */}
+        <Text color={detailColor}>{padEnd(truncate(formatted.primary, detailWidth), detailWidth)}</Text>
+
+        {/* Timing column */}
+        {showTiming && (
+          <Text color={colors.dim}>
+            {padEnd(durationStr, COL_TIMING)}
+          </Text>
+        )}
+
+        {/* Status indicator */}
+        <Text color={statusInfo.color}> {statusInfo.char}</Text>
+      </Box>
+
+      {/* Secondary row (if present) - for WebFetch prompt, etc */}
+      {hasSecondaryInfo && (
+        <Box flexDirection="row">
+          <Text color={colors.dim}>     </Text>
+          <Text color={colors.dim}>{truncate(formatted.secondary!, detailWidth + COL_TOOL_NAME)}</Text>
+        </Box>
       )}
-      <Text> </Text>
-
-      {/* Tool name column */}
-      <Text color={textColor}>{padEnd(tool.name, COL_TOOL_NAME)}</Text>
-
-      {/* Detail column (flexible width) */}
-      <Text color={detailColor}>{padEnd(truncate(detail, detailWidth), detailWidth)}</Text>
-
-      {/* Timing column */}
-      {showTiming && (
-        <Text color={colors.dim}>
-          {padEnd(durationStr, COL_TIMING)}
-        </Text>
-      )}
-
-      {/* Status indicator */}
-      <Text color={statusInfo.color}> {statusInfo.char}</Text>
     </Box>
   );
 }
@@ -1384,7 +1434,11 @@ function EnhancedToolRow({
 
   // Status indicator or spinner
   if (isRunning) {
-    parts.push(<SpinnerIcon key="status" color={statusInfo.color} />);
+    parts.push(
+      <Box key="status">
+        <SpinnerIcon color={statusInfo.color} />
+      </Box>
+    );
   } else {
     parts.push(
       <Text key="status" color={statusInfo.color}>
@@ -1397,7 +1451,11 @@ function EnhancedToolRow({
   if (tool.startTime) {
     if (isRunning && !tool.endTime) {
       parts.push(<Text key="duration-space"> </Text>);
-      parts.push(<LiveDuration key="duration" startTime={tool.startTime} />);
+      parts.push(
+        <Box key="duration">
+          <LiveDuration startTime={tool.startTime} />
+        </Box>
+      );
     } else {
       const duration = formatDuration(tool.startTime, tool.endTime);
       parts.push(

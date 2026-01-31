@@ -118,57 +118,61 @@ export function StatsDisplay({
   // Duration
   if (durationSec !== undefined) {
     items.push(
-      <StatItem
-        key="duration"
-        icon="⏱"
-        label="total time"
-        value={formatDuration(durationSec)}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="duration">
+        <StatItem
+          icon="⏱"
+          label="total time"
+          value={formatDuration(durationSec)}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 
   // Iterations
   if (iterations !== undefined) {
     items.push(
-      <StatItem
-        key="iterations"
-        icon="🔄"
-        label="iterations"
-        value={iterations}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="iterations">
+        <StatItem
+          icon="🔄"
+          label="iterations"
+          value={iterations}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 
   // Operations
   if (operations !== undefined) {
     items.push(
-      <StatItem
-        key="operations"
-        icon="⚡"
-        label="ops"
-        value={operations}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="operations">
+        <StatItem
+          icon="⚡"
+          label="ops"
+          value={operations}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 
   // Tokens
   if (totalTokens > 0) {
     items.push(
-      <StatItem
-        key="tokens"
-        icon="📊"
-        label={compact ? "tok" : "tokens"}
-        value={formatTokens(totalTokens)}
-        valueColor={colors.tokenTotal}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="tokens">
+        <StatItem
+          icon="📊"
+          label={compact ? "tok" : "tokens"}
+          value={formatTokens(totalTokens)}
+          valueColor={colors.tokenTotal}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 
@@ -188,30 +192,32 @@ export function StatsDisplay({
   // Cache tokens
   if (cacheReadTokens !== undefined && cacheReadTokens > 0) {
     items.push(
-      <StatItem
-        key="cache"
-        icon="💾"
-        label="cached"
-        value={formatTokens(cacheReadTokens)}
-        valueColor={colors.tokenCache}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="cache">
+        <StatItem
+          icon="💾"
+          label="cached"
+          value={formatTokens(cacheReadTokens)}
+          valueColor={colors.tokenCache}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 
   // Model
   if (model) {
     items.push(
-      <StatItem
-        key="model"
-        icon="🤖"
-        label=""
-        value={formatModelName(model)}
-        valueColor={colors.accent}
-        showIcon={showIcons}
-        compact={compact}
-      />
+      <Box key="model">
+        <StatItem
+          icon="🤖"
+          label=""
+          value={formatModelName(model)}
+          valueColor={colors.accent}
+          showIcon={showIcons}
+          compact={compact}
+        />
+      </Box>
     );
   }
 

@@ -63,7 +63,7 @@ function CommandRow({ name, description, flags }: CommandRowProps) {
 
 interface SectionProps {
   title: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 function Section({ title, children }: SectionProps) {

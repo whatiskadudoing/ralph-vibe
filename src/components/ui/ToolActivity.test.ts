@@ -11,12 +11,13 @@ import {
   getInputPreview,
   getModelBadge,
   getModelBadgeColor,
+  formatToolInput,
   type EnhancedToolCall,
 } from "./ToolActivity.tsx";
 import { colors } from "./theme.ts";
 
 Deno.test("getToolIcon - returns correct icons", () => {
-  assertEquals(getToolIcon("Read"), "◦");
+  assertEquals(getToolIcon("Read"), "○");
   assertEquals(getToolIcon("Write"), "+");
   assertEquals(getToolIcon("Edit"), "~");
   assertEquals(getToolIcon("Bash"), "$");
@@ -106,7 +107,7 @@ Deno.test("getInputPreview - Glob tool shows pattern", () => {
   assertEquals(preview, "**/*.ts");
 });
 
-Deno.test("getInputPreview - WebFetch tool shows hostname", () => {
+Deno.test("getInputPreview - WebFetch tool shows full URL", () => {
   const tool: EnhancedToolCall = {
     id: "1",
     name: "WebFetch",
@@ -117,7 +118,7 @@ Deno.test("getInputPreview - WebFetch tool shows hostname", () => {
   };
 
   const preview = getInputPreview(tool);
-  assertEquals(preview, "api.github.com");
+  assertEquals(preview, "https://api.github.com/repos/user/repo");
 });
 
 Deno.test("getModelBadge - returns correct badges", () => {
@@ -160,4 +161,99 @@ Deno.test("getInputPreview - handles empty input gracefully", () => {
 
   const preview = getInputPreview(tool);
   assertEquals(preview, "");
+});
+
+// ============================================================================
+// Tests for formatToolInput - new centralized formatting function
+// ============================================================================
+
+Deno.test("formatToolInput - WebFetch returns URL and prompt separately", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebFetch",
+    status: "running",
+    input: {
+      url: "https://docs.example.com/api/reference",
+      prompt: "What are the authentication methods?",
+    },
+  };
+
+  const formatted = formatToolInput(tool);
+  assertEquals(formatted.primary, "https://docs.example.com/api/reference");
+  assertEquals(formatted.secondary, "Q: What are the authentication methods?");
+});
+
+Deno.test("formatToolInput - WebFetch without prompt has no secondary", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebFetch",
+    status: "running",
+    input: {
+      url: "https://example.com",
+    },
+  };
+
+  const formatted = formatToolInput(tool);
+  assertEquals(formatted.primary, "https://example.com");
+  assertEquals(formatted.secondary, undefined);
+});
+
+Deno.test("formatToolInput - WebSearch shows full query", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebSearch",
+    status: "running",
+    input: {
+      query: "How to implement OAuth2 authentication in Node.js applications",
+    },
+  };
+
+  const formatted = formatToolInput(tool);
+  assertEquals(formatted.primary, '"How to implement OAuth2 authentication in Node.js applications"');
+  assertEquals(formatted.secondary, undefined);
+});
+
+Deno.test("getInputPreview - WebFetch with prompt combines both", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebFetch",
+    status: "running",
+    input: {
+      url: "https://api.github.com",
+      prompt: "Get repository info",
+    },
+  };
+
+  const preview = getInputPreview(tool, 100);
+  assertEquals(preview, "https://api.github.com - Q: Get repository info");
+});
+
+Deno.test("getInputPreview - WebFetch with long prompt truncates", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebFetch",
+    status: "running",
+    input: {
+      url: "https://example.com/very/long/path/to/some/resource",
+      prompt: "Extract all the detailed information about authentication methods and security policies",
+    },
+  };
+
+  const preview = getInputPreview(tool, 50);
+  assertEquals(preview.length, 50);
+  assertEquals(preview.endsWith("..."), true);
+});
+
+Deno.test("getInputPreview - WebSearch shows full query without truncation by default", () => {
+  const tool: EnhancedToolCall = {
+    id: "1",
+    name: "WebSearch",
+    status: "running",
+    input: {
+      query: "React hooks tutorial",
+    },
+  };
+
+  const preview = getInputPreview(tool);
+  assertEquals(preview, '"React hooks tutorial"');
 });

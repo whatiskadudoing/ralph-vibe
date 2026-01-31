@@ -4,8 +4,8 @@
  * Header and Footer components for app layout using deno-ink.
  */
 
+import React, { type ReactNode } from "react";
 import { Box, Text } from "@ink/mod.ts";
-import type { ReactNode } from "react";
 
 export interface HeaderProps {
   /** Main title */

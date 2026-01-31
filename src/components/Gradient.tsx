@@ -4,6 +4,7 @@
  * Gradient text effects using deno-ink.
  */
 
+import React from "react";
 import { Box, Text } from "@ink/mod.ts";
 
 // Pre-defined gradient color stops
@@ -100,23 +101,23 @@ export function GradientText({
 
 // Convenience components for preset gradients
 export function BrandGradient({ children, bold }: { children: string; bold?: boolean }): React.ReactElement {
-  return <GradientText preset="brand" bold={bold}>{children}</GradientText>;
+  return <GradientText preset="brand" bold={bold} children={children} />;
 }
 
 export function RainbowText({ children, bold }: { children: string; bold?: boolean }): React.ReactElement {
-  return <GradientText preset="rainbow" bold={bold}>{children}</GradientText>;
+  return <GradientText preset="rainbow" bold={bold} children={children} />;
 }
 
 export function FireText({ children, bold }: { children: string; bold?: boolean }): React.ReactElement {
-  return <GradientText preset="fire" bold={bold}>{children}</GradientText>;
+  return <GradientText preset="fire" bold={bold} children={children} />;
 }
 
 export function OceanText({ children, bold }: { children: string; bold?: boolean }): React.ReactElement {
-  return <GradientText preset="ocean" bold={bold}>{children}</GradientText>;
+  return <GradientText preset="ocean" bold={bold} children={children} />;
 }
 
 export function NeonText({ children, bold }: { children: string; bold?: boolean }): React.ReactElement {
-  return <GradientText preset="neon" bold={bold}>{children}</GradientText>;
+  return <GradientText preset="neon" bold={bold} children={children} />;
 }
 
 // Animated gradient (cycles through colors)
