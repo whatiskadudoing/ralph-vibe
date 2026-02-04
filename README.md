@@ -35,13 +35,13 @@ You spend hours setting up before you write a single line of actual code.
 
 Ralph Vibe handles all of that for you:
 
-| Original Ralph Loop | Ralph Vibe |
-|---------------------|------------|
-| Write shell scripts | Just run `ralph work` |
+| Original Ralph Loop          | Ralph Vibe                    |
+| ---------------------------- | ----------------------------- |
+| Write shell scripts          | Just run `ralph work`         |
 | Create prompt files manually | Auto-generated from interview |
-| Understand the architecture | Just answer questions |
-| Debug your setup | It just works |
-| Hours of configuration | One command |
+| Understand the architecture  | Just answer questions         |
+| Debug your setup             | It just works                 |
+| Hours of configuration       | One command                   |
 
 **The Ralph technique without learning the Ralph technique.** All the power, none of the setup. Just vibe.
 
@@ -157,6 +157,7 @@ ralph research --vibe   # Research → Plan → Build
 ```
 
 Creates a `research/` folder with:
+
 - `inspiration.md` - Similar products and reference implementations
 - `apis/` - API documentation and comparisons
 - `approaches/` - Technical approaches for complex features
@@ -198,6 +199,7 @@ ralph work --vibe  # Loops through multiple SLC releases automatically
 ```
 
 The loop stops when:
+
 - All specs are fully implemented (`SLC_COMPLETE: true`)
 - Max SLC iterations reached (default: 5, configurable in `.ralph.json`)
 - You press Ctrl+C
@@ -258,10 +260,10 @@ You can edit any of these. Ralph Vibe creates them; you own them.
 `specs/README.md` is a lookup table that helps Claude find relevant specs faster:
 
 ```markdown
-| Spec | Description | Key Topics |
-|------|-------------|------------|
-| auth.md | User authentication | login, sessions, tokens |
-| api.md | REST API endpoints | routes, handlers, validation |
+| Spec    | Description         | Key Topics                   |
+| ------- | ------------------- | ---------------------------- |
+| auth.md | User authentication | login, sessions, tokens      |
+| api.md  | REST API endpoints  | routes, handlers, validation |
 ```
 
 ### Task Linkage
@@ -274,6 +276,275 @@ Tasks in `IMPLEMENTATION_PLAN.md` include linkage to specs and files:
 ```
 
 This helps Claude find relevant context instantly.
+
+### Rich Output and Metrics
+
+During `ralph work`, you'll see real-time metrics and progress:
+
+```
+[work] Starting iteration 3 of 10
+[work] Task: Add user authentication endpoint
+
+  Input:  12.5K tokens
+  Output: 3.2K tokens
+  Cache:  8.1K read / 2.3K write (39.2% efficiency)
+  Cost:   $0.0847
+  Time:   45.3s
+  Tools:  Read: 12, Edit: 8, Bash: 5
+
+[work] Task completed successfully
+```
+
+With `--vibe`, you'll also see SLC (Simple, Lovable, Complete) progress:
+
+```
+[vibe] SLC Cycle 2 of 5
+[vibe] Phase: work -> research -> plan -> work
+
+  Session Summary:
+  ----------------
+  8 iterations · 47 ops · 12m 34s
+  156.2K tokens (98.4K in / 57.8K out)
+  Models: opus: 6, sonnet: 2
+  Cache: 45.2K read · ~40.7K saved (31.5% efficiency)
+  Cost: $1.2340
+  Tool calls: 142 (Read: 45, Edit: 32, Bash: 28, Glob: 22, Grep: 15)
+```
+
+At the end of a session, you get a complete summary:
+
+```
+[session] Work complete!
+
+  Final Summary:
+  --------------
+  12 iterations · 89 ops · 23m 15s
+  287.5K tokens (182.1K in / 105.4K out)
+  Models: opus: 10, sonnet: 2
+  Cache: 72.8K read · ~65.5K saved (28.6% efficiency)
+  Cost: $2.4560
+  Success: 11/12 (91.7%)
+```
+
+---
+
+## Technical Architecture
+
+For contributors and curious developers, Ralph Vibe is built on functional programming principles that make it reliable and maintainable.
+
+### Code Organization
+
+The codebase follows a clear module structure:
+
+```
+src/
+├── cli/           # Command handlers (init, work, plan, etc.)
+├── core/          # Core domain logic (config, templates, plans)
+├── services/      # I/O operations (file, git, claude, metrics)
+└── utils/         # Pure utilities (formatting, paths, commands, fp)
+```
+
+**Key principles:**
+
+- **Pure vs Impure separation** - Pure logic lives in `utils/` and `core/`, I/O operations live in `services/`
+- **Single responsibility** - Each module has one clear purpose
+- **Shared utilities** - Common patterns extracted to avoid duplication
+
+### Shared Utilities
+
+Ralph uses centralized utilities to eliminate code duplication:
+
+**Formatting** (`src/utils/formatting.ts`) - Human-readable value display:
+
+```typescript
+formatDuration(65000); // "1m 5s"
+formatTokenCount(15000); // "15.0K"
+formatBytes(2359296); // "2.3MB"
+formatPercentage(0.42); // "42.0%"
+```
+
+**Paths** (`src/utils/paths.ts`) - Consistent path resolution:
+
+```typescript
+// Resolve paths relative to project root
+resolveProjectPath(projectDir, 'specs'); // "/project/specs"
+
+// Curried resolver for multiple paths
+const resolve = createPathResolver('/project');
+resolve('AGENTS.md'); // "/project/AGENTS.md"
+resolve('.ralph.json'); // "/project/.ralph.json"
+```
+
+**Commands** (`src/utils/command.ts`) - Type-safe command execution:
+
+```typescript
+// Execute and capture output
+const result = await executeCommand('git', ['status']);
+if (result.ok) console.log(result.value.stdout);
+
+// Check if command exists
+const hasGit = await commandExists('git');
+
+// Stream output in real-time
+for await (const event of executeCommandStream('npm', ['install'])) {
+  if (event.type === 'stdout') console.log(event.data);
+}
+```
+
+**Constants** (`src/utils/constants.ts`) - Centralized magic strings:
+
+```typescript
+EXIT_SIGNAL_MARKER; // "EXIT_SIGNAL: true"
+RALPH_STATUS_MARKER; // "RALPH_STATUS:"
+DEFAULT_MODEL; // "opus"
+```
+
+### Pure vs Impure Functions
+
+Functions are clearly marked with JSDoc annotations:
+
+```typescript
+/**
+ * Formats duration to human-readable string.
+ * @pure No side effects
+ */
+export function formatDuration(ms: number): string {
+  // Pure computation - same input always produces same output
+}
+
+/**
+ * Saves session state to disk.
+ * @impure Writes to filesystem
+ */
+export async function persistSession(state: SessionState): Promise<void> {
+  // I/O operation - has side effects
+}
+```
+
+**Pure functions** (no side effects):
+
+- Live in `utils/` and `core/`
+- Easy to test - no mocking needed
+- Compose predictably
+
+**Impure functions** (I/O, side effects):
+
+- Live in `services/`
+- Clearly marked with `@impure`
+- Isolated from pure logic
+
+### Functional Patterns
+
+Ralph uses type-safe functional patterns inspired by fp-ts:
+
+**TaskEither** - Async operations that may fail:
+
+```typescript
+const fetchData = tryCatchTE(
+  () => fetch('/api/data').then((r) => r.json()),
+  (e) => `Fetch failed: ${e}`,
+);
+
+const result = await pipe(
+  fetchData,
+  flatMapTE((data) => processData(data)),
+  mapTE((processed) => formatOutput(processed)),
+)();
+```
+
+**Either** - Synchronous error handling:
+
+```typescript
+const divide = (a: number, b: number): Either<string, number> =>
+  b === 0 ? left('Division by zero') : right(a / b);
+
+const result = pipe(
+  right(10),
+  flatMapEither((x) => divide(x, 2)),
+  mapEither((x) => x + 1),
+);
+```
+
+**Option** - Safe nullable handling:
+
+```typescript
+const user = pipe(
+  fromNullable(maybeUser),
+  mapOption((u) => u.name),
+  getOrElseOption(() => 'Anonymous'),
+);
+```
+
+**pipe/flow** - Function composition:
+
+```typescript
+const process = flow(validateInput, transformData, formatOutput);
+const output = pipe(rawInput, validateInput, transformData, formatOutput);
+```
+
+### Immutable State Pattern
+
+Session tracking uses pure functions that always return new state:
+
+```typescript
+// State is never mutated - each function returns a new state
+let state = createSession({ forking: true, specsCount: 5 });
+
+// Record an iteration - returns NEW state
+state = recordIteration(state, {
+  iteration: 1,
+  task: 'Add authentication',
+  model: 'opus',
+  inputTokens: 15000,
+  outputTokens: 5000,
+  durationSec: 45,
+  operations: 12,
+  success: true,
+});
+
+// Get statistics - pure calculation, no side effects
+const stats = getStats(state);
+```
+
+### Testing Approach
+
+The pure/impure separation makes testing straightforward:
+
+**Pure functions** - Direct testing, no mocks:
+
+```typescript
+Deno.test('formatDuration handles minutes', () => {
+  assertEquals(formatDuration(65000), '1m 5s');
+});
+
+Deno.test('resolveProjectPath joins paths', () => {
+  assertEquals(resolveProjectPath('/project', 'specs'), '/project/specs');
+});
+```
+
+**Impure functions** - Isolated I/O, minimal mocking:
+
+```typescript
+// Services wrap I/O operations
+// Test the pure logic separately, mock only the I/O boundary
+```
+
+**Benefits:**
+
+- Most code is testable without mocks
+- Pure functions have predictable inputs/outputs
+- I/O boundaries are small and isolated
+
+### Why This Matters
+
+These patterns provide:
+
+- **Predictable errors** - No uncaught exceptions. Errors are values you handle explicitly.
+- **Easy testing** - Pure functions are trivial to test. No mocking needed.
+- **Composability** - Small functions combine into complex workflows.
+- **Type safety** - TypeScript catches errors at compile time.
+- **Maintainability** - Immutable state means no "spooky action at a distance."
+- **DRY code** - Shared utilities eliminate duplication across the codebase.
 
 ---
 

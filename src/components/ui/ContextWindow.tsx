@@ -10,10 +10,10 @@
  * - Claude Haiku 3.5: 200K tokens
  */
 
-import React from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
-import { formatTokens } from "./TokenStats.tsx";
+import React from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
+import { formatTokens } from './TokenStats.tsx';
 
 // ============================================================================
 // Constants
@@ -21,33 +21,38 @@ import { formatTokens } from "./TokenStats.tsx";
 
 /** Context window sizes by model */
 export const CONTEXT_WINDOWS: Record<string, number> = {
-  "opus": 200_000,
-  "sonnet": 200_000,
-  "haiku": 200_000,
-  "claude-opus-4": 200_000,
-  "claude-sonnet-4": 200_000,
-  "claude-3-5-haiku": 200_000,
+  'opus': 200_000,
+  'sonnet': 200_000,
+  'haiku': 200_000,
+  'claude-opus-4': 200_000,
+  'claude-sonnet-4': 200_000,
+  'claude-3-5-haiku': 200_000,
   // Default fallback
-  "default": 200_000,
+  'default': 200_000,
 };
 
 /**
  * Gets the context window size for a model.
  */
+const DEFAULT_CONTEXT_WINDOW = 200_000;
+
 export function getContextWindowSize(model: string): number {
   const normalizedModel = model.toLowerCase();
 
   // Check for exact match
-  if (CONTEXT_WINDOWS[normalizedModel]) {
-    return CONTEXT_WINDOWS[normalizedModel]!;
+  const exactMatch = CONTEXT_WINDOWS[normalizedModel];
+  if (exactMatch) {
+    return exactMatch;
   }
 
   // Check for partial match
-  if (normalizedModel.includes("opus")) return CONTEXT_WINDOWS["opus"]!;
-  if (normalizedModel.includes("sonnet")) return CONTEXT_WINDOWS["sonnet"]!;
-  if (normalizedModel.includes("haiku")) return CONTEXT_WINDOWS["haiku"]!;
+  if (normalizedModel.includes('opus')) return CONTEXT_WINDOWS['opus'] ?? DEFAULT_CONTEXT_WINDOW;
+  if (normalizedModel.includes('sonnet')) {
+    return CONTEXT_WINDOWS['sonnet'] ?? DEFAULT_CONTEXT_WINDOW;
+  }
+  if (normalizedModel.includes('haiku')) return CONTEXT_WINDOWS['haiku'] ?? DEFAULT_CONTEXT_WINDOW;
 
-  return CONTEXT_WINDOWS["default"]!;
+  return DEFAULT_CONTEXT_WINDOW;
 }
 
 // ============================================================================
@@ -81,7 +86,7 @@ export interface ContextWindowProps {
  */
 export function ContextWindow({
   tokensUsed,
-  model = "opus",
+  model = 'opus',
   maxTokens,
   warningThreshold = 0.5,
   dangerThreshold = 0.8,
@@ -103,13 +108,13 @@ export function ContextWindow({
   // Build progress bar
   const filledWidth = Math.min(Math.round(percentage * barWidth), barWidth);
   const emptyWidth = barWidth - filledWidth;
-  const filledBar = "█".repeat(filledWidth);
-  const emptyBar = "░".repeat(emptyWidth);
+  const filledBar = '█'.repeat(filledWidth);
+  const emptyBar = '░'.repeat(emptyWidth);
 
   // Compact mode - single line
   if (compact) {
     return (
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>ctx:</Text>
         <Text color={barColor}>{filledBar}</Text>
         <Text color={colors.dim}>{emptyBar}</Text>
@@ -120,15 +125,15 @@ export function ContextWindow({
 
   // Full mode - with label and tokens
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column'>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>Context:</Text>
         <Text color={barColor}>{formatTokens(tokensUsed)}</Text>
         <Text color={colors.dim}>/</Text>
         <Text color={colors.dim}>{formatTokens(max)}</Text>
         <Text color={barColor}>({percentDisplay}%)</Text>
       </Box>
-      <Box flexDirection="row">
+      <Box flexDirection='row'>
         <Text color={barColor}>{filledBar}</Text>
         <Text color={colors.dim}>{emptyBar}</Text>
       </Box>
@@ -147,7 +152,7 @@ export function ContextWindow({
  */
 export function ContextBadge({
   tokensUsed,
-  model = "opus",
+  model = 'opus',
   maxTokens,
   warningThreshold = 0.5,
   dangerThreshold = 0.8,
@@ -170,7 +175,7 @@ export function ContextBadge({
   }
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={colors.dim}>ctx:</Text>
       <Text color={color}>{percentDisplay}%</Text>
     </Box>
@@ -183,7 +188,7 @@ export function ContextBadge({
  */
 export function ContextStatus({
   tokensUsed,
-  model = "opus",
+  model = 'opus',
   maxTokens,
   showWarning = true,
 }: {
@@ -203,17 +208,15 @@ export function ContextStatus({
   const percentDisplay = Math.round(percentage * 100);
   const isDanger = percentage >= 0.8;
   const color = isDanger ? colors.contextDanger : colors.contextWarn;
-  const icon = isDanger ? "⚠" : "◐";
+  const icon = isDanger ? '⚠' : '◐';
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={color}>{icon}</Text>
       <Text color={color}>
         Context {percentDisplay}% used
       </Text>
-      {showWarning && isDanger && (
-        <Text color={colors.dim}>- consider starting fresh</Text>
-      )}
+      {showWarning && isDanger && <Text color={colors.dim}>- consider starting fresh</Text>}
     </Box>
   );
 }

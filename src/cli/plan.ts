@@ -11,11 +11,7 @@ import { Command } from '@cliffy/command';
 import { error, muted } from '@/ui/colors.ts';
 import { CROSS } from '@/ui/symbols.ts';
 import { readConfig } from '@/services/project_service.ts';
-import {
-  isClaudeInstalled,
-  parseAssistantMessage,
-  runClaude,
-} from '@/services/claude_service.ts';
+import { isClaudeInstalled, parseAssistantMessage, runClaude } from '@/services/claude_service.ts';
 import { exists, readTextFile } from '@/services/file_service.ts';
 import { resolvePaths } from '@/services/path_resolver.ts';
 import { getSubscriptionUsage } from '@/services/usage_service.ts';
@@ -28,7 +24,7 @@ import {
   showVibeActivated,
 } from './vibe.ts';
 import { renderPlan } from '@/components/PlanScreen.tsx';
-import type { EnhancedToolCall } from '@/components/ui/ToolActivity.tsx';
+// EnhancedToolCall type is now used internally by components
 
 // ============================================================================
 // Helpers
@@ -57,8 +53,8 @@ async function hasSpecs(paths: { specs: string }): Promise<boolean> {
  * Checks if implementation plan already exists.
  * Uses paths from config.
  */
-async function hasPlan(paths: { plan: string }): Promise<boolean> {
-  return await exists(paths.plan);
+function _hasPlan(paths: { plan: string }): Promise<boolean> {
+  return exists(paths.plan);
 }
 
 // ============================================================================
@@ -192,9 +188,16 @@ async function planAction(options: PlanOptions): Promise<void> {
               if (msg.text) {
                 // Get first paragraph or substantial text for status (allow multi-line display)
                 const firstParagraph = msg.text.split('\n\n')[0]?.trim().replace(/\n/g, ' ');
-                if (firstParagraph && firstParagraph.length > 0 && !firstParagraph.startsWith('#') && !firstParagraph.startsWith('`')) {
+                if (
+                  firstParagraph && firstParagraph.length > 0 && !firstParagraph.startsWith('#') &&
+                  !firstParagraph.startsWith('`')
+                ) {
                   // Allow up to 300 chars for multi-line status display
-                  onStatusUpdate(firstParagraph.length > 300 ? firstParagraph.slice(0, 297) + '...' : firstParagraph);
+                  onStatusUpdate(
+                    firstParagraph.length > 300
+                      ? firstParagraph.slice(0, 297) + '...'
+                      : firstParagraph,
+                  );
                 }
               }
 

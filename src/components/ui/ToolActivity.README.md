@@ -7,6 +7,7 @@ Enhanced live tool activity feed showing recent operations with beautiful format
 ### Original ToolActivity Component
 
 The standard `ToolActivity` component provides:
+
 - Multi-column layout with status indicators
 - Timing information and result metadata
 - Grouped operations
@@ -18,6 +19,7 @@ The standard `ToolActivity` component provides:
 ### New: EnhancedToolActivity Component
 
 The new `EnhancedToolActivity` component provides a simpler, more focused display with:
+
 - **Tree-style connectors** (├─ and └─ for last item)
 - **Tool-specific icons** with emoji/unicode symbols
 - **Input previews** (file paths, commands, queries)
@@ -30,36 +32,36 @@ The new `EnhancedToolActivity` component provides a simpler, more focused displa
 ### Basic Example
 
 ```tsx
-import { EnhancedToolActivity, type EnhancedToolCall } from "./ui/mod.ts";
+import { EnhancedToolActivity, type EnhancedToolCall } from './ui/mod.ts';
 
 const tools: EnhancedToolCall[] = [
   {
-    id: "1",
-    name: "Read",
-    status: "success",
+    id: '1',
+    name: 'Read',
+    status: 'success',
     startTime: Date.now() - 5000,
     endTime: Date.now() - 4800,
-    input: { file_path: "/path/to/file.ts" },
+    input: { file_path: '/path/to/file.ts' },
   },
   {
-    id: "2",
-    name: "Bash",
-    status: "running",
+    id: '2',
+    name: 'Bash',
+    status: 'running',
     startTime: Date.now() - 3000,
-    input: { command: "npm test" },
+    input: { command: 'npm test' },
   },
 ];
 
-<EnhancedToolActivity tools={tools} />
+<EnhancedToolActivity tools={tools} />;
 ```
 
 ### Output Example
 
 ```
-  ├─ 📖 Read src/auth/session.ts                    ✓ 0.2s
-  ├─ 📝 Edit src/auth/session.ts                    ✓ 0.5s
-  ├─ 🤖 Task "analyze code structure..." [sonnet]   ✓ 12.3s
-  └─ ⚡ Bash npm test                               ⠋ 8s...
+├─ 📖 Read src/auth/session.ts                    ✓ 0.2s
+├─ 📝 Edit src/auth/session.ts                    ✓ 0.5s
+├─ 🤖 Task "analyze code structure..." [sonnet]   ✓ 12.3s
+└─ ⚡ Bash npm test                               ⠋ 8s...
 ```
 
 ## Props
@@ -99,7 +101,7 @@ interface EnhancedToolCall {
   name: string;
 
   /** Current execution status */
-  status: "pending" | "running" | "success" | "error";
+  status: 'pending' | 'running' | 'success' | 'error';
 
   /** When the tool started (timestamp) */
   startTime?: number;
@@ -111,7 +113,7 @@ interface EnhancedToolCall {
   input: Record<string, unknown>;
 
   /** Model used for Task/subagent tools */
-  subagentModel?: "opus" | "sonnet" | "haiku" | string;
+  subagentModel?: 'opus' | 'sonnet' | 'haiku' | string;
 
   /** Result metadata */
   result?: {
@@ -129,82 +131,87 @@ interface EnhancedToolCall {
 ## Helper Functions
 
 ### getToolIcon(name: string): string
+
 Returns the icon for a tool name.
 
 ```typescript
-getToolIcon("Read")  // "📖"
-getToolIcon("Bash")  // "⚡"
-getToolIcon("Task")  // "🤖"
+getToolIcon('Read'); // "📖"
+getToolIcon('Bash'); // "⚡"
+getToolIcon('Task'); // "🤖"
 ```
 
 ### getToolColor(name: string): string
+
 Returns the color for a tool name.
 
 ```typescript
-getToolColor("Read")  // colors.info
-getToolColor("Edit")  // colors.accent
+getToolColor('Read'); // colors.info
+getToolColor('Edit'); // colors.accent
 ```
 
 ### getInputPreview(tool: EnhancedToolCall, maxLength?: number): string
+
 Extracts and truncates input preview from a tool.
 
 ```typescript
 // For Read/Write/Edit: shows filename or last 2 path segments
-getInputPreview(readTool)  // "src/auth/session.ts"
+getInputPreview(readTool); // "src/auth/session.ts"
 
 // For Bash: shows command
-getInputPreview(bashTool)  // "npm test"
+getInputPreview(bashTool); // "npm test"
 
 // For Task: shows description in quotes
-getInputPreview(taskTool)  // "analyze code structure..."
+getInputPreview(taskTool); // "analyze code structure..."
 ```
 
 ### getModelBadge(model?: string): string
+
 Returns formatted model badge.
 
 ```typescript
-getModelBadge("claude-sonnet-4")  // "[sonnet]"
-getModelBadge("claude-opus-4")    // "[opus]"
+getModelBadge('claude-sonnet-4'); // "[sonnet]"
+getModelBadge('claude-opus-4'); // "[opus]"
 ```
 
 ### getModelBadgeColor(model?: string): string
+
 Returns color for model badge.
 
 ```typescript
-getModelBadgeColor("sonnet")  // colors.info
-getModelBadgeColor("opus")    // colors.accent
+getModelBadgeColor('sonnet'); // colors.info
+getModelBadgeColor('opus'); // colors.accent
 ```
 
 ## Tool Icons
 
-| Tool | Icon | Color |
-|------|------|-------|
-| Read | 📖 | info |
-| Write | ✏️ | success |
-| Edit | 📝 | accent |
-| Bash | ⚡ | accent |
-| Glob | 🔍 | info |
-| Grep | 🔎 | info |
-| Task | 🤖 | accent |
-| WebFetch | 🌐 | info |
-| WebSearch | 🔍 | info |
+| Tool      | Icon | Color   |
+| --------- | ---- | ------- |
+| Read      | 📖   | info    |
+| Write     | ✏️   | success |
+| Edit      | 📝   | accent  |
+| Bash      | ⚡   | accent  |
+| Glob      | 🔍   | info    |
+| Grep      | 🔎   | info    |
+| Task      | 🤖   | accent  |
+| WebFetch  | 🌐   | info    |
+| WebSearch | 🔍   | info    |
 
 ## Status Indicators
 
-| Status | Icon | Color |
-|--------|------|-------|
-| pending | ○ | dim |
-| running | ⠋ (spinner) | accent |
-| success | ✓ | success |
-| error | ✗ | error |
+| Status  | Icon        | Color   |
+| ------- | ----------- | ------- |
+| pending | ○           | dim     |
+| running | ⠋ (spinner) | accent  |
+| success | ✓           | success |
+| error   | ✗           | error   |
 
 ## Model Badge Colors
 
-| Model | Badge | Color |
-|-------|-------|-------|
-| opus | [opus] | accent (purple/pink) |
-| sonnet | [sonnet] | info (blue) |
-| haiku | [haiku] | success (green) |
+| Model  | Badge    | Color                |
+| ------ | -------- | -------------------- |
+| opus   | [opus]   | accent (purple/pink) |
+| sonnet | [sonnet] | info (blue)          |
+| haiku  | [haiku]  | success (green)      |
 
 ## Advanced Usage
 
@@ -213,10 +220,10 @@ getModelBadgeColor("opus")    // colors.accent
 When there are more tools than `maxVisible`, the component shows:
 
 ```
-  ... 12 more tools above
-  ├─ 📖 Read file1.ts                              ✓ 0.2s
-  ├─ 📝 Edit file1.ts                              ✓ 0.5s
-  └─ ⚡ Bash npm test                              ⠋ 3s...
+... 12 more tools above
+├─ 📖 Read file1.ts                              ✓ 0.2s
+├─ 📝 Edit file1.ts                              ✓ 0.5s
+└─ ⚡ Bash npm test                              ⠋ 3s...
 ```
 
 ### With Subagent Badges
@@ -224,8 +231,8 @@ When there are more tools than `maxVisible`, the component shows:
 Task tools automatically show their model:
 
 ```
-  ├─ 🤖 Task "analyze dependencies" [opus]         ✓ 15.2s
-  └─ 🤖 Task "refactor code" [sonnet]              ⠋ 5s...
+├─ 🤖 Task "analyze dependencies" [opus]         ✓ 15.2s
+└─ 🤖 Task "refactor code" [sonnet]              ⠋ 5s...
 ```
 
 ### Without Input Preview
@@ -233,14 +240,15 @@ Task tools automatically show their model:
 Set `showInputPreview={false}` for minimal display:
 
 ```
-  ├─ 📖 Read                                       ✓ 0.2s
-  ├─ 📝 Edit                                       ✓ 0.5s
-  └─ ⚡ Bash                                       ⠋ 3s...
+├─ 📖 Read                                       ✓ 0.2s
+├─ 📝 Edit                                       ✓ 0.5s
+└─ ⚡ Bash                                       ⠋ 3s...
 ```
 
 ## Migration from Original ToolActivity
 
 The original `ToolActivity` component is still available and fully functional. Use `EnhancedToolActivity` when you want:
+
 - Simpler, cleaner tree-style display
 - Input previews instead of generic details
 - Model badges for subagents

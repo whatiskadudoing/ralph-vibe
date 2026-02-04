@@ -241,8 +241,9 @@ export function markTaskComplete(content: string, taskText: string): string {
 
   const updatedLines = lines.map((line) => {
     const trimmed = line.trim();
-    // Match the specific task
-    if (trimmed.includes(`[ ] ${taskText}`) || trimmed.includes(`[ ]${taskText}`)) {
+    // Match the specific task exactly - not as a substring
+    // The task text should be the entire text after the checkbox
+    if (trimmed === `- [ ] ${taskText}`) {
       return line.replace('[ ]', '[x]');
     }
     return line;

@@ -72,8 +72,8 @@ export const accent = {
   purple: createColorFn(palette.accent.purple),
 };
 
-// Grays
-export const gray = {
+// Grays (object for internal theme use)
+export const grayScale = {
   black: createColorFn(palette.gray.black),
   darkest: createColorFn(palette.gray.darkest),
   dark: createColorFn(palette.gray.dark),
@@ -83,19 +83,44 @@ export const gray = {
   white: createColorFn(palette.gray.white),
 };
 
+// Gray as a function (for mod.ts export compatibility)
+export const gray = createColorFn(palette.gray.base);
+
 // Original basic colors, now mapped to the new palette for compatibility
+export const black = createColorFn(palette.gray.black);
 export const red = error;
 export const green = success;
 export const yellow = warning;
 export const blue = primary;
 export const magenta = accent.purple;
 export const cyan = createColorFn(palette.primary.light);
-export const white = gray.white;
+export const white = grayScale.white;
+
+// Bright color variants (using lighter palette colors)
+export const brightRed = createColorFn('#D08770'); // Brighter red/orange
+export const brightGreen = createColorFn('#A3BE8C'); // Bright green
+export const brightYellow = createColorFn('#EBCB8B'); // Bright yellow
+export const brightBlue = createColorFn('#88C0D0'); // Bright blue
+export const brightMagenta = createColorFn('#B48EAD'); // Bright magenta
+export const brightCyan = createColorFn('#8FBCBB'); // Bright cyan
+export const brightWhite = createColorFn('#ECEFF4'); // Bright white
 
 // For compatibility with the old theme structure
 export const dim = createColorFn(palette.gray.dark);
 export const amber = accent.yellow;
 export const orange = accent.orange;
+
+// ============================================================================
+// Combined Style Functions (Header styles and hint)
+// ============================================================================
+export const headerPrimary = createStyleFn(
+  BOLD,
+  `${ESC}38;5;${hexToAnsi256(palette.primary.base)}m`,
+);
+export const headerSuccess = createStyleFn(BOLD, `${ESC}38;5;${hexToAnsi256(palette.success)}m`);
+export const headerError = createStyleFn(BOLD, `${ESC}38;5;${hexToAnsi256(palette.error)}m`);
+export const headerWarning = createStyleFn(BOLD, `${ESC}38;5;${hexToAnsi256(palette.warning)}m`);
+export const hint = createStyleFn(DIM, `${ESC}38;5;${hexToAnsi256(palette.gray.base)}m`);
 
 // ============================================================================
 // Text Styles

@@ -6,6 +6,7 @@
  */
 
 import { err, ok, type Result } from '@/utils/result.ts';
+import { flatMapTE, type TaskEither, taskEitherLeft, tryCatchTE } from '@/utils/fp.ts';
 import { exists, getSpecsDir, listDirectory, readTextFile } from './file_service.ts';
 import { join } from '@std/path';
 
@@ -56,18 +57,38 @@ export interface ParsedMessage {
 }
 
 // ============================================================================
-// Functions
+// Pure Functions
 // ============================================================================
 
 /**
  * Creates a ClaudeError.
+ *
+ * @pure No side effects - creates an error object
+ *
+ * This is an error factory function following the pattern used throughout the codebase.
+ * Error factories create structured error objects with a discriminant `type` field
+ * for type-safe error handling using Result types.
+ *
+ * @param code - The error code indicating the type of Claude API failure
+ * @param message - A human-readable error message
+ * @returns A structured ClaudeError object
+ *
+ * @example
+ * const error = claudeError('auth_error', 'Invalid API key');
+ * // Returns: { type: 'claude_error', code: 'auth_error', message: 'Invalid API key' }
  */
 function claudeError(code: ClaudeError['code'], message: string): ClaudeError {
   return { type: 'claude_error', code, message };
 }
 
+// ============================================================================
+// Impure Functions - CLI Detection
+// ============================================================================
+
 /**
  * Checks if the Claude CLI is installed and available.
+ *
+ * @impure Executes external command
  */
 export async function isClaudeInstalled(): Promise<boolean> {
   try {
@@ -85,6 +106,8 @@ export async function isClaudeInstalled(): Promise<boolean> {
 
 /**
  * Gets the Claude CLI version.
+ *
+ * @impure Executes external command
  */
 export async function getClaudeVersion(): Promise<Result<string, ClaudeError>> {
   try {
@@ -107,7 +130,39 @@ export async function getClaudeVersion(): Promise<Result<string, ClaudeError>> {
 }
 
 /**
+ * Gets the Claude CLI version (TaskEither version).
+ * Returns TaskEither<ClaudeError, string>.
+ *
+ * @impure Executes external command
+ */
+export function getClaudeVersionTE(): TaskEither<ClaudeError, string> {
+  return tryCatchTE(
+    async () => {
+      const command = new Deno.Command('claude', {
+        args: ['--version'],
+        stdout: 'piped',
+        stderr: 'piped',
+      });
+      const { success, stdout } = await command.output();
+
+      if (!success) {
+        throw new Error('Claude CLI not found');
+      }
+
+      return new TextDecoder().decode(stdout).trim();
+    },
+    () => claudeError('not_found', 'Claude CLI not found'),
+  );
+}
+
+// ============================================================================
+// Pure Functions - Argument Building & Parsing
+// ============================================================================
+
+/**
  * Builds the Claude CLI command arguments.
+ *
+ * @pure No side effects - transforms options to argument array
  */
 export function buildClaudeArgs(options: ClaudeRunOptions): string[] {
   const args: string[] = ['-p']; // Print mode
@@ -142,6 +197,8 @@ export function buildClaudeArgs(options: ClaudeRunOptions): string[] {
 
 /**
  * Parses a stream-json line from Claude output.
+ *
+ * @pure No side effects - parses input string to event object
  */
 export function parseStreamLine(line: string): ClaudeStreamEvent | null {
   if (!line.trim()) return null;
@@ -162,6 +219,8 @@ export function parseStreamLine(line: string): ClaudeStreamEvent | null {
 
 /**
  * Extracts text and tool use from an assistant message.
+ *
+ * @pure No side effects - parses event to message array
  */
 export function parseAssistantMessage(event: ClaudeStreamEvent): ParsedMessage[] {
   if (event.type !== 'assistant') return [];
@@ -205,6 +264,8 @@ export function parseAssistantMessage(event: ClaudeStreamEvent): ParsedMessage[]
 
 /**
  * Checks if the output contains an EXIT_SIGNAL.
+ *
+ * @pure No side effects - string search only
  */
 export function hasExitSignal(output: string): boolean {
   return output.includes('EXIT_SIGNAL: true');
@@ -212,6 +273,8 @@ export function hasExitSignal(output: string): boolean {
 
 /**
  * Formats a tool use for display.
+ *
+ * @impure Accesses Deno.cwd() and Deno.env for path formatting
  */
 export function formatToolUse(toolUse: ToolUse): string {
   const { name, input } = toolUse;
@@ -249,6 +312,8 @@ export function formatToolUse(toolUse: ToolUse): string {
 
 /**
  * Gets the file name from a path.
+ *
+ * @pure No side effects - string manipulation only
  */
 function getFileName(path: string): string {
   return path.split('/').pop() ?? path;
@@ -256,6 +321,8 @@ function getFileName(path: string): string {
 
 /**
  * Formats a path for display - converts absolute paths to relative.
+ *
+ * @impure Accesses Deno.cwd()
  */
 function formatPath(path: string): string {
   const cwd = Deno.cwd();
@@ -271,6 +338,8 @@ function formatPath(path: string): string {
 
 /**
  * Formats a bash command for display - makes paths relative.
+ *
+ * @impure Accesses Deno.cwd() and Deno.env
  */
 function formatBashCommand(cmd: string): string {
   const cwd = Deno.cwd();
@@ -287,6 +356,8 @@ function formatBashCommand(cmd: string): string {
 
 /**
  * Truncates a string with ellipsis.
+ *
+ * @pure No side effects - string manipulation only
  */
 function truncate(str: string, maxLength: number): string {
   const firstLine = str.split('\n')[0] ?? str;
@@ -294,9 +365,15 @@ function truncate(str: string, maxLength: number): string {
   return firstLine.slice(0, maxLength - 3) + '...';
 }
 
+// ============================================================================
+// Impure Functions - CLI Execution
+// ============================================================================
+
 /**
  * Creates a Claude runner that streams output.
  * Returns an async generator of parsed events.
+ *
+ * @impure Spawns external process, performs I/O
  */
 export async function* runClaude(
   options: ClaudeRunOptions,
@@ -370,7 +447,22 @@ export interface BaseSessionContext {
 }
 
 /**
+ * Converts an array of spec file entries to a Map.
+ * Pure helper function for spec processing.
+ *
+ * @pure No side effects - data transformation only
+ *
+ * @param entries - Array of [filename, content] tuples
+ * @returns Map of filename to content
+ */
+export function specFilesToMap(entries: readonly [string, string][]): Map<string, string> {
+  return new Map(entries);
+}
+
+/**
  * Loads all specs from the specs/ directory.
+ *
+ * @impure Performs file I/O
  */
 async function loadSpecs(): Promise<Map<string, string>> {
   const specs = new Map<string, string>();
@@ -400,6 +492,8 @@ async function loadSpecs(): Promise<Map<string, string>> {
 /**
  * Gets modification times for all spec files.
  * Used for detecting spec changes between iterations.
+ *
+ * @impure Performs file I/O via Deno.stat
  */
 async function getSpecMtimes(): Promise<Map<string, number>> {
   const mtimes = new Map<string, number>();
@@ -431,6 +525,8 @@ async function getSpecMtimes(): Promise<Map<string, number>> {
 /**
  * Checks if specs have changed since the given snapshot.
  * Returns true if any spec was added, removed, or modified.
+ *
+ * @impure Performs file I/O via getSpecMtimes
  */
 export async function haveSpecsChanged(snapshot: Map<string, number>): Promise<boolean> {
   const current = await getSpecMtimes();
@@ -455,6 +551,8 @@ export async function haveSpecsChanged(snapshot: Map<string, number>): Promise<b
  * Builds the base context prompt with all specs.
  * AGENTS.md is NOT cached because it can be updated during iterations.
  * This creates a "brain" that Claude can fork from.
+ *
+ * @pure No side effects - string building only
  */
 function buildBaseContextPrompt(specs: Map<string, string>): string {
   const lines: string[] = [
@@ -484,7 +582,9 @@ function buildBaseContextPrompt(specs: Map<string, string>): string {
 
   lines.push('## Ready');
   lines.push('');
-  lines.push('Specs loaded. AGENTS.md and IMPLEMENTATION_PLAN.md will be read fresh each iteration.');
+  lines.push(
+    'Specs loaded. AGENTS.md and IMPLEMENTATION_PLAN.md will be read fresh each iteration.',
+  );
   lines.push('');
   lines.push('Reply with: "🍺 Context cached. Ready to vibe."');
 
@@ -495,6 +595,8 @@ function buildBaseContextPrompt(specs: Map<string, string>): string {
  * Initializes a base session with all specs loaded.
  * AGENTS.md is NOT cached - it's read fresh each iteration (can be updated).
  * Returns the session ID that can be used to fork subsequent iterations.
+ *
+ * @impure Performs file I/O and spawns external process
  */
 export async function initializeBaseSession(
   model: 'opus' | 'sonnet' = 'opus',
@@ -519,9 +621,12 @@ export async function initializeBaseSession(
   const args = [
     '-p',
     '--dangerously-skip-permissions',
-    '--output-format', 'json',
-    '--session-id', sessionId,
-    '--model', model,
+    '--output-format',
+    'json',
+    '--session-id',
+    sessionId,
+    '--model',
+    model,
   ];
 
   const command = new Deno.Command('claude', {
@@ -556,4 +661,90 @@ export async function initializeBaseSession(
     const errorMsg = e instanceof Error ? e.message : 'Unknown error';
     return err(claudeError('execution_failed', `Failed to create base session: ${errorMsg}`));
   }
+}
+
+/**
+ * Initializes a base session with all specs loaded (TaskEither version).
+ * AGENTS.md is NOT cached - it's read fresh each iteration (can be updated).
+ * Returns TaskEither<ClaudeError, BaseSessionContext>.
+ *
+ * @impure Performs file I/O and spawns external process
+ */
+export function initializeBaseSessionTE(
+  model: 'opus' | 'sonnet' = 'opus',
+): TaskEither<ClaudeError, BaseSessionContext> {
+  // Load specs first
+  const loadSpecsTE: TaskEither<ClaudeError, Map<string, string>> = tryCatchTE(
+    () => loadSpecs(),
+    (e) =>
+      claudeError(
+        'execution_failed',
+        `Failed to load specs: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      ),
+  );
+
+  // Chain the operations
+  return flatMapTE((specs: Map<string, string>) => {
+    // Validate specs are not empty
+    if (specs.size === 0) {
+      return taskEitherLeft<ClaudeError, BaseSessionContext>(
+        claudeError('execution_failed', 'No specs found. Nothing to cache.'),
+      );
+    }
+
+    // Build session with specs
+    return tryCatchTE(
+      async () => {
+        // Capture spec mtimes for change detection
+        const specsMtimes = await getSpecMtimes();
+
+        // Generate a unique session ID
+        const sessionId = crypto.randomUUID();
+
+        // Build the base context prompt
+        const prompt = buildBaseContextPrompt(specs);
+
+        // Create the base session
+        const args = [
+          '-p',
+          '--dangerously-skip-permissions',
+          '--output-format',
+          'json',
+          '--session-id',
+          sessionId,
+          '--model',
+          model,
+        ];
+
+        const command = new Deno.Command('claude', {
+          args,
+          stdin: 'piped',
+          stdout: 'piped',
+          stderr: 'piped',
+        });
+
+        const process = command.spawn();
+
+        // Write prompt to stdin
+        const writer = process.stdin.getWriter();
+        await writer.write(new TextEncoder().encode(prompt));
+        await writer.close();
+
+        const output = await process.output();
+        const status = await process.status;
+
+        if (!status.success) {
+          const stderr = new TextDecoder().decode(output.stderr);
+          throw new Error(`Failed to create base session: ${stderr}`);
+        }
+
+        return {
+          sessionId,
+          specs: Array.from(specs.keys()),
+          specsMtimes,
+        };
+      },
+      (e) => claudeError('execution_failed', e instanceof Error ? e.message : 'Unknown error'),
+    );
+  })(loadSpecsTE);
 }

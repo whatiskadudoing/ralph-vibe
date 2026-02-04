@@ -5,8 +5,8 @@
  * Inspired by Charm.sh patterns and modern terminal UIs.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // TABS - Tab container with navigation
@@ -33,7 +33,7 @@ export interface TabsProps {
   /** Active tab id */
   activeTab: string;
   /** Tab style */
-  variant?: "default" | "pills" | "underline" | "boxed";
+  variant?: 'default' | 'pills' | 'underline' | 'boxed';
   /** Active color */
   activeColor?: string;
   /** Show content area */
@@ -47,8 +47,8 @@ export interface TabsProps {
 export function Tabs({
   tabs,
   activeTab,
-  variant = "default",
-  activeColor = "cyan",
+  variant = 'default',
+  activeColor = 'cyan',
   showContent = true,
   contentBorder = true,
   gap = 0,
@@ -56,7 +56,7 @@ export function Tabs({
   const activeTabItem = tabs.find((t) => t.id === activeTab);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {/* Tab Headers */}
       <TabBar
         tabs={tabs}
@@ -70,8 +70,8 @@ export function Tabs({
       {showContent && activeTabItem?.content && (
         <Box
           marginTop={0}
-          borderStyle={contentBorder ? "single" : undefined}
-          borderColor={contentBorder ? "gray" : undefined}
+          borderStyle={contentBorder ? 'single' : undefined}
+          borderColor={contentBorder ? 'gray' : undefined}
           borderTop={false}
           padding={contentBorder ? 1 : 0}
         >
@@ -92,7 +92,7 @@ export interface TabBarProps {
   /** Active tab id */
   activeTab: string;
   /** Tab style */
-  variant?: "default" | "pills" | "underline" | "boxed";
+  variant?: 'default' | 'pills' | 'underline' | 'boxed';
   /** Active color */
   activeColor?: string;
   /** Gap between tabs */
@@ -102,8 +102,8 @@ export interface TabBarProps {
 export function TabBar({
   tabs,
   activeTab,
-  variant = "default",
-  activeColor = "cyan",
+  variant = 'default',
+  activeColor = 'cyan',
   gap = 0,
 }: TabBarProps): React.ReactElement {
   return (
@@ -139,7 +139,7 @@ export interface TabProps {
   /** Disabled state */
   disabled?: boolean;
   /** Tab style */
-  variant?: "default" | "pills" | "underline" | "boxed";
+  variant?: 'default' | 'pills' | 'underline' | 'boxed';
   /** Active color */
   activeColor?: string;
   /** Badge */
@@ -151,69 +151,64 @@ export function Tab({
   icon,
   isActive = false,
   disabled = false,
-  variant = "default",
-  activeColor = "cyan",
+  variant = 'default',
+  activeColor = 'cyan',
   badge,
 }: TabProps): React.ReactElement {
   if (disabled) {
     return (
       <Box paddingX={2}>
         <Text dimColor strikethrough>
-          {icon && `${icon} `}{label}
+          {icon && `${icon} `}
+          {label}
         </Text>
       </Box>
     );
   }
 
   switch (variant) {
-    case "pills":
+    case 'pills':
       return (
         <Box
-          borderStyle={isActive ? "round" : undefined}
+          borderStyle={isActive ? 'round' : undefined}
           borderColor={isActive ? activeColor : undefined}
           paddingX={isActive ? 1 : 2}
         >
-          {icon && <Text color={isActive ? activeColor : undefined}>{icon} </Text>}
+          {icon && <Text color={isActive ? activeColor : undefined}>{icon}</Text>}
           <Text color={isActive ? activeColor : undefined} bold={isActive}>
             {label}
           </Text>
-          {badge !== undefined && (
-            <Text color={isActive ? activeColor : "gray"}> ({badge})</Text>
-          )}
+          {badge !== undefined && <Text color={isActive ? activeColor : 'gray'}>({badge})</Text>}
         </Box>
       );
 
-    case "underline":
+    case 'underline':
       return (
-        <Box flexDirection="column" paddingX={1}>
+        <Box flexDirection='column' paddingX={1}>
           <Box>
-            {icon && <Text color={isActive ? activeColor : undefined}>{icon} </Text>}
+            {icon && <Text color={isActive ? activeColor : undefined}>{icon}</Text>}
             <Text color={isActive ? activeColor : undefined} bold={isActive}>
               {label}
             </Text>
-            {badge !== undefined && (
-              <Text color={isActive ? activeColor : "gray"}> ({badge})</Text>
-            )}
+            {badge !== undefined && <Text color={isActive ? activeColor : 'gray'}>({badge})</Text>}
           </Box>
-          {isActive && <Text color={activeColor}>{"─".repeat(label.length + (icon ? 2 : 0))}</Text>}
+          {isActive && <Text color={activeColor}>{'─'.repeat(label.length + (icon ? 2 : 0))}</Text>}
         </Box>
       );
 
-    case "boxed":
+    case 'boxed':
       return (
         <Box
-          borderStyle="single"
-          borderColor={isActive ? activeColor : "gray"}
+          borderStyle='single'
+          borderColor={isActive ? activeColor : 'gray'}
           borderBottom={!isActive}
           paddingX={2}
         >
-          {icon && <Text color={isActive ? activeColor : undefined}>{icon} </Text>}
+          {icon && <Text color={isActive ? activeColor : undefined}>{icon}</Text>}
           <Text color={isActive ? activeColor : undefined} bold={isActive}>
             {label}
           </Text>
-          {badge !== undefined && (
-            <Text color={isActive ? activeColor : "gray"}> ({badge})</Text>
-          )}
+          {badge !== undefined && <Text color={isActive ? activeColor : 'gray'}>({badge})</Text>}
         </Box>
       );
 
@@ -221,15 +216,13 @@ export function Tab({
       return (
         <Box paddingX={2}>
           <Text color={isActive ? activeColor : undefined}>
-            {isActive ? "▶ " : "  "}
+            {isActive ? '▶ ' : '  '}
           </Text>
-          {icon && <Text color={isActive ? activeColor : undefined}>{icon} </Text>}
+          {icon && <Text color={isActive ? activeColor : undefined}>{icon}</Text>}
           <Text color={isActive ? activeColor : undefined} bold={isActive}>
             {label}
           </Text>
-          {badge !== undefined && (
-            <Text color={isActive ? activeColor : "gray"}> ({badge})</Text>
-          )}
+          {badge !== undefined && <Text color={isActive ? activeColor : 'gray'}>({badge})</Text>}
         </Box>
       );
   }
@@ -255,20 +248,20 @@ export interface VerticalTabsProps {
 export function VerticalTabs({
   tabs,
   activeTab,
-  activeColor = "cyan",
+  activeColor = 'cyan',
   showContent = true,
   tabWidth = 20,
 }: VerticalTabsProps): React.ReactElement {
   const activeTabItem = tabs.find((t) => t.id === activeTab);
 
   return (
-    <Box flexDirection="row">
+    <Box flexDirection='row'>
       {/* Tab List */}
       <Box
-        flexDirection="column"
+        flexDirection='column'
         width={tabWidth}
-        borderStyle="single"
-        borderColor="gray"
+        borderStyle='single'
+        borderColor='gray'
         borderRight={false}
       >
         {tabs.map((tab) => {
@@ -277,22 +270,22 @@ export function VerticalTabs({
             <Box
               key={tab.id}
               paddingX={1}
-              borderStyle={isActive ? "single" : undefined}
+              borderStyle={isActive ? 'single' : undefined}
               borderColor={isActive ? activeColor : undefined}
               borderLeft={false}
               borderTop={false}
               borderBottom={false}
             >
-              {tab.icon && <Text color={isActive ? activeColor : undefined}>{tab.icon} </Text>}
+              {tab.icon && <Text color={isActive ? activeColor : undefined}>{tab.icon}</Text>}
               <Text
-                color={isActive ? activeColor : tab.disabled ? "gray" : undefined}
+                color={isActive ? activeColor : tab.disabled ? 'gray' : undefined}
                 bold={isActive}
                 dimColor={tab.disabled}
               >
                 {tab.label}
               </Text>
               {tab.badge !== undefined && (
-                <Text color={isActive ? activeColor : "gray"}> ({tab.badge})</Text>
+                <Text color={isActive ? activeColor : 'gray'}>({tab.badge})</Text>
               )}
             </Box>
           );
@@ -303,8 +296,8 @@ export function VerticalTabs({
       {showContent && activeTabItem?.content && (
         <Box
           flexGrow={1}
-          borderStyle="single"
-          borderColor="gray"
+          borderStyle='single'
+          borderColor='gray'
           padding={1}
         >
           {activeTabItem.content}
@@ -332,11 +325,11 @@ export interface SegmentedControlProps {
 export function SegmentedControl({
   options,
   selected,
-  activeColor = "cyan",
+  activeColor = 'cyan',
   compact = false,
 }: SegmentedControlProps): React.ReactElement {
   return (
-    <Box borderStyle="round" borderColor="gray">
+    <Box borderStyle='round' borderColor='gray'>
       {options.map((option, index) => {
         const isSelected = option.id === selected;
         const isLast = index === options.length - 1;
@@ -348,14 +341,16 @@ export function SegmentedControl({
               borderStyle={isSelected ? undefined : undefined}
             >
               {option.icon && (
-                <Text color={isSelected ? activeColor : undefined}>{option.icon} </Text>
+                <Text color={isSelected ? activeColor : undefined}>{option.icon}</Text>
               )}
               <Text
                 color={isSelected ? activeColor : undefined}
                 bold={isSelected}
                 inverse={isSelected}
               >
-                {compact ? "" : " "}{option.label}{compact ? "" : " "}
+                {compact ? '' : ' '}
+                {option.label}
+                {compact ? '' : ' '}
               </Text>
             </Box>
             {!isLast && <Text dimColor>│</Text>}
@@ -387,8 +382,8 @@ export function StepTabs({
   steps,
   currentStep,
   completedSteps = [],
-  activeColor = "cyan",
-  completedColor = "green",
+  activeColor = 'cyan',
+  completedColor = 'green',
 }: StepTabsProps): React.ReactElement {
   return (
     <Box gap={1}>
@@ -402,7 +397,7 @@ export function StepTabs({
 
         if (isCompleted) {
           color = completedColor;
-          icon = "✓";
+          icon = '✓';
         } else if (isActive) {
           color = activeColor;
           icon = String(stepNumber);
@@ -412,11 +407,11 @@ export function StepTabs({
         }
 
         return (
-          <Box key={step.id} alignItems="center">
-            {index > 0 && <Text dimColor> ─── </Text>}
+          <Box key={step.id} alignItems='center'>
+            {index > 0 && <Text dimColor>───</Text>}
             <Box
-              borderStyle="round"
-              borderColor={color ?? "gray"}
+              borderStyle='round'
+              borderColor={color ?? 'gray'}
               paddingX={1}
             >
               <Text color={color} bold={isActive}>
@@ -424,7 +419,8 @@ export function StepTabs({
               </Text>
             </Box>
             <Text color={color} bold={isActive}>
-              {" "}{step.label}
+              {' '}
+              {step.label}
             </Text>
           </Box>
         );
@@ -449,27 +445,27 @@ export interface BottomTabsProps {
 export function BottomTabs({
   tabs,
   activeTab,
-  activeColor = "cyan",
+  activeColor = 'cyan',
 }: BottomTabsProps): React.ReactElement {
   return (
     <Box
-      borderStyle="single"
-      borderColor="gray"
+      borderStyle='single'
+      borderColor='gray'
       borderLeft={false}
       borderRight={false}
       borderBottom={false}
-      justifyContent="space-around"
+      justifyContent='space-around'
       paddingY={0}
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
         return (
-          <Box key={tab.id} flexDirection="column" alignItems="center" paddingX={2}>
-            <Text color={isActive ? activeColor : "gray"}>
+          <Box key={tab.id} flexDirection='column' alignItems='center' paddingX={2}>
+            <Text color={isActive ? activeColor : 'gray'}>
               {tab.icon}
             </Text>
             <Text
-              color={isActive ? activeColor : "gray"}
+              color={isActive ? activeColor : 'gray'}
               bold={isActive}
             >
               {tab.label}

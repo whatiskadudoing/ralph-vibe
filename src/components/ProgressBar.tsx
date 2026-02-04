@@ -4,8 +4,8 @@
  * Progress bar component using deno-ink.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface ProgressBarProps {
   /** Progress percentage (0-100) */
@@ -34,8 +34,8 @@ export interface ProgressBarProps {
 export function ProgressBar({
   percent,
   width = 40,
-  filled = "█",
-  empty = "░",
+  filled = '█',
+  empty = '░',
   color,
   emptyColor,
   showPercent = true,
@@ -50,11 +50,11 @@ export function ProgressBar({
   let barColor = color;
   if (thresholds && !color) {
     if (thresholds.danger && clampedPercent >= thresholds.danger) {
-      barColor = "red";
+      barColor = 'red';
     } else if (thresholds.warning && clampedPercent >= thresholds.warning) {
-      barColor = "yellow";
+      barColor = 'yellow';
     } else {
-      barColor = "green";
+      barColor = 'green';
     }
   }
 
@@ -65,8 +65,8 @@ export function ProgressBar({
     <Box>
       <Text color={barColor}>{filledBar}</Text>
       <Text color={emptyColor} dimColor={!emptyColor}>{emptyBar}</Text>
-      {showPercent && !label && <Text dimColor> {Math.round(clampedPercent)}%</Text>}
-      {label && <Text dimColor> {label}</Text>}
+      {showPercent && !label && <Text dimColor>{Math.round(clampedPercent)}%</Text>}
+      {label && <Text dimColor>{label}</Text>}
     </Box>
   );
 }

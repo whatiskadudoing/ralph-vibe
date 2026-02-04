@@ -2,29 +2,11 @@
  * @module ui/format
  *
  * Formatting utilities for consistent display of values.
+ * Re-exports shared utilities from @/utils/formatting.ts for backward compatibility.
  */
 
-/**
- * Formats a duration in milliseconds to a human-readable string.
- * Examples: "45s", "2m 34s", "1h 23m"
- */
-export function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  if (hours > 0) {
-    const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-  }
-
-  if (minutes > 0) {
-    const remainingSeconds = seconds % 60;
-    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
-  }
-
-  return `${seconds}s`;
-}
+// Re-export formatDuration from shared utilities
+export { formatDuration } from '@/utils/formatting.ts';
 
 /**
  * Formats a token count to a human-readable string.

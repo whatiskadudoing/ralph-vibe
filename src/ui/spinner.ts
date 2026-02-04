@@ -4,9 +4,9 @@
  * Enhanced terminal spinner for loading states.
  */
 
-import { SPINNER_DOTS, SPINNER_LINE, SPINNER_BOUNCE, CHECK, CROSS } from './symbols.ts';
-import { error, muted, primary, success, cyan } from './colors.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { CHECK, CROSS, SPINNER_BOUNCE, SPINNER_DOTS, SPINNER_LINE } from './symbols.ts';
+import { cyan, error, muted, primary, success } from './colors.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // Spinner Types
@@ -281,7 +281,7 @@ export function statusLine(
  * Gets a single spinner frame for static rendering.
  * Useful for rendering in non-animated contexts.
  */
-export function spinnerFrame(style: SpinnerStyle = 'dots', color?: ColorFn): string {
+export function spinnerFrame(color?: ColorFn, style: SpinnerStyle = 'dots'): string {
   const frames = getFrames(style);
   const colorFn = color ?? cyan;
   return colorFn(frames[0] ?? '');

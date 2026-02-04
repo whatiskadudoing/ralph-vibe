@@ -6,6 +6,8 @@
  */
 
 import { err, fromPromise, ok, type Result } from '@/utils/result.ts';
+import { type TaskEither, tryCatchTE } from '@/utils/fp.ts';
+import { resolveProjectPath } from '@/utils/paths.ts';
 import { ensureDir } from '@std/fs';
 import { dirname, join } from '@std/path';
 
@@ -22,6 +24,19 @@ export interface FileError {
 
 /**
  * Creates a FileError.
+ *
+ * This is an error factory function following the pattern used throughout the codebase.
+ * Error factories create structured error objects with a discriminant `type` field
+ * for type-safe error handling using Result types.
+ *
+ * @param operation - The file operation that failed
+ * @param path - The file path involved in the error
+ * @param message - A human-readable error message
+ * @returns A structured FileError object
+ *
+ * @example
+ * const error = fileError('read', '/path/to/file', 'Permission denied');
+ * // Returns: { type: 'file_error', operation: 'read', path: '/path/to/file', message: 'Permission denied' }
  */
 function fileError(
   operation: FileError['operation'],
@@ -183,15 +198,82 @@ export async function copyFile(
 }
 
 // ============================================================================
-// Path Utilities
+// TaskEither Operations
 // ============================================================================
 
 /**
- * Gets the current working directory.
+ * Reads a text file (TaskEither version).
+ * Returns a lazy TaskEither that can be composed with other operations.
  */
-export function getCwd(): string {
-  return Deno.cwd();
+export function readTextFileTE(path: string): TaskEither<FileError, string> {
+  return tryCatchTE(
+    () => Deno.readTextFile(path),
+    (e) => fileError('read', path, e instanceof Error ? e.message : String(e)),
+  );
 }
+
+/**
+ * Writes a text file, creating parent directories if needed (TaskEither version).
+ * Returns a lazy TaskEither that can be composed with other operations.
+ */
+export function writeTextFileTE(
+  path: string,
+  content: string,
+): TaskEither<FileError, void> {
+  return tryCatchTE(
+    async () => {
+      const dir = dirname(path);
+      await ensureDir(dir);
+      await Deno.writeTextFile(path, content);
+    },
+    (e) => fileError('write', path, e instanceof Error ? e.message : String(e)),
+  );
+}
+
+/**
+ * Checks if a file or directory exists (TaskEither version).
+ * Returns a lazy TaskEither that can be composed with other operations.
+ */
+export function existsTE(path: string): TaskEither<FileError, boolean> {
+  return tryCatchTE(
+    async () => {
+      try {
+        await Deno.stat(path);
+        return true;
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) {
+          return false;
+        }
+        throw e;
+      }
+    },
+    (e) => fileError('exists', path, e instanceof Error ? e.message : String(e)),
+  );
+}
+
+/**
+ * Lists files in a directory (TaskEither version).
+ * Returns a lazy TaskEither that can be composed with other operations.
+ */
+export function listDirectoryTE(path: string): TaskEither<FileError, string[]> {
+  return tryCatchTE(
+    async () => {
+      const entries: string[] = [];
+      for await (const entry of Deno.readDir(path)) {
+        entries.push(entry.name);
+      }
+      return entries;
+    },
+    (e) => fileError('list', path, e instanceof Error ? e.message : String(e)),
+  );
+}
+
+// ============================================================================
+// Path Utilities
+// ============================================================================
+
+// Re-export getCwd from paths module for backward compatibility
+export { getCwd } from '@/utils/paths.ts';
 
 /**
  * Joins path segments.
@@ -205,89 +287,89 @@ export function joinPath(...segments: string[]): string {
  * Files are created at project root (not in a subdirectory).
  */
 export function getRalphDir(projectDir?: string): string {
-  return projectDir ?? getCwd();
+  return resolveProjectPath(projectDir, '');
 }
 
 /**
  * Gets the specs directory path.
  */
 export function getSpecsDir(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'specs');
+  return resolveProjectPath(projectDir, 'specs');
 }
 
 /**
  * Gets the config file path (hidden file at project root).
  */
 export function getConfigPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), '.ralph.json');
+  return resolveProjectPath(projectDir, '.ralph.json');
 }
 
 /**
  * Gets the implementation plan file path.
  */
 export function getPlanPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'IMPLEMENTATION_PLAN.md');
+  return resolveProjectPath(projectDir, 'IMPLEMENTATION_PLAN.md');
 }
 
 /**
  * Gets the build prompt file path.
  */
 export function getBuildPromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_build.md');
+  return resolveProjectPath(projectDir, 'PROMPT_build.md');
 }
 
 /**
  * Gets the plan prompt file path.
  */
 export function getPlanPromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_plan.md');
+  return resolveProjectPath(projectDir, 'PROMPT_plan.md');
 }
 
 /**
  * Gets the start prompt file path.
  */
 export function getStartPromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_start.md');
+  return resolveProjectPath(projectDir, 'PROMPT_start.md');
 }
 
 /**
  * Gets the spec prompt file path.
  */
 export function getSpecPromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_spec.md');
+  return resolveProjectPath(projectDir, 'PROMPT_spec.md');
 }
 
 /**
  * Gets the audience prompt file path.
  */
 export function getAudiencePromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_audience.md');
+  return resolveProjectPath(projectDir, 'PROMPT_audience.md');
 }
 
 /**
  * Gets the AGENTS.md file path.
  */
 export function getAgentsMdPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'AGENTS.md');
+  return resolveProjectPath(projectDir, 'AGENTS.md');
 }
 
 /**
  * Gets the AUDIENCE_JTBD.md file path.
  */
 export function getAudienceJtbdPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'AUDIENCE_JTBD.md');
+  return resolveProjectPath(projectDir, 'AUDIENCE_JTBD.md');
 }
 
 /**
  * Gets the research prompt file path.
  */
 export function getResearchPromptPath(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'PROMPT_research.md');
+  return resolveProjectPath(projectDir, 'PROMPT_research.md');
 }
 
 /**
  * Gets the research directory path.
  */
 export function getResearchDir(projectDir?: string): string {
-  return join(projectDir ?? getCwd(), 'research');
+  return resolveProjectPath(projectDir, 'research');
 }

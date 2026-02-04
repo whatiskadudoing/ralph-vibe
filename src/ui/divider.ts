@@ -6,7 +6,7 @@
 
 import { dim, visibleLength } from './colors.ts';
 import { getTerminalDimensions } from './capabilities.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // Divider Types

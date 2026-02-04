@@ -4,17 +4,17 @@
  * Divider/separator component using deno-ink.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
-export type DividerStyle = "line" | "double" | "dashed" | "dots" | "space";
+export type DividerStyle = 'line' | 'double' | 'dashed' | 'dots' | 'space';
 
 const DIVIDER_CHARS: Record<DividerStyle, string> = {
-  line: "─",
-  double: "═",
-  dashed: "╌",
-  dots: "·",
-  space: " ",
+  line: '─',
+  double: '═',
+  dashed: '╌',
+  dots: '·',
+  space: ' ',
 };
 
 export interface DividerProps {
@@ -25,16 +25,16 @@ export interface DividerProps {
   /** Label text to embed in the divider */
   label?: string;
   /** Label alignment (default: "center") */
-  labelAlign?: "left" | "center" | "right";
+  labelAlign?: 'left' | 'center' | 'right';
   /** Divider color */
   color?: string;
 }
 
 export function Divider({
   width = 40,
-  style = "line",
+  style = 'line',
   label,
-  labelAlign = "center",
+  labelAlign = 'center',
   color,
 }: DividerProps): React.ReactElement {
   const char = DIVIDER_CHARS[style];
@@ -64,15 +64,15 @@ export function Divider({
   let rightWidth: number;
 
   switch (labelAlign) {
-    case "left":
+    case 'left':
       leftWidth = 2;
       rightWidth = remainingWidth - 2;
       break;
-    case "right":
+    case 'right':
       leftWidth = remainingWidth - 2;
       rightWidth = 2;
       break;
-    case "center":
+    case 'center':
     default:
       leftWidth = Math.floor(remainingWidth / 2);
       rightWidth = remainingWidth - leftWidth;
@@ -94,7 +94,7 @@ export function Divider({
 
 // Simple line divider
 export function Line({ width, color }: { width?: number; color?: string }): React.ReactElement {
-  return <Divider width={width} style="line" color={color} />;
+  return <Divider width={width} style='line' color={color} />;
 }
 
 // Section header with label
@@ -105,5 +105,5 @@ export function SectionHeader({
   title: string;
   width?: number;
 }): React.ReactElement {
-  return <Divider width={width} style="line" label={title} labelAlign="left" />;
+  return <Divider width={width} style='line' label={title} labelAlign='left' />;
 }

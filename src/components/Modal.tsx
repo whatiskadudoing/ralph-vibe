@@ -5,8 +5,8 @@
  * Inspired by Charm.sh's dialog patterns and Gemini CLI.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // MODAL - Overlay container with backdrop
@@ -24,7 +24,7 @@ export interface ModalProps {
   /** Footer content (buttons, etc.) */
   footer?: ReactNode;
   /** Border style */
-  borderStyle?: "single" | "round" | "double" | "bold";
+  borderStyle?: 'single' | 'round' | 'double' | 'bold';
   /** Border color */
   borderColor?: string;
   /** Title color */
@@ -43,8 +43,8 @@ export function Modal({
   titleIcon,
   children,
   footer,
-  borderStyle = "round",
-  borderColor = "cyan",
+  borderStyle = 'round',
+  borderColor = 'cyan',
   titleColor,
   width = 50,
   padding = 1,
@@ -54,7 +54,7 @@ export function Modal({
 
   const content = (
     <Box
-      flexDirection="column"
+      flexDirection='column'
       borderStyle={borderStyle}
       borderColor={borderColor}
       width={width}
@@ -62,15 +62,15 @@ export function Modal({
     >
       {title && (
         <Box marginBottom={1}>
-          {titleIcon && <Text color={titleColor ?? borderColor}>{titleIcon} </Text>}
+          {titleIcon && <Text color={titleColor ?? borderColor}>{titleIcon}</Text>}
           <Text bold color={titleColor ?? borderColor}>{title}</Text>
         </Box>
       )}
-      <Box flexDirection="column">
+      <Box flexDirection='column'>
         {children}
       </Box>
       {footer && (
-        <Box marginTop={1} justifyContent="flex-end">
+        <Box marginTop={1} justifyContent='flex-end'>
           {footer}
         </Box>
       )}
@@ -79,7 +79,7 @@ export function Modal({
 
   if (centered) {
     return (
-      <Box justifyContent="center" alignItems="center">
+      <Box justifyContent='center' alignItems='center'>
         {content}
       </Box>
     );
@@ -94,7 +94,7 @@ export function Modal({
 
 export interface DialogProps {
   /** Dialog type */
-  type?: "info" | "success" | "warning" | "error" | "confirm";
+  type?: 'info' | 'success' | 'warning' | 'error' | 'confirm';
   /** Dialog title */
   title: string;
   /** Message content */
@@ -110,18 +110,18 @@ export interface DialogProps {
 }
 
 const DIALOG_STYLES = {
-  info: { icon: "ℹ", color: "blue" },
-  success: { icon: "✓", color: "green" },
-  warning: { icon: "⚠", color: "yellow" },
-  error: { icon: "✗", color: "red" },
-  confirm: { icon: "?", color: "cyan" },
+  info: { icon: 'ℹ', color: 'blue' },
+  success: { icon: '✓', color: 'green' },
+  warning: { icon: '⚠', color: 'yellow' },
+  error: { icon: '✗', color: 'red' },
+  confirm: { icon: '?', color: 'cyan' },
 };
 
 export function Dialog({
-  type = "info",
+  type = 'info',
   title,
   message,
-  primaryLabel = "OK",
+  primaryLabel = 'OK',
   secondaryLabel,
   primaryFocused = true,
   width = 50,
@@ -138,8 +138,8 @@ export function Dialog({
       footer={
         <Box gap={2}>
           <Box
-            borderStyle="round"
-            borderColor={primaryFocused ? style.color : "gray"}
+            borderStyle='round'
+            borderColor={primaryFocused ? style.color : 'gray'}
             paddingX={2}
           >
             <Text bold={primaryFocused} color={primaryFocused ? style.color : undefined}>
@@ -148,8 +148,8 @@ export function Dialog({
           </Box>
           {secondaryLabel && (
             <Box
-              borderStyle="round"
-              borderColor={!primaryFocused ? style.color : "gray"}
+              borderStyle='round'
+              borderColor={!primaryFocused ? style.color : 'gray'}
               paddingX={2}
             >
               <Text bold={!primaryFocused} color={!primaryFocused ? style.color : undefined}>
@@ -160,7 +160,7 @@ export function Dialog({
         </Box>
       }
     >
-      {typeof message === "string" ? <Text>{message}</Text> : message}
+      {typeof message === 'string' ? <Text>{message}</Text> : message}
     </Modal>
   );
 }
@@ -189,35 +189,35 @@ export interface ConfirmDialogProps {
 export function ConfirmDialog({
   question,
   description,
-  yesLabel = "Yes",
-  noLabel = "No",
+  yesLabel = 'Yes',
+  noLabel = 'No',
   yesFocused = true,
   danger = false,
   width = 50,
 }: ConfirmDialogProps): React.ReactElement {
-  const color = danger ? "red" : "cyan";
+  const color = danger ? 'red' : 'cyan';
 
   return (
     <Modal
       title={question}
-      titleIcon="?"
+      titleIcon='?'
       borderColor={color}
       titleColor={color}
       width={width}
       footer={
         <Box gap={2}>
           <Box
-            borderStyle="round"
-            borderColor={yesFocused ? (danger ? "red" : "green") : "gray"}
+            borderStyle='round'
+            borderColor={yesFocused ? (danger ? 'red' : 'green') : 'gray'}
             paddingX={2}
           >
-            <Text bold={yesFocused} color={yesFocused ? (danger ? "red" : "green") : undefined}>
+            <Text bold={yesFocused} color={yesFocused ? (danger ? 'red' : 'green') : undefined}>
               {yesLabel}
             </Text>
           </Box>
           <Box
-            borderStyle="round"
-            borderColor={!yesFocused ? "gray" : "gray"}
+            borderStyle='round'
+            borderColor={!yesFocused ? 'gray' : 'gray'}
             paddingX={2}
           >
             <Text bold={!yesFocused} dimColor={yesFocused}>
@@ -238,7 +238,7 @@ export function ConfirmDialog({
 
 export interface AlertDialogProps {
   /** Alert type */
-  type?: "info" | "success" | "warning" | "error";
+  type?: 'info' | 'success' | 'warning' | 'error';
   /** Title */
   title: string;
   /** Message */
@@ -250,10 +250,10 @@ export interface AlertDialogProps {
 }
 
 export function AlertDialog({
-  type = "info",
+  type = 'info',
   title,
   message,
-  buttonLabel = "OK",
+  buttonLabel = 'OK',
   width = 50,
 }: AlertDialogProps): React.ReactElement {
   return (
@@ -295,15 +295,15 @@ export interface InputDialogProps {
 export function InputDialog({
   title,
   label,
-  value = "",
+  value = '',
   placeholder,
   error,
-  submitLabel = "Submit",
-  cancelLabel = "Cancel",
+  submitLabel = 'Submit',
+  cancelLabel = 'Cancel',
   submitFocused = false,
   width = 50,
 }: InputDialogProps): React.ReactElement {
-  const borderColor = error ? "red" : "cyan";
+  const borderColor = error ? 'red' : 'cyan';
 
   return (
     <Modal
@@ -313,17 +313,17 @@ export function InputDialog({
       footer={
         <Box gap={2}>
           <Box
-            borderStyle="round"
-            borderColor={submitFocused ? "green" : "gray"}
+            borderStyle='round'
+            borderColor={submitFocused ? 'green' : 'gray'}
             paddingX={2}
           >
-            <Text bold={submitFocused} color={submitFocused ? "green" : undefined}>
+            <Text bold={submitFocused} color={submitFocused ? 'green' : undefined}>
               {submitLabel}
             </Text>
           </Box>
           <Box
-            borderStyle="round"
-            borderColor={!submitFocused ? "gray" : "gray"}
+            borderStyle='round'
+            borderColor={!submitFocused ? 'gray' : 'gray'}
             paddingX={2}
           >
             <Text dimColor={submitFocused}>{cancelLabel}</Text>
@@ -331,17 +331,17 @@ export function InputDialog({
         </Box>
       }
     >
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection='column' gap={1}>
         {label && <Text>{label}</Text>}
         <Box
-          borderStyle="round"
-          borderColor={!submitFocused ? "cyan" : "gray"}
+          borderStyle='round'
+          borderColor={!submitFocused ? 'cyan' : 'gray'}
           paddingX={1}
         >
-          <Text dimColor={!value}>{value || placeholder || " "}</Text>
-          {!submitFocused && <Text color="cyan">│</Text>}
+          <Text dimColor={!value}>{value || placeholder || ' '}</Text>
+          {!submitFocused && <Text color='cyan'>│</Text>}
         </Box>
-        {error && <Text color="red">{error}</Text>}
+        {error && <Text color='red'>{error}</Text>}
       </Box>
     </Modal>
   );
@@ -375,35 +375,42 @@ export function ActionSheet({
   title,
   actions,
   selectedIndex = 0,
-  cancelLabel = "Cancel",
+  cancelLabel = 'Cancel',
   width = 40,
 }: ActionSheetProps): React.ReactElement {
   return (
     <Modal
       title={title}
-      borderStyle="round"
-      borderColor="gray"
+      borderStyle='round'
+      borderColor='gray'
       width={width}
     >
-      <Box flexDirection="column">
+      <Box flexDirection='column'>
         {actions.map((action, index) => {
           const isSelected = index === selectedIndex;
-          const color = action.danger ? "red" : action.color;
+          const color = action.danger ? 'red' : action.color;
 
           return (
             <Box key={index} paddingX={1}>
-              <Text color={isSelected ? (color ?? "cyan") : undefined} bold={isSelected}>
-                {isSelected ? "› " : "  "}
+              <Text color={isSelected ? (color ?? 'cyan') : undefined} bold={isSelected}>
+                {isSelected ? '› ' : '  '}
                 {action.icon && `${action.icon} `}
                 {action.label}
               </Text>
             </Box>
           );
         })}
-        <Box marginTop={1} borderStyle="single" borderColor="gray" borderLeft={false} borderRight={false} borderBottom={false} />
+        <Box
+          marginTop={1}
+          borderStyle='single'
+          borderColor='gray'
+          borderLeft={false}
+          borderRight={false}
+          borderBottom={false}
+        />
         <Box paddingX={1} marginTop={1}>
           <Text dimColor>
-            {selectedIndex === actions.length ? "› " : "  "}
+            {selectedIndex === actions.length ? '› ' : '  '}
             {cancelLabel}
           </Text>
         </Box>
@@ -424,38 +431,38 @@ export interface PopoverProps {
   /** Padding */
   padding?: number;
   /** Arrow position */
-  arrow?: "top" | "bottom" | "left" | "right" | "none";
+  arrow?: 'top' | 'bottom' | 'left' | 'right' | 'none';
 }
 
 export function Popover({
   children,
-  borderColor = "gray",
+  borderColor = 'gray',
   padding = 1,
-  arrow = "none",
+  arrow = 'none',
 }: PopoverProps): React.ReactElement {
   const arrowChar = {
-    top: "▲",
-    bottom: "▼",
-    left: "◀",
-    right: "▶",
-    none: "",
+    top: '▲',
+    bottom: '▼',
+    left: '◀',
+    right: '▶',
+    none: '',
   }[arrow];
 
   return (
-    <Box flexDirection="column" alignItems="center">
-      {arrow === "top" && <Text color={borderColor}>{arrowChar}</Text>}
-      <Box flexDirection="row" alignItems="center">
-        {arrow === "left" && <Text color={borderColor}>{arrowChar}</Text>}
+    <Box flexDirection='column' alignItems='center'>
+      {arrow === 'top' && <Text color={borderColor}>{arrowChar}</Text>}
+      <Box flexDirection='row' alignItems='center'>
+        {arrow === 'left' && <Text color={borderColor}>{arrowChar}</Text>}
         <Box
-          borderStyle="round"
+          borderStyle='round'
           borderColor={borderColor}
           padding={padding}
         >
           {children}
         </Box>
-        {arrow === "right" && <Text color={borderColor}>{arrowChar}</Text>}
+        {arrow === 'right' && <Text color={borderColor}>{arrowChar}</Text>}
       </Box>
-      {arrow === "bottom" && <Text color={borderColor}>{arrowChar}</Text>}
+      {arrow === 'bottom' && <Text color={borderColor}>{arrowChar}</Text>}
     </Box>
   );
 }
@@ -468,19 +475,19 @@ export interface TooltipProps {
   /** Tooltip text */
   text: string;
   /** Arrow position */
-  arrow?: "top" | "bottom" | "left" | "right";
+  arrow?: 'top' | 'bottom' | 'left' | 'right';
   /** Color */
   color?: string;
 }
 
 export function Tooltip({
   text,
-  arrow = "top",
-  color = "gray",
+  arrow = 'top',
+  color = 'gray',
 }: TooltipProps): React.ReactElement {
   return (
     <Popover borderColor={color} arrow={arrow} padding={0}>
-      <Text dimColor> {text} </Text>
+      <Text dimColor>{text}</Text>
     </Popover>
   );
 }

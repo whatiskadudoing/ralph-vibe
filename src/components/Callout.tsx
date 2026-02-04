@@ -4,17 +4,17 @@
  * Callout and highlight components using deno-ink.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
-export type CalloutType = "note" | "tip" | "important" | "warning" | "caution";
+export type CalloutType = 'note' | 'tip' | 'important' | 'warning' | 'caution';
 
 const CALLOUT_CONFIG: Record<CalloutType, { icon: string; color: string; label: string }> = {
-  note: { icon: "📝", color: "blue", label: "Note" },
-  tip: { icon: "💡", color: "green", label: "Tip" },
-  important: { icon: "❗", color: "magenta", label: "Important" },
-  warning: { icon: "⚠️", color: "yellow", label: "Warning" },
-  caution: { icon: "🚨", color: "red", label: "Caution" },
+  note: { icon: '📝', color: 'blue', label: 'Note' },
+  tip: { icon: '💡', color: 'green', label: 'Tip' },
+  important: { icon: '❗', color: 'magenta', label: 'Important' },
+  warning: { icon: '⚠️', color: 'yellow', label: 'Warning' },
+  caution: { icon: '🚨', color: 'red', label: 'Caution' },
 };
 
 export interface CalloutProps {
@@ -31,10 +31,10 @@ export function Callout({ type, title, children }: CalloutProps): React.ReactEle
   const displayTitle = title ?? config.label;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
         <Text color={config.color}>{config.icon}</Text>
-        <Text> </Text>
+        <Text></Text>
         <Text bold color={config.color}>{displayTitle}</Text>
       </Box>
       <Box marginLeft={3}>
@@ -53,10 +53,10 @@ export interface QuoteProps {
 
 export function Quote({ children, author, source }: QuoteProps): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
-        <Text color="cyan">│</Text>
-        <Text> </Text>
+        <Text color='cyan'>│</Text>
+        <Text></Text>
         <Text italic>{children}</Text>
       </Box>
       {(author || source) && (
@@ -78,12 +78,14 @@ export interface HighlightProps {
   icon?: string;
 }
 
-export function Highlight({ children, color = "yellow", icon }: HighlightProps): React.ReactElement {
+export function Highlight(
+  { children, color = 'yellow', icon }: HighlightProps,
+): React.ReactElement {
   return (
     <Box>
       <Text color={color}>▌</Text>
-      <Text> </Text>
-      {icon && <Text>{icon} </Text>}
+      <Text></Text>
+      {icon && <Text>{icon}</Text>}
       {children}
     </Box>
   );
@@ -96,9 +98,11 @@ export interface DefinitionProps {
   termColor?: string;
 }
 
-export function Definition({ term, children, termColor = "cyan" }: DefinitionProps): React.ReactElement {
+export function Definition(
+  { term, children, termColor = 'cyan' }: DefinitionProps,
+): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Text bold color={termColor}>{term}</Text>
       <Box marginLeft={2}>{children}</Box>
     </Box>
@@ -121,14 +125,14 @@ export function Step({
   completed = false,
   active = false,
 }: StepProps): React.ReactElement {
-  const icon = completed ? "✓" : String(number);
-  const iconColor = completed ? "green" : active ? "cyan" : "gray";
+  const icon = completed ? '✓' : String(number);
+  const iconColor = completed ? 'green' : active ? 'cyan' : 'gray';
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
         <Text color={iconColor} bold>[{icon}]</Text>
-        <Text> </Text>
+        <Text></Text>
         <Text bold={active}>{title}</Text>
       </Box>
       {children && (
@@ -152,7 +156,7 @@ export interface StepsProps {
 
 export function Steps({ steps, currentStep = 0 }: StepsProps): React.ReactElement {
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection='column' gap={1}>
       {steps.map((step, index) => (
         <React.Fragment key={index}>
           <Step
@@ -178,14 +182,12 @@ export interface AsideProps {
 export function Aside({ children, title }: AsideProps): React.ReactElement {
   return (
     <Box
-      borderStyle="single"
-      borderColor="gray"
+      borderStyle='single'
+      borderColor='gray'
       paddingX={1}
-      flexDirection="column"
+      flexDirection='column'
     >
-      {title && (
-        <Text dimColor bold>{title}</Text>
-      )}
+      {title && <Text dimColor bold>{title}</Text>}
       <Box>
         <Text dimColor>{children}</Text>
       </Box>

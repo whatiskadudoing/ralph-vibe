@@ -4,10 +4,10 @@
  * Reusable file selector component with keyboard navigation.
  */
 
-import React, { useState, useCallback } from "react";
-import { Box, Text, useInput } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
-import { KeyboardHints, navigationHints, selectionHints, exitHints } from "./KeyboardHints.tsx";
+import React, { useCallback, useState } from 'react';
+import { Box, Text, useInput } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
+import { exitHints, KeyboardHints, navigationHints, selectionHints } from './KeyboardHints.tsx';
 
 export interface SelectableFile {
   key: string;
@@ -31,7 +31,7 @@ export function FileSelector({
   onSelectionChange,
   onConfirm,
   onCancel,
-  title = "Select files",
+  title = 'Select files',
   subtitle,
 }: FileSelectorProps): React.ReactElement {
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -47,7 +47,7 @@ export function FileSelector({
   }, [selectedKeys, onSelectionChange]);
 
   const selectAll = useCallback(() => {
-    onSelectionChange(new Set(files.map(f => f.key)));
+    onSelectionChange(new Set(files.map((f) => f.key)));
   }, [files, onSelectionChange]);
 
   const selectNone = useCallback(() => {
@@ -59,16 +59,16 @@ export function FileSelector({
       setFocusedIndex((i: number) => Math.max(0, i - 1));
     } else if (key.downArrow) {
       setFocusedIndex((i: number) => Math.min(files.length - 1, i + 1));
-    } else if (input === " ") {
+    } else if (input === ' ') {
       const file = files[focusedIndex];
       if (file) {
         toggleFile(file.key);
       }
     } else if (key.return) {
       onConfirm();
-    } else if (input === "a" || input === "A") {
+    } else if (input === 'a' || input === 'A') {
       selectAll();
-    } else if (input === "n" || input === "N") {
+    } else if (input === 'n' || input === 'N') {
       selectNone();
     } else if (key.escape && onCancel) {
       onCancel();
@@ -76,22 +76,22 @@ export function FileSelector({
   });
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Text bold color={colors.accent}>{title}</Text>
       {subtitle && <Text color={colors.dim}>{subtitle}</Text>}
 
-      <Box flexDirection="column" marginTop={1}>
+      <Box flexDirection='column' marginTop={1}>
         {files.map((file, i) => {
           const isSelected = selectedKeys.has(file.key);
           const isFocused = i === focusedIndex;
           return (
             <React.Fragment key={file.key}>
-              <Box flexDirection="row" gap={1}>
+              <Box flexDirection='row' gap={1}>
                 <Text color={isFocused ? colors.accent : colors.dim}>
-                  {isFocused ? ">" : " "}
+                  {isFocused ? '>' : ' '}
                 </Text>
                 <Text color={isSelected ? colors.success : colors.dim}>
-                  {isSelected ? "[x]" : "[ ]"}
+                  {isSelected ? '[x]' : '[ ]'}
                 </Text>
                 <Text color={isSelected ? colors.text : colors.muted}>{file.name}</Text>
                 <Text color={colors.dim}>- {file.description}</Text>
@@ -101,7 +101,7 @@ export function FileSelector({
         })}
       </Box>
 
-      <Box flexDirection="column" marginTop={1} gap={1}>
+      <Box flexDirection='column' marginTop={1} gap={1}>
         <KeyboardHints hints={[...navigationHints, ...selectionHints]} />
         {onCancel && <KeyboardHints hints={exitHints} />}
       </Box>

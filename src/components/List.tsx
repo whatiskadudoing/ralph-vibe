@@ -4,11 +4,11 @@
  * List component with multiple styles using deno-ink.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
-import { StatusIndicator, type StatusType } from "./StatusIndicator.tsx";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
+import { StatusIndicator, type StatusType } from './StatusIndicator.tsx';
 
-export type ListStyle = "bullet" | "numbered" | "checkbox" | "arrow" | "custom";
+export type ListStyle = 'bullet' | 'numbered' | 'checkbox' | 'arrow' | 'custom';
 
 export interface ListItem {
   /** Item text */
@@ -37,15 +37,15 @@ export interface ListProps {
 }
 
 const BULLETS: Record<ListStyle, string> = {
-  bullet: "•",
-  numbered: "", // Handled specially
-  checkbox: "", // Uses status icons
-  arrow: "▶",
-  custom: "•",
+  bullet: '•',
+  numbered: '', // Handled specially
+  checkbox: '', // Uses status icons
+  arrow: '▶',
+  custom: '•',
 };
 
 function normalizeItem(item: string | ListItem): ListItem {
-  if (typeof item === "string") {
+  if (typeof item === 'string') {
     return { text: item };
   }
   return item;
@@ -70,12 +70,12 @@ function ListItemRow({
   itemColor,
   depth = 0,
 }: ListItemRowProps): React.ReactElement {
-  const indentStr = "  ".repeat(depth);
+  const indentStr = '  '.repeat(depth);
 
   // If item has a status, render with StatusIndicator
   if (item.status) {
     return (
-      <Box flexDirection="column">
+      <Box flexDirection='column'>
         <Box>
           <Text>{indentStr}</Text>
           <StatusIndicator type={item.status} text={item.text} />
@@ -100,19 +100,19 @@ function ListItemRow({
   // Determine the prefix
   let prefix: string;
   switch (style) {
-    case "numbered":
+    case 'numbered':
       prefix = `${index + 1}.`;
       break;
-    case "checkbox":
-      prefix = "○"; // Default to pending
+    case 'checkbox':
+      prefix = '○'; // Default to pending
       break;
-    case "arrow":
+    case 'arrow':
       prefix = BULLETS.arrow;
       break;
-    case "custom":
+    case 'custom':
       prefix = bullet ?? BULLETS.bullet;
       break;
-    case "bullet":
+    case 'bullet':
     default:
       prefix = BULLETS.bullet;
       break;
@@ -121,13 +121,13 @@ function ListItemRow({
   const textColor = item.color ?? itemColor;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
         <Text>{indentStr}</Text>
         <Text color={bulletColor} dimColor={!bulletColor}>
           {prefix}
         </Text>
-        <Text> </Text>
+        <Text></Text>
         <Text color={textColor}>{item.text}</Text>
       </Box>
       {item.subItems?.map((subItem, i) => (
@@ -149,16 +149,16 @@ function ListItemRow({
 
 export function List({
   items,
-  style = "bullet",
+  style = 'bullet',
   bullet,
   indent = 0,
   bulletColor,
   itemColor,
 }: ListProps): React.ReactElement {
-  const indentStr = " ".repeat(indent);
+  const indentStr = ' '.repeat(indent);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {items.map((rawItem, index) => {
         const item = normalizeItem(rawItem);
         return (
@@ -187,7 +187,7 @@ export function BulletList({
   items: string[];
   indent?: number;
 }): React.ReactElement {
-  return <List items={items} style="bullet" indent={indent} />;
+  return <List items={items} style='bullet' indent={indent} />;
 }
 
 export function NumberedList({
@@ -197,7 +197,7 @@ export function NumberedList({
   items: string[];
   indent?: number;
 }): React.ReactElement {
-  return <List items={items} style="numbered" indent={indent} />;
+  return <List items={items} style='numbered' indent={indent} />;
 }
 
 export function ArrowList({
@@ -209,7 +209,7 @@ export function ArrowList({
   indent?: number;
   bulletColor?: string;
 }): React.ReactElement {
-  return <List items={items} style="arrow" indent={indent} bulletColor={bulletColor} />;
+  return <List items={items} style='arrow' indent={indent} bulletColor={bulletColor} />;
 }
 
 export function TaskList({

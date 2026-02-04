@@ -25,11 +25,11 @@ import {
 import { BOX_ROUNDED, SPINNER_DOTS } from './symbols.ts';
 import { createBox } from './box.ts';
 import {
-  calculateCostBreakdown,
-  calculateCacheSavings,
   calculateCacheEfficiency,
-  formatCost,
+  calculateCacheSavings,
+  calculateCostBreakdown,
   type CostBreakdown,
+  formatCost,
 } from '../services/cost_calculator.ts';
 
 // ============================================================================
@@ -555,7 +555,8 @@ function extractUsage(
 
   // Cache tokens (from Anthropic API prompt caching)
   const cacheReadTokens = usage?.cache_read_input_tokens ?? resultUsage?.cache_read_input_tokens;
-  const cacheWriteTokens = usage?.cache_creation_input_tokens ?? resultUsage?.cache_creation_input_tokens;
+  const cacheWriteTokens = usage?.cache_creation_input_tokens ??
+    resultUsage?.cache_creation_input_tokens;
 
   // Calculate cost using cost calculator service
   let costUsd: number | undefined;
@@ -857,7 +858,9 @@ class BoxedIterationRenderer {
     }
 
     // Line 12: Bottom border
-    const bottomBorder = bc(BOX.bottomLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.bottomRight);
+    const bottomBorder = bc(
+      BOX.bottomLeft + BOX.horizontal.repeat(this.boxWidth - 2) + BOX.bottomRight,
+    );
     Deno.stdout.writeSync(textEncoder.encode(`\x1b[2K${bottomBorder}\n`));
   }
 
@@ -1017,7 +1020,9 @@ function extractTaskFromText(text: string): { title?: string; task?: string } | 
   }
 
   // Look for "Working on:" or "Next task:" patterns
-  const workingOnMatch = text.match(/(?:Working on|Next task|Now (?:working on|implementing)|Starting):\s*(.+?)(?:\n|$)/i);
+  const workingOnMatch = text.match(
+    /(?:Working on|Next task|Now (?:working on|implementing)|Starting):\s*(.+?)(?:\n|$)/i,
+  );
   if (workingOnMatch) {
     return { task: workingOnMatch[1]?.trim() };
   }

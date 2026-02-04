@@ -5,9 +5,9 @@
  * Clean single-line display with truncation for long messages.
  */
 
-import React, { useState, useEffect } from "react";
-import { Box, Text, Spinner } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, Spinner, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 export interface ProgressLineProps {
   /** Status message to display */
@@ -34,7 +34,7 @@ function formatElapsed(seconds: number): string {
  */
 function truncateText(text: string, maxWidth: number): string {
   if (text.length <= maxWidth) return text;
-  return text.slice(0, maxWidth - 3) + "...";
+  return text.slice(0, maxWidth - 3) + '...';
 }
 
 export function ProgressLine({
@@ -42,7 +42,7 @@ export function ProgressLine({
   startTime,
   showSpinner = true,
   width = 150,
-  maxLines = 1,
+  maxLines: _maxLines = 1,
 }: ProgressLineProps): React.ReactElement {
   const [elapsed, setElapsed] = useState(0);
 
@@ -59,22 +59,17 @@ export function ProgressLine({
     return () => clearInterval(timer);
   }, [startTime]);
 
-  // Calculate available width for status text
-  // Account for: spinner (2 chars) + gap (1) + elapsed time in brackets (e.g., "[12s] " = 6 chars) + gaps
-  const elapsedText = elapsed > 0 ? `[${formatElapsed(elapsed)}]` : "";
-  const reservedWidth = (showSpinner ? 2 : 0) + (elapsedText ? elapsedText.length + 2 : 0) + 4; // Extra padding for gaps
-  const maxStatusWidth = Math.max(40, width - reservedWidth);
-
-  // Truncate status text to fit
-  const displayStatus = truncateText(status, maxStatusWidth);
+  const elapsedText = elapsed > 0 ? `[${formatElapsed(elapsed)}] ` : '';
+  const prefix = (showSpinner ? 2 : 0) + elapsedText.length;
 
   return (
-    <Box flexDirection="row" gap={1}>
-      {showSpinner && <Spinner type="dots" />}
-      {startTime && elapsed > 0 && (
-        <Text color={colors.dim}>{elapsedText}</Text>
-      )}
-      <Text>{displayStatus}</Text>
+    <Box flexDirection='row' gap={1}>
+      {showSpinner && <Spinner type='dots' />}
+      {elapsedText && <Text color={colors.dim}>{elapsedText}</Text>}
+      {/* Text with wrap - will flow to multiple lines */}
+      <Box width={width - prefix - 2}>
+        <Text wrap='wrap'>{status}</Text>
+      </Box>
     </Box>
   );
 }

@@ -5,8 +5,8 @@
  */
 
 import { blue, cyan, dim, gray, green, red, yellow } from './colors.ts';
-import { CHECK, CROSS, INFO, WARNING, CIRCLE_EMPTY, SPINNER_DOTS } from './symbols.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { CHECK, CIRCLE_EMPTY, CROSS, INFO, SPINNER_DOTS, WARNING } from './symbols.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // Status Types

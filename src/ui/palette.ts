@@ -22,17 +22,17 @@ export const palette = {
   // Semantic Colors
   success: '#A3BE8C', // Green for success
   warning: '#EBCB8B', // Yellow for warnings
-  error: '#BF616A',   // Muted red for errors
-  info: '#88C0D0',    // Light blue for info
+  error: '#BF616A', // Muted red for errors
+  info: '#88C0D0', // Light blue for info
 
   // Grayscale
   gray: {
-    black: '#2E3440',  // Deep, dark gray (almost black)
-    darkest: '#3B4252',// Dark gray for backgrounds
-    dark: '#4C566A',   // Medium-dark gray for borders
-    base: '#D8DEE9',   // Light gray for text
-    light: '#E5E9F0',  // Lighter gray for subtle text
-    lightest: '#ECEFF4',// Almost white, for backgrounds
+    black: '#2E3440', // Deep, dark gray (almost black)
+    darkest: '#3B4252', // Dark gray for backgrounds
+    dark: '#4C566A', // Medium-dark gray for borders
+    base: '#D8DEE9', // Light gray for text
+    light: '#E5E9F0', // Lighter gray for subtle text
+    lightest: '#ECEFF4', // Almost white, for backgrounds
     white: '#FFFFFF',
   },
 } as const;

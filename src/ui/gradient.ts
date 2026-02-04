@@ -4,7 +4,7 @@
  * Gradient text component for multi-color text effects.
  */
 
-import { supportsColor, getCapabilities } from './capabilities.ts';
+import { getCapabilities } from './capabilities.ts';
 
 // ============================================================================
 // Gradient Types
@@ -36,9 +36,7 @@ function hexToRgb(hex: string): RGB {
   const cleanHex = hex.replace('#', '');
 
   // Handle shorthand hex (e.g., #FFF)
-  const fullHex = cleanHex.length === 3
-    ? cleanHex.split('').map((c) => c + c).join('')
-    : cleanHex;
+  const fullHex = cleanHex.length === 3 ? cleanHex.split('').map((c) => c + c).join('') : cleanHex;
 
   const num = parseInt(fullHex, 16);
   return {
@@ -75,7 +73,7 @@ function getGradientColor(colors: RGB[], position: number): RGB {
   }
 
   if (colors.length === 1) {
-    return colors[0]!;
+    return colors[0] ?? { r: 255, g: 255, b: 255 };
   }
 
   // Clamp position to [0, 1]
@@ -87,7 +85,9 @@ function getGradientColor(colors: RGB[], position: number): RGB {
   const segmentIndex = Math.min(Math.floor(segmentPosition), segmentCount - 1);
   const segmentT = segmentPosition - segmentIndex;
 
-  return interpolateRgb(colors[segmentIndex]!, colors[segmentIndex + 1]!, segmentT);
+  const startColor = colors[segmentIndex] ?? { r: 255, g: 255, b: 255 };
+  const endColor = colors[segmentIndex + 1] ?? { r: 255, g: 255, b: 255 };
+  return interpolateRgb(startColor, endColor, segmentT);
 }
 
 // ============================================================================

@@ -6,6 +6,7 @@
  */
 
 import { palette } from '../ui/palette.ts';
+import { formatDuration } from './formatting.ts';
 
 // ============================================================================
 // ANSI Color Codes
@@ -153,14 +154,11 @@ function getRandomCompletionMessage(): string {
   return COMPLETION_MESSAGES[idx] ?? COMPLETION_MESSAGES[0] ?? 'Nailed it!';
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins < 60) return `${mins}m ${secs}s`;
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}h ${remainingMins}m`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatTokens(tokens: number): string {
@@ -248,7 +246,7 @@ export function buildFinalOutput(options: FinalOutputOptions): string {
       // Duration, iterations, operations on one line
       const quickStats: string[] = [];
       if (stats.durationSec !== undefined && stats.durationSec > 0) {
-        quickStats.push(ansi.dimGray(`⏱  ${formatDuration(stats.durationSec)}`));
+        quickStats.push(ansi.dimGray(`⏱  ${formatDurationSec(stats.durationSec)}`));
       }
       if (stats.iterations !== undefined && stats.iterations > 0) {
         quickStats.push(ansi.dimGray(`${stats.iterations} iterations`));
@@ -268,33 +266,33 @@ export function buildFinalOutput(options: FinalOutputOptions): string {
 
         // Input tokens
         lines.push(
-          `    ${ansi.tokenInput('↓')} ${ansi.tokenInput(formatTokens(stats.inputTokens ?? 0).padStart(8))} ${
-            ansi.dimGray('input tokens')
-          }`,
+          `    ${ansi.tokenInput('↓')} ${
+            ansi.tokenInput(formatTokens(stats.inputTokens ?? 0).padStart(8))
+          } ${ansi.dimGray('input tokens')}`,
         );
 
         // Output tokens
         lines.push(
-          `    ${ansi.tokenOutput('↑')} ${ansi.tokenOutput(formatTokens(stats.outputTokens ?? 0).padStart(8))} ${
-            ansi.dimGray('output tokens')
-          }`,
+          `    ${ansi.tokenOutput('↑')} ${
+            ansi.tokenOutput(formatTokens(stats.outputTokens ?? 0).padStart(8))
+          } ${ansi.dimGray('output tokens')}`,
         );
 
         // Cache read tokens (saved)
         if (stats.cacheTokensSaved !== undefined && stats.cacheTokensSaved > 0) {
           lines.push(
-            `    ${ansi.tokenCache('●')} ${ansi.tokenCache(formatTokens(stats.cacheTokensSaved).padStart(8))} ${
-              ansi.dimGray('cache read (saved)')
-            }`,
+            `    ${ansi.tokenCache('●')} ${
+              ansi.tokenCache(formatTokens(stats.cacheTokensSaved).padStart(8))
+            } ${ansi.dimGray('cache read (saved)')}`,
           );
         }
 
         // Cache write tokens
         if (stats.cacheWriteTokens !== undefined && stats.cacheWriteTokens > 0) {
           lines.push(
-            `    ${ansi.dimGray('○')} ${ansi.dimGray(formatTokens(stats.cacheWriteTokens).padStart(8))} ${
-              ansi.dimGray('cache write')
-            }`,
+            `    ${ansi.dimGray('○')} ${
+              ansi.dimGray(formatTokens(stats.cacheWriteTokens).padStart(8))
+            } ${ansi.dimGray('cache write')}`,
           );
         }
 
@@ -304,16 +302,19 @@ export function buildFinalOutput(options: FinalOutputOptions): string {
           `    ${ansi.dimGray('─'.repeat(20))}`,
         );
         lines.push(
-          `    ${ansi.tokenTotal('Σ')} ${ansi.tokenTotal(`${BOLD}${formatTokens(grandTotal)}${RESET}`.padStart(8))} ${
-            ansi.dimGray('total processed')
-          }`,
+          `    ${ansi.tokenTotal('Σ')} ${
+            ansi.tokenTotal(`${BOLD}${formatTokens(grandTotal)}${RESET}`.padStart(8))
+          } ${ansi.dimGray('total processed')}`,
         );
 
         lines.push('');
       }
 
       // Cache efficiency (prominent display)
-      if (stats.cacheTokensSaved !== undefined && stats.cacheTokensSaved > 0 && stats.inputTokens !== undefined && stats.inputTokens > 0) {
+      if (
+        stats.cacheTokensSaved !== undefined && stats.cacheTokensSaved > 0 &&
+        stats.inputTokens !== undefined && stats.inputTokens > 0
+      ) {
         const efficiency = calculateCacheEfficiency(
           stats.cacheTokensSaved,
           stats.inputTokens,
@@ -365,9 +366,9 @@ export function buildFinalOutput(options: FinalOutputOptions): string {
             `    ${ansi.dimGray('─'.repeat(20))}`,
           );
           lines.push(
-            `    ${ansi.green('💰')} ${ansi.accent(`${BOLD}${formatCost(stats.totalCost.total)}${RESET}`.padStart(10))} ${
-              ansi.dimGray('total cost')
-            }`,
+            `    ${ansi.green('💰')} ${
+              ansi.accent(`${BOLD}${formatCost(stats.totalCost.total)}${RESET}`.padStart(10))
+            } ${ansi.dimGray('total cost')}`,
           );
 
           // Cache savings
@@ -396,11 +397,15 @@ export function buildFinalOutput(options: FinalOutputOptions): string {
           `  ${BOLD}API Usage${RESET}`,
         );
         lines.push(
-          `    ${ansi.accent(`+${stats.usage5hDelta.toFixed(1)}%`)} ${ansi.dimGray('5-hour window')}`,
+          `    ${ansi.accent(`+${stats.usage5hDelta.toFixed(1)}%`)} ${
+            ansi.dimGray('5-hour window')
+          }`,
         );
         if (stats.usage7dDelta !== undefined && stats.usage7dDelta > 0) {
           lines.push(
-            `    ${ansi.muted(`+${stats.usage7dDelta.toFixed(1)}%`)} ${ansi.dimGray('7-day window')}`,
+            `    ${ansi.muted(`+${stats.usage7dDelta.toFixed(1)}%`)} ${
+              ansi.dimGray('7-day window')
+            }`,
           );
         }
         lines.push('');

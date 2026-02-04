@@ -5,10 +5,10 @@
  * Creates a box with a title integrated into the top border.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text, type Styles } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, type Styles, Text } from '@ink/mod.ts';
 
-export type BorderStyle = "single" | "round" | "double" | "bold";
+export type BorderStyle = 'single' | 'round' | 'double' | 'bold';
 
 export interface TitleBoxProps {
   /** Box title (appears in top border) */
@@ -47,44 +47,44 @@ const BORDERS: Record<BorderStyle, {
   bottomRight: string;
 }> = {
   single: {
-    topLeft: "┌",
-    top: "─",
-    topRight: "┐",
-    left: "│",
-    right: "│",
-    bottomLeft: "└",
-    bottom: "─",
-    bottomRight: "┘",
+    topLeft: '┌',
+    top: '─',
+    topRight: '┐',
+    left: '│',
+    right: '│',
+    bottomLeft: '└',
+    bottom: '─',
+    bottomRight: '┘',
   },
   round: {
-    topLeft: "╭",
-    top: "─",
-    topRight: "╮",
-    left: "│",
-    right: "│",
-    bottomLeft: "╰",
-    bottom: "─",
-    bottomRight: "╯",
+    topLeft: '╭',
+    top: '─',
+    topRight: '╮',
+    left: '│',
+    right: '│',
+    bottomLeft: '╰',
+    bottom: '─',
+    bottomRight: '╯',
   },
   double: {
-    topLeft: "╔",
-    top: "═",
-    topRight: "╗",
-    left: "║",
-    right: "║",
-    bottomLeft: "╚",
-    bottom: "═",
-    bottomRight: "╝",
+    topLeft: '╔',
+    top: '═',
+    topRight: '╗',
+    left: '║',
+    right: '║',
+    bottomLeft: '╚',
+    bottom: '═',
+    bottomRight: '╝',
   },
   bold: {
-    topLeft: "┏",
-    top: "━",
-    topRight: "┓",
-    left: "┃",
-    right: "┃",
-    bottomLeft: "┗",
-    bottom: "━",
-    bottomRight: "┛",
+    topLeft: '┏',
+    top: '━',
+    topRight: '┓',
+    left: '┃',
+    right: '┃',
+    bottomLeft: '┗',
+    bottom: '━',
+    bottomRight: '┛',
   },
 };
 
@@ -94,7 +94,7 @@ export function TitleBox({
   titleColor,
   footer,
   footerColor,
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   width,
   padding = 0,
@@ -102,26 +102,26 @@ export function TitleBox({
   paddingY,
   children,
 }: TitleBoxProps): React.ReactElement {
-  const border = BORDERS[borderStyle];
+  const _border = BORDERS[borderStyle];
   const px = paddingX ?? padding;
   const py = paddingY ?? padding;
 
   // For now, use Box's built-in border with title shown inside
   // A full title-in-border implementation would require custom rendering
   const boxStyle: Styles = {
-    borderStyle: borderStyle === "round" ? "round" : borderStyle,
+    borderStyle: borderStyle === 'round' ? 'round' : borderStyle,
     borderColor,
     paddingX: px,
     paddingY: py,
     width: width as number | undefined,
-    flexDirection: "column",
+    flexDirection: 'column',
   };
 
   return (
     <Box {...boxStyle}>
       {title && (
         <Box marginBottom={py > 0 ? 0 : 1}>
-          {titleIcon && <Text color={titleColor ?? borderColor}>{titleIcon} </Text>}
+          {titleIcon && <Text color={titleColor ?? borderColor}>{titleIcon}</Text>}
           <Text bold color={titleColor ?? borderColor}>
             {title}
           </Text>
@@ -141,19 +141,22 @@ export function TitleBox({
 
 // Simple bordered box (no title)
 export function BorderedBox({
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   padding = 1,
   paddingX,
   paddingY,
   width,
   children,
-}: Omit<TitleBoxProps, "title" | "titleIcon" | "titleColor" | "footer" | "footerColor">): React.ReactElement {
+}: Omit<
+  TitleBoxProps,
+  'title' | 'titleIcon' | 'titleColor' | 'footer' | 'footerColor'
+>): React.ReactElement {
   const px = paddingX ?? padding;
   const py = paddingY ?? padding;
 
   const boxStyle: Styles = {
-    borderStyle: borderStyle === "round" ? "round" : borderStyle,
+    borderStyle: borderStyle === 'round' ? 'round' : borderStyle,
     borderColor,
     paddingX: px,
     paddingY: py,

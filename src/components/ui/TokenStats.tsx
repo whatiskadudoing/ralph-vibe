@@ -10,9 +10,9 @@
  * - Understanding token usage helps optimize prompts
  */
 
-import React from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 // ============================================================================
 // Types
@@ -80,18 +80,14 @@ export function TokenBadge({
   const totalStr = formatTokens(total);
 
   // Show delta if available
-  const deltaTotal = iterationDelta
-    ? iterationDelta.input + iterationDelta.output
-    : 0;
+  const deltaTotal = iterationDelta ? iterationDelta.input + iterationDelta.output : 0;
   const deltaStr = deltaTotal > 0 ? `+${formatTokens(deltaTotal)}` : null;
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={colors.dim}>tokens:</Text>
       <Text color={colors.tokenTotal} bold>{totalStr}</Text>
-      {deltaStr && (
-        <Text color={colors.tokenOutput}>{deltaStr}</Text>
-      )}
+      {deltaStr && <Text color={colors.tokenOutput}>{deltaStr}</Text>}
     </Box>
   );
 }
@@ -104,7 +100,7 @@ export function TokenBreakdown({
   inputTokens,
   outputTokens,
   cacheReadTokens,
-  cacheWriteTokens,
+  cacheWriteTokens: _cacheWriteTokens,
 }: {
   inputTokens: number;
   outputTokens: number;
@@ -112,8 +108,8 @@ export function TokenBreakdown({
   cacheWriteTokens?: number;
 }): React.ReactElement {
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column'>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>↑</Text>
         <Text color={colors.tokenInput}>{formatTokens(inputTokens)}</Text>
         <Text color={colors.dim}>in</Text>
@@ -123,7 +119,7 @@ export function TokenBreakdown({
         <Text color={colors.dim}>out</Text>
       </Box>
       {(cacheReadTokens !== undefined && cacheReadTokens > 0) && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>💾</Text>
           <Text color={colors.tokenCache}>{formatTokens(cacheReadTokens)}</Text>
           <Text color={colors.dim}>cached (saved)</Text>
@@ -141,7 +137,7 @@ export function TokenStats({
   inputTokens,
   outputTokens,
   cacheReadTokens,
-  cacheWriteTokens,
+  cacheWriteTokens: _cacheWriteTokens,
   iterationDelta,
   compact = false,
   showCache = true,
@@ -161,9 +157,9 @@ export function TokenStats({
 
   // Full mode - detailed breakdown
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {/* Total tokens prominently */}
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>📊</Text>
         <Text color={colors.tokenTotal} bold>{formatTokens(total)}</Text>
         <Text color={colors.dim}>tokens</Text>
@@ -175,7 +171,7 @@ export function TokenStats({
       </Box>
 
       {/* Input/output breakdown */}
-      <Box flexDirection="row" gap={1} marginLeft={3}>
+      <Box flexDirection='row' gap={1} marginLeft={3}>
         <Text color={colors.tokenInput}>{formatTokens(inputTokens)}</Text>
         <Text color={colors.dim}>in</Text>
         <Text color={colors.dim}>·</Text>
@@ -185,7 +181,7 @@ export function TokenStats({
 
       {/* Cache stats if available and enabled */}
       {showCache && cacheReadTokens !== undefined && cacheReadTokens > 0 && (
-        <Box flexDirection="row" gap={1} marginLeft={3}>
+        <Box flexDirection='row' gap={1} marginLeft={3}>
           <Text color={colors.tokenCache}>{formatTokens(cacheReadTokens)}</Text>
           <Text color={colors.dim}>cached</Text>
         </Box>
@@ -220,18 +216,16 @@ export function SessionTokenSummary({
   iterations,
 }: SessionTokenSummaryProps): React.ReactElement {
   const total = totalInputTokens + totalOutputTokens;
-  const avgPerIteration = iterations && iterations > 0
-    ? Math.round(total / iterations)
-    : 0;
+  const avgPerIteration = iterations && iterations > 0 ? Math.round(total / iterations) : 0;
 
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column'>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>📊</Text>
         <Text bold>{formatTokens(total)}</Text>
         <Text color={colors.dim}>tokens consumed</Text>
       </Box>
-      <Box flexDirection="row" gap={1} marginLeft={3}>
+      <Box flexDirection='row' gap={1} marginLeft={3}>
         <Text color={colors.tokenInput}>{formatTokens(totalInputTokens)}</Text>
         <Text color={colors.dim}>in</Text>
         <Text color={colors.dim}>·</Text>
@@ -239,14 +233,14 @@ export function SessionTokenSummary({
         <Text color={colors.dim}>out</Text>
       </Box>
       {cacheTokensSaved > 0 && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>💾</Text>
           <Text color={colors.tokenCache} bold>{formatTokens(cacheTokensSaved)}</Text>
           <Text color={colors.dim}>tokens saved by cache</Text>
         </Box>
       )}
       {avgPerIteration > 0 && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>📈</Text>
           <Text>{formatTokens(avgPerIteration)}</Text>
           <Text color={colors.dim}>avg per iteration</Text>
@@ -276,19 +270,17 @@ export function InlineTokens({
   const total = inputTokens + outputTokens;
 
   if (!showBreakdown) {
-    return (
-      <Text color={colors.tokenTotal}>{formatTokens(total)} tokens</Text>
-    );
+    return <Text color={colors.tokenTotal}>{formatTokens(total)} tokens</Text>;
   }
 
   return (
-    <Box flexDirection="row" gap={0}>
+    <Box flexDirection='row' gap={0}>
       <Text color={colors.tokenTotal}>{formatTokens(total)}</Text>
-      <Text color={colors.dim}> tokens (</Text>
+      <Text color={colors.dim}>tokens (</Text>
       <Text color={colors.tokenInput}>{formatTokens(inputTokens)}</Text>
-      <Text color={colors.dim}> in / </Text>
+      <Text color={colors.dim}>in /</Text>
       <Text color={colors.tokenOutput}>{formatTokens(outputTokens)}</Text>
-      <Text color={colors.dim}> out)</Text>
+      <Text color={colors.dim}>out)</Text>
     </Box>
   );
 }

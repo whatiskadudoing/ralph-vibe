@@ -10,15 +10,15 @@
  * - Aider: Rich diff display with context
  */
 
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type DiffLineType = "add" | "remove" | "context";
+export type DiffLineType = 'add' | 'remove' | 'context';
 
 export interface DiffLine {
   /** Type of line change */
@@ -60,7 +60,7 @@ export interface DiffViewProps {
  * Formats a line number with padding.
  */
 function formatLineNumber(num: number | undefined, width: number = 4): string {
-  if (num === undefined) return " ".repeat(width);
+  if (num === undefined) return ' '.repeat(width);
   return String(num).padStart(width);
 }
 
@@ -72,8 +72,8 @@ function getDiffStats(lines: DiffLine[]): { additions: number; deletions: number
   let deletions = 0;
 
   for (const line of lines) {
-    if (line.type === "add") additions++;
-    if (line.type === "remove") deletions++;
+    if (line.type === 'add') additions++;
+    if (line.type === 'remove') deletions++;
   }
 
   return { additions, deletions };
@@ -84,7 +84,7 @@ function getDiffStats(lines: DiffLine[]): { additions: number; deletions: number
  */
 function truncateLine(content: string, maxWidth: number): string {
   if (content.length <= maxWidth) return content;
-  return content.slice(0, maxWidth - 1) + "…";
+  return content.slice(0, maxWidth - 1) + '…';
 }
 
 // ============================================================================
@@ -109,37 +109,31 @@ function DiffLineRow({
   const prefixWidth = 2; // "+ " or "- " or "  "
   const contentWidth = maxWidth - (showLineNumbers ? lineNumWidth + 1 : 0) - prefixWidth;
 
-  const lineColor = line.type === "add"
+  const lineColor = line.type === 'add'
     ? colors.success
-    : line.type === "remove"
+    : line.type === 'remove'
     ? colors.error
     : colors.dim;
 
-  const prefix = line.type === "add"
-    ? "+"
-    : line.type === "remove"
-    ? "-"
-    : " ";
+  const prefix = line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' ';
 
-  const bgStyle = line.type === "add"
-    ? { backgroundColor: "#1a3d1a" } // dark green background
-    : line.type === "remove"
-    ? { backgroundColor: "#3d1a1a" } // dark red background
+  const _bgStyle = line.type === 'add'
+    ? { backgroundColor: '#1a3d1a' } // dark green background
+    : line.type === 'remove'
+    ? { backgroundColor: '#3d1a1a' } // dark red background
     : {};
 
-  const lineNum = line.type === "remove"
-    ? line.oldLineNumber
-    : line.newLineNumber;
+  const lineNum = line.type === 'remove' ? line.oldLineNumber : line.newLineNumber;
 
   return (
-    <Box flexDirection="row">
+    <Box flexDirection='row'>
       {showLineNumbers && (
         <Text color={colors.dim}>
           {formatLineNumber(lineNum, lineNumWidth)}
         </Text>
       )}
-      {showLineNumbers && <Text color={colors.dim}> </Text>}
-      <Text color={lineColor} bold={line.type !== "context"}>
+      {showLineNumbers && <Text color={colors.dim}></Text>}
+      <Text color={lineColor} bold={line.type !== 'context'}>
         {prefix}
       </Text>
       <Text color={lineColor}>
@@ -156,7 +150,7 @@ function CollapsedDiffHeader({
   file,
   additions,
   deletions,
-  onToggle,
+  onToggle: _onToggle,
 }: {
   file: string;
   additions: number;
@@ -164,7 +158,7 @@ function CollapsedDiffHeader({
   onToggle?: () => void;
 }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={colors.dim}>▶</Text>
       <Text color={colors.muted}>{file}</Text>
       {additions > 0 && <Text color={colors.success}>+{additions}</Text>}
@@ -188,7 +182,7 @@ function ExpandedDiffHeader({
   isStreaming?: boolean;
 }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1} paddingX={1}>
+    <Box flexDirection='row' gap={1} paddingX={1}>
       <Text color={colors.dim}>▼</Text>
       <Text color={colors.muted}>{file}</Text>
       {additions > 0 && <Text color={colors.success}>+{additions}</Text>}
@@ -231,15 +225,15 @@ export function DiffView({
 }: DiffViewProps): React.ReactElement {
   const { additions, deletions } = getDiffStats(lines);
   const [localCollapsed, setLocalCollapsed] = useState(collapsed);
-  const prevStreamingRef = useRef(isStreaming);
+  const [prevStreaming, setPrevStreaming] = useState(isStreaming);
 
   // Auto-collapse when streaming stops
   useEffect(() => {
-    if (autoCollapse && prevStreamingRef.current && !isStreaming) {
+    if (autoCollapse && prevStreaming && !isStreaming) {
       setLocalCollapsed(true);
     }
-    prevStreamingRef.current = isStreaming;
-  }, [isStreaming, autoCollapse]);
+    setPrevStreaming(isStreaming);
+  }, [isStreaming, autoCollapse, prevStreaming]);
 
   // Sync with external collapsed state
   useEffect(() => {
@@ -272,8 +266,8 @@ export function DiffView({
 
   return (
     <Box
-      flexDirection="column"
-      borderStyle={showBorder ? "single" : undefined}
+      flexDirection='column'
+      borderStyle={showBorder ? 'single' : undefined}
       borderColor={colors.dim}
     >
       <ExpandedDiffHeader
@@ -342,7 +336,7 @@ export function MultiDiffView({
         state[diff.file] = startCollapsed;
       }
       return state;
-    }
+    },
   );
 
   const toggleFile = (file: string) => {
@@ -362,16 +356,12 @@ export function MultiDiffView({
   }
 
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection='column' gap={1}>
       {/* Summary header */}
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>{diffs.length} files changed</Text>
-        {totalAdditions > 0 && (
-          <Text color={colors.success}>+{totalAdditions}</Text>
-        )}
-        {totalDeletions > 0 && (
-          <Text color={colors.error}>-{totalDeletions}</Text>
-        )}
+        {totalAdditions > 0 && <Text color={colors.success}>+{totalAdditions}</Text>}
+        {totalDeletions > 0 && <Text color={colors.error}>-{totalDeletions}</Text>}
       </Box>
 
       {/* Individual diffs */}
@@ -401,40 +391,40 @@ export function MultiDiffView({
  */
 export function parseUnifiedDiff(diffText: string): DiffLine[] {
   const lines: DiffLine[] = [];
-  const diffLines = diffText.split("\n");
+  const diffLines = diffText.split('\n');
 
   let oldLine = 0;
   let newLine = 0;
 
   for (const line of diffLines) {
     // Skip diff headers
-    if (line.startsWith("---") || line.startsWith("+++")) continue;
-    if (line.startsWith("@@")) {
+    if (line.startsWith('---') || line.startsWith('+++')) continue;
+    if (line.startsWith('@@')) {
       // Parse hunk header: @@ -start,count +start,count @@
       const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
       if (match) {
-        oldLine = parseInt(match[1]!, 10);
-        newLine = parseInt(match[2]!, 10);
+        oldLine = parseInt(match[1] ?? '0', 10);
+        newLine = parseInt(match[2] ?? '0', 10);
       }
       continue;
     }
 
-    if (line.startsWith("+")) {
+    if (line.startsWith('+')) {
       lines.push({
-        type: "add",
+        type: 'add',
         content: line.slice(1),
         newLineNumber: newLine++,
       });
-    } else if (line.startsWith("-")) {
+    } else if (line.startsWith('-')) {
       lines.push({
-        type: "remove",
+        type: 'remove',
         content: line.slice(1),
         oldLineNumber: oldLine++,
       });
-    } else if (line.startsWith(" ") || line === "") {
+    } else if (line.startsWith(' ') || line === '') {
       lines.push({
-        type: "context",
-        content: line.slice(1) || "",
+        type: 'context',
+        content: line.slice(1) || '',
         oldLineNumber: oldLine++,
         newLineNumber: newLine++,
       });

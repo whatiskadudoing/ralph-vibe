@@ -5,32 +5,45 @@
  * Shows the spec interview process with a reactive UI.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, render, useApp, useInput, useFinalOutput, useTerminalSize } from "../../packages/deno-ink/src/mod.ts";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Box,
+  render,
+  Text,
+  useApp,
+  useFinalOutput,
+  useInput,
+  useTerminalSize,
+} from '../../packages/deno-ink/src/mod.ts';
+import {
+  colors,
   CommandBox,
+  type EnhancedToolCall,
   Header,
-  UsageBars,
-  ToolActivity,
+  KeyboardHints,
   ProgressLine,
   StatusResult,
-  KeyboardHints,
-  StatsDisplay,
   TokenStats,
-  colors,
-  type EnhancedToolCall,
-} from "./ui/mod.ts";
-import { ansi } from "./CommandScreen.tsx";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
-import { calculateCostBreakdown, calculateCacheSavings, formatCost, type CostBreakdown } from "../services/cost_calculator.ts";
+  ToolActivity,
+  UsageBars,
+} from './ui/mod.ts';
+import { ansi } from './CommandScreen.tsx';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
+import {
+  calculateCacheSavings,
+  calculateCostBreakdown,
+  type CostBreakdown,
+  formatCost,
+} from '../services/cost_calculator.ts';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type { EnhancedToolCall } from "./ui/mod.ts";
+export type { EnhancedToolCall } from './ui/mod.ts';
 
-export type SpecPhase = "preparing" | "interview" | "done" | "error";
+export type SpecPhase = 'preparing' | 'interview' | 'done' | 'error';
 
 export interface SpecStats {
   operations: number;
@@ -70,11 +83,11 @@ export interface SpecScreenProps {
 // Helpers
 // ============================================================================
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatTokens(tokens: number): string {
@@ -92,7 +105,7 @@ function SpecScreen({
   vibeMode = false,
   vibeSteps = [],
   usage,
-  model = "sonnet",
+  model = 'sonnet',
   onRun,
   onComplete,
 }: SpecScreenProps): React.ReactElement {
@@ -101,8 +114,8 @@ function SpecScreen({
   const { columns } = useTerminalSize();
 
   // State
-  const [phase, setPhase] = useState<SpecPhase>("preparing");
-  const [status, setStatus] = useState("Preparing spec interview...");
+  const [phase, setPhase] = useState<SpecPhase>('preparing');
+  const [status, setStatus] = useState('Preparing spec interview...');
   const [tools, setTools] = useState<EnhancedToolCall[]>([]);
   const [startTime] = useState(() => Date.now());
   const [outputPath, setOutputPath] = useState<string | undefined>();
@@ -125,7 +138,7 @@ function SpecScreen({
 
   // Update elapsed time every second
   useEffect(() => {
-    if (phase !== "interview") return;
+    if (phase !== 'interview') return;
     const timer = setInterval(() => {
       setElapsedSec(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
@@ -134,16 +147,16 @@ function SpecScreen({
 
   // Handle keyboard input
   useInput((input: string, key: { escape?: boolean }) => {
-    if (input === "q" || input === "Q" || key.escape) {
+    if (input === 'q' || input === 'Q' || key.escape) {
       handleQuit();
     }
-    if (input === "t" || input === "T") {
+    if (input === 't' || input === 'T') {
       setShowTools((v: boolean) => !v);
     }
-    if (input === "k" || input === "K") {
+    if (input === 'k' || input === 'K') {
       setShowTokens((v: boolean) => !v);
     }
-    if (input === "c" || input === "C") {
+    if (input === 'c' || input === 'C') {
       setShowCost((v: boolean) => !v);
     }
   });
@@ -182,12 +195,18 @@ function SpecScreen({
       if (existingIndex >= 0) {
         // Update existing tool with new status/endTime
         const updated = [...prev];
-        updated[existingIndex] = {
-          ...prev[existingIndex]!,
-          status: tool.status,
-          endTime: tool.endTime,
-          result: tool.result ?? prev[existingIndex]!.result,
-        };
+        const existing = prev[existingIndex];
+        if (existing) {
+          updated[existingIndex] = {
+            ...existing,
+            status: tool.status,
+            endTime: tool.endTime,
+            result: tool.result ?? existing.result,
+            tokenUsage: tool.tokenUsage ?? existing.tokenUsage,
+            costUsd: tool.costUsd ?? existing.costUsd,
+            model: tool.model ?? existing.model,
+          };
+        }
         return updated;
       }
 
@@ -206,7 +225,7 @@ function SpecScreen({
   const handleQuit = useCallback(() => {
     setFinalOutput(buildSpecFinalOutput({
       success: false,
-      title: "Interview cancelled",
+      title: 'Interview cancelled',
     }));
     onComplete(false);
     exit();
@@ -218,8 +237,8 @@ function SpecScreen({
 
     (async () => {
       // Start interview phase
-      setPhase("interview");
-      setStatus("Starting spec interview...");
+      setPhase('interview');
+      setStatus('Starting spec interview...');
 
       const result = await onRun({
         onToolUse: handleToolUse,
@@ -264,14 +283,14 @@ function SpecScreen({
 
       if (result.success) {
         setOutputPath(result.outputPath);
-        setPhase("done");
+        setPhase('done');
 
         setFinalOutput(buildSpecFinalOutput({
           success: true,
-          title: "Spec created",
+          title: 'Spec created',
           outputPath: result.outputPath,
           stats: finalStats,
-          nextCommand: vibeMode ? undefined : "ralph plan",
+          nextCommand: vibeMode ? undefined : 'ralph plan',
         }));
 
         setTimeout(() => {
@@ -279,12 +298,12 @@ function SpecScreen({
           exit();
         }, 500);
       } else {
-        setErrorMsg(result.error ?? "Interview failed");
-        setPhase("error");
+        setErrorMsg(result.error ?? 'Interview failed');
+        setPhase('error');
 
         setFinalOutput(buildSpecFinalOutput({
           success: false,
-          title: "Interview failed",
+          title: 'Interview failed',
           error: result.error,
           stats: finalStats,
         }));
@@ -296,26 +315,28 @@ function SpecScreen({
       }
     })();
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build keyboard hints
   const hints = [
-    { key: "t", label: showTools ? "hide tools" : "show tools" },
-    { key: "k", label: showTokens ? "hide tokens" : "show tokens" },
-    { key: "c", label: showCost ? "hide cost" : "show cost" },
-    ...(usage ? [{ key: "u", label: "usage" }] : []),
-    { key: "q", label: "quit" },
+    { key: 't', label: showTools ? 'hide tools' : 'show tools' },
+    { key: 'k', label: showTokens ? 'hide tokens' : 'show tokens' },
+    { key: 'c', label: showCost ? 'hide cost' : 'show cost' },
+    ...(usage ? [{ key: 'u', label: 'usage' }] : []),
+    { key: 'q', label: 'quit' },
   ];
 
   return (
-    <CommandBox onQuit={handleQuit} animateBorder={phase === "interview"}>
+    <CommandBox onQuit={handleQuit} animateBorder={phase === 'interview'}>
       <Header
-        name="Ralph Spec"
-        description="Add new feature specifications"
+        name='Ralph Spec'
+        description='Add new feature specifications'
         vibeMode={vibeMode}
-        vibeCurrentStep={vibeMode ? "spec" : undefined}
+        vibeCurrentStep={vibeMode ? 'spec' : undefined}
         vibeSteps={vibeSteps}
       />
 
@@ -327,9 +348,9 @@ function SpecScreen({
       )}
 
       {/* Feature hint if provided */}
-      {featureHint && phase !== "done" && (
-        <Box marginBottom={1} flexDirection="column">
-          <Box flexDirection="row" gap={1}>
+      {featureHint && phase !== 'done' && (
+        <Box marginBottom={1} flexDirection='column'>
+          <Box flexDirection='row' gap={1}>
             <Text color={colors.accent}>Feature:</Text>
             <Text color={colors.text}>{featureHint}</Text>
           </Box>
@@ -337,15 +358,15 @@ function SpecScreen({
       )}
 
       {/* Preparing phase */}
-      {phase === "preparing" && (
-        <Box flexDirection="column">
+      {phase === 'preparing' && (
+        <Box flexDirection='column'>
           <ProgressLine status={status} startTime={startTime} width={columns - 6} />
         </Box>
       )}
 
       {/* Interview phase */}
-      {phase === "interview" && (
-        <Box flexDirection="column">
+      {phase === 'interview' && (
+        <Box flexDirection='column'>
           {/* Token stats row */}
           {showTokens && (tokenCount.input + tokenCount.output > 0) && (
             <Box marginBottom={1}>
@@ -362,20 +383,31 @@ function SpecScreen({
           {/* Tool activity */}
           {showTools && tools.length > 0 && (
             <Box marginTop={1}>
-              <ToolActivity tools={tools} visible={showTools} showStats={false} showTimeline={false} />
+              <ToolActivity
+                tools={tools}
+                visible={showTools}
+                showStats={false}
+                showTimeline={false}
+                showTokens={true}
+                showTokenDetails={false}
+                showCacheDots={false}
+                showModels={false}
+              />
             </Box>
           )}
 
           {/* Stats line - clean, single line format */}
-          <Box marginTop={1} flexDirection="row" gap={1}>
+          <Box marginTop={1} flexDirection='row' gap={1}>
             <Text color={colors.accent}>{operationCount}</Text>
             <Text color={colors.dim}>operations</Text>
             <Text color={colors.dim}>·</Text>
-            <Text color={colors.muted}>{formatDuration(elapsedSec)}</Text>
+            <Text color={colors.muted}>{formatDurationSec(elapsedSec)}</Text>
             {tokenCount.input + tokenCount.output > 0 && (
               <>
                 <Text color={colors.dim}>·</Text>
-                <Text color={colors.tokenTotal}>{formatTokens(tokenCount.input + tokenCount.output)}</Text>
+                <Text color={colors.tokenTotal}>
+                  {formatTokens(tokenCount.input + tokenCount.output)}
+                </Text>
                 <Text color={colors.dim}>tokens (</Text>
                 <Text color={colors.tokenInput}>{formatTokens(tokenCount.input)}</Text>
                 <Text color={colors.dim}>in /</Text>
@@ -387,8 +419,8 @@ function SpecScreen({
                     <Text color={colors.accent}>{formatCost(cost.total)}</Text>
                     {cacheSavings > 0 && (
                       <>
-                        <Text color={colors.dim}> (saved </Text>
-                        <Text color="green">{formatCost(cacheSavings)}</Text>
+                        <Text color={colors.dim}>(saved</Text>
+                        <Text color='green'>{formatCost(cacheSavings)}</Text>
                         <Text color={colors.dim}>)</Text>
                       </>
                     )}
@@ -399,9 +431,9 @@ function SpecScreen({
           </Box>
 
           {/* Interview steps description */}
-          <Box marginTop={1} flexDirection="column">
+          <Box marginTop={1} flexDirection='column'>
             <Text color={colors.dim}>Steps:</Text>
-            <Box marginLeft={2} flexDirection="column">
+            <Box marginLeft={2} flexDirection='column'>
               <Text color={colors.dim}>1. Read existing specs for context</Text>
               <Text color={colors.dim}>2. Interview about the feature</Text>
               <Text color={colors.dim}>3. Write spec to specs/ directory</Text>
@@ -411,20 +443,20 @@ function SpecScreen({
       )}
 
       {/* Done phase */}
-      {phase === "done" && (
-        <Box flexDirection="column">
+      {phase === 'done' && (
+        <Box flexDirection='column'>
           <StatusResult
-            type="success"
-            title="Spec created!"
+            type='success'
+            title='Spec created!'
             files={outputPath ? [outputPath] : undefined}
           />
 
           {/* Stats summary - clean single-line format */}
           {stats && (
-            <Box marginTop={1} flexDirection="row" gap={1}>
+            <Box marginTop={1} flexDirection='row' gap={1}>
               <Text color={colors.dim}>{stats.operations} operations</Text>
               <Text color={colors.dim}>·</Text>
-              <Text color={colors.dim}>{formatDuration(stats.durationSec)}</Text>
+              <Text color={colors.dim}>{formatDurationSec(stats.durationSec)}</Text>
               {stats.inputTokens !== undefined && stats.outputTokens !== undefined && (
                 <>
                   <Text color={colors.dim}>·</Text>
@@ -442,8 +474,8 @@ function SpecScreen({
                       <Text color={colors.accent}>{formatCost(stats.cost.total)}</Text>
                       {stats.cacheSavings !== undefined && stats.cacheSavings > 0 && (
                         <>
-                          <Text color={colors.dim}> (saved </Text>
-                          <Text color="green">{formatCost(stats.cacheSavings)}</Text>
+                          <Text color={colors.dim}>(saved</Text>
+                          <Text color='green'>{formatCost(stats.cacheSavings)}</Text>
                           <Text color={colors.dim}>)</Text>
                         </>
                       )}
@@ -454,7 +486,7 @@ function SpecScreen({
             </Box>
           )}
           {stats?.usageDelta !== undefined && stats.usageDelta > 0 && (
-            <Box marginTop={1} flexDirection="row" gap={1}>
+            <Box marginTop={1} flexDirection='row' gap={1}>
               <Text color={colors.dim}>Subscription:</Text>
               <Text color={colors.accent}>+{stats.usageDelta.toFixed(1)}%</Text>
               <Text color={colors.dim}>usage</Text>
@@ -463,20 +495,24 @@ function SpecScreen({
 
           {/* Next steps */}
           {!vibeMode && (
-            <Box marginTop={1} flexDirection="column">
+            <Box marginTop={1} flexDirection='column'>
               <Text bold>Next steps:</Text>
-              <Box marginLeft={2} flexDirection="column">
-                <Box flexDirection="row" gap={1}>
+              <Box marginLeft={2} flexDirection='column'>
+                <Box flexDirection='row' gap={1}>
                   <Text color={colors.accent}>▸</Text>
-                  <Text>Review the spec in {outputPath ? `${outputPath}` : "specs/"}</Text>
+                  <Text>Review the spec in {outputPath ? `${outputPath}` : 'specs/'}</Text>
                 </Box>
-                <Box flexDirection="row" gap={1}>
+                <Box flexDirection='row' gap={1}>
                   <Text color={colors.accent}>▸</Text>
-                  <Text>Run <Text color={colors.accent}>ralph plan</Text> to update implementation plan</Text>
+                  <Text>
+                    Run <Text color={colors.accent}>ralph plan</Text> to update implementation plan
+                  </Text>
                 </Box>
-                <Box flexDirection="row" gap={1}>
+                <Box flexDirection='row' gap={1}>
                   <Text color={colors.accent}>▸</Text>
-                  <Text>Run <Text color={colors.accent}>ralph work</Text> to start building</Text>
+                  <Text>
+                    Run <Text color={colors.accent}>ralph work</Text> to start building
+                  </Text>
                 </Box>
               </Box>
             </Box>
@@ -485,10 +521,10 @@ function SpecScreen({
       )}
 
       {/* Error phase */}
-      {phase === "error" && (
+      {phase === 'error' && (
         <StatusResult
-          type="error"
-          title="Interview failed"
+          type='error'
+          title='Interview failed'
           detail={errorMsg}
         />
       )}
@@ -523,24 +559,31 @@ function buildSpecFinalOutput(options: {
 
   // Stats - more detailed (matching PlanScreen format)
   if (options.stats) {
-    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings, usageDelta } = options.stats;
+    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings, usageDelta } =
+      options.stats;
 
     // Line 1: Operations and duration
     const statsParts = [
       `${operations} operations`,
-      formatDuration(durationSec),
-    ].join(" · ");
+      formatDurationSec(durationSec),
+    ].join(' · ');
     lines.push(`${ansi.dimGray}${statsParts}${ansi.reset}`);
 
     // Line 2: Tokens (primary metric for subscription users)
     if (inputTokens !== undefined && outputTokens !== undefined) {
       const totalTokens = inputTokens + outputTokens;
-      lines.push(`${ansi.cyan}${formatTokens(totalTokens)}${ansi.reset} ${ansi.dimGray}tokens (${formatTokens(inputTokens)} in / ${formatTokens(outputTokens)} out)${ansi.reset}`);
+      lines.push(
+        `${ansi.cyan}${formatTokens(totalTokens)}${ansi.reset} ${ansi.dimGray}tokens (${
+          formatTokens(inputTokens)
+        } in / ${formatTokens(outputTokens)} out)${ansi.reset}`,
+      );
     }
 
     // Line 3: Cost information
     if (cost) {
-      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${formatCost(cost.total)}${ansi.reset}`;
+      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${
+        formatCost(cost.total)
+      }${ansi.reset}`;
       if (cacheSavings !== undefined && cacheSavings > 0) {
         costLine += ` ${ansi.green}(saved ${formatCost(cacheSavings)})${ansi.reset}`;
       }
@@ -549,30 +592,32 @@ function buildSpecFinalOutput(options: {
 
     // Usage delta
     if (usageDelta !== undefined && usageDelta > 0) {
-      lines.push(`${ansi.dimGray}Subscription: ${ansi.amber}+${usageDelta.toFixed(1)}%${ansi.reset}`);
+      lines.push(
+        `${ansi.dimGray}Subscription: ${ansi.amber}+${usageDelta.toFixed(1)}%${ansi.reset}`,
+      );
     }
   }
 
   // Output file
   if (options.outputPath) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.dimGray}→${ansi.reset} ${ansi.orange}${options.outputPath}${ansi.reset}`);
   }
 
   // Error message
   if (options.error) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.dimGray}${options.error}${ansi.reset}`);
   }
 
   // Next command
   if (options.nextCommand) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.bold}Next:${ansi.reset} ${ansi.orange}${options.nextCommand}${ansi.reset}`);
   }
 
-  lines.push("");
-  return lines.join("\n");
+  lines.push('');
+  return lines.join('\n');
 }
 
 // ============================================================================
@@ -585,10 +630,12 @@ export interface RenderSpecOptions {
   vibeSteps?: string[];
   usage?: SubscriptionUsage;
   model?: string;
-  onRun: SpecScreenProps["onRun"];
+  onRun: SpecScreenProps['onRun'];
 }
 
-export async function renderSpec(options: RenderSpecOptions): Promise<{ success: boolean; stats?: SpecStats }> {
+export async function renderSpec(
+  options: RenderSpecOptions,
+): Promise<{ success: boolean; stats?: SpecStats }> {
   let result = { success: false, stats: undefined as SpecStats | undefined };
 
   const { waitUntilExit } = await render(
@@ -602,7 +649,7 @@ export async function renderSpec(options: RenderSpecOptions): Promise<{ success:
       onComplete={(s: boolean, stats?: SpecStats) => {
         result = { success: s, stats };
       }}
-    />
+    />,
   );
 
   await waitUntilExit();

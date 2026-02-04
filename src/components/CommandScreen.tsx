@@ -5,23 +5,17 @@
  * Provides consistent header, expandable usage section, and finalization.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Text,
-  useFinalOutput,
-  useTerminalSize,
-  useInput,
   useApp,
-} from "../../packages/deno-ink/src/mod.ts";
-import {
-  colors,
-  gradientColors,
-  KeyboardHints,
-  UsageBars,
-  type KeyboardHint,
-} from "./ui/mod.ts";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
+  useFinalOutput,
+  useInput,
+  useTerminalSize,
+} from '../../packages/deno-ink/src/mod.ts';
+import { colors, gradientColors, type KeyboardHint, KeyboardHints, UsageBars } from './ui/mod.ts';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
 
 // ============================================================================
 // Types
@@ -50,8 +44,8 @@ interface HeaderProps {
 
 function Header({ name, description }: HeaderProps): React.ReactElement {
   return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column' marginBottom={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.brand}>◆</Text>
         <Text bold color={colors.accent}>{name}</Text>
       </Box>
@@ -97,7 +91,7 @@ export function CommandScreen({
   }, [finalSummary, setFinalOutput]);
 
   useInput((input, key) => {
-    if (input === "q" || key.escape) {
+    if (input === 'q' || key.escape) {
       exit();
     }
   });
@@ -108,15 +102,15 @@ export function CommandScreen({
     : (staticBorderColor ?? colors.brand);
 
   const allHints: KeyboardHint[] = [
-    ...(showUsage && usage ? [{ key: "u", label: "usage" }] : []),
+    ...(showUsage && usage ? [{ key: 'u', label: 'usage' }] : []),
     ...keyboardHints,
-    { key: "q", label: "quit" },
+    { key: 'q', label: 'quit' },
   ];
 
   return (
     <Box
-      flexDirection="column"
-      borderStyle="round"
+      flexDirection='column'
+      borderStyle='round'
       borderColor={borderColor}
       paddingX={2}
       paddingY={1}
@@ -140,18 +134,18 @@ export function CommandScreen({
 // ============================================================================
 
 export const ansi = {
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  dim: "\x1b[2m",
-  green: "\x1b[38;2;34;197;94m",
-  orange: "\x1b[38;2;255;149;0m",
-  amber: "\x1b[38;2;255;175;0m",
-  gray: "\x1b[38;2;136;136;136m",
-  dimGray: "\x1b[38;2;102;102;102m",
-  cyan: "\x1b[38;2;0;255;255m",
-  red: "\x1b[38;2;255;95;95m",
-  magenta: "\x1b[38;2;255;0;255m",
-  yellow: "\x1b[38;2;255;255;0m",
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  green: '\x1b[38;2;34;197;94m',
+  orange: '\x1b[38;2;255;149;0m',
+  amber: '\x1b[38;2;255;175;0m',
+  gray: '\x1b[38;2;136;136;136m',
+  dimGray: '\x1b[38;2;102;102;102m',
+  cyan: '\x1b[38;2;0;255;255m',
+  red: '\x1b[38;2;255;95;95m',
+  magenta: '\x1b[38;2;255;0;255m',
+  yellow: '\x1b[38;2;255;255;0m',
 };
 
 export function buildFinalOutput(options: {
@@ -169,17 +163,17 @@ export function buildFinalOutput(options: {
   }
 
   if (options.files && options.files.length > 0) {
-    lines.push("");
+    lines.push('');
     for (const file of options.files) {
       lines.push(`${ansi.dimGray}→${ansi.reset} ${ansi.orange}${file}${ansi.reset}`);
     }
   }
 
   if (options.nextCommand) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.bold}Next:${ansi.reset} ${ansi.orange}${options.nextCommand}${ansi.reset}`);
   }
 
-  lines.push("");
-  return lines.join("\n");
+  lines.push('');
+  return lines.join('\n');
 }

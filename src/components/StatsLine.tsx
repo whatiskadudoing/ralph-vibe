@@ -4,8 +4,8 @@
  * Horizontal stats display component using deno-ink.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface StatItem {
   /** Label text (e.g., "model", "ops") */
@@ -29,7 +29,7 @@ export interface StatsLineProps {
 
 export function StatsLine({
   items,
-  separator = " · ",
+  separator = ' · ',
   compact = false,
 }: StatsLineProps): React.ReactElement {
   return (
@@ -37,8 +37,8 @@ export function StatsLine({
       {items.map((item, index) => (
         <Box key={index}>
           {index > 0 && <Text dimColor>{separator}</Text>}
-          {item.icon && <Text>{item.icon} </Text>}
-          {item.label && !compact && <Text dimColor>{item.label}: </Text>}
+          {item.icon && <Text>{item.icon}</Text>}
+          {item.label && !compact && <Text dimColor>{item.label}:</Text>}
           <Text color={item.color}>{String(item.value)}</Text>
         </Box>
       ))}
@@ -58,7 +58,7 @@ export function Stat({
 }): React.ReactElement {
   return (
     <Box>
-      <Text dimColor>{label}: </Text>
+      <Text dimColor>{label}:</Text>
       <Text color={color}>{String(value)}</Text>
     </Box>
   );
@@ -76,7 +76,7 @@ export function IconStat({
 }): React.ReactElement {
   return (
     <Box>
-      <Text>{icon} </Text>
+      <Text>{icon}</Text>
       <Text color={color}>{String(value)}</Text>
     </Box>
   );

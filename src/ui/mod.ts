@@ -52,80 +52,80 @@
 // Core infrastructure
 export * from './capabilities.ts';
 export {
+  amber,
   // Basic colors
   black,
-  red,
-  green,
-  yellow,
   blue,
-  magenta,
-  cyan,
-  white,
-  gray,
-  brightRed,
-  brightGreen,
-  brightYellow,
-  brightBlue,
-  brightMagenta,
-  brightCyan,
-  brightWhite,
-  // Semantic colors
-  primary,
-  success,
-  warning,
-  error,
-  muted,
-  info,
-  orange,
-  amber,
   // Styles
   bold,
+  brightBlue,
+  brightCyan,
+  brightGreen,
+  brightMagenta,
+  brightRed,
+  brightWhite,
+  brightYellow,
+  colorize,
+  cyan,
   dim,
-  italic,
-  underline,
-  strikethrough,
+  error,
+  gray,
+  green,
+  headerError,
   // Combined styles
   headerPrimary,
   headerSuccess,
-  headerError,
   headerWarning,
   hint,
+  info,
+  italic,
+  magenta,
+  muted,
+  orange,
+  // Semantic colors
+  primary,
+  red,
+  strikethrough,
   // Utilities
   stripAnsi,
+  success,
+  underline,
   visibleLength,
-  colorize,
+  warning,
+  white,
+  yellow,
   // Note: supportsColor is exported from capabilities.ts
 } from './colors.ts';
 export {
-  // Status symbols
-  CHECK,
-  CROSS,
-  WARNING,
-  INFO,
-  QUESTION,
-  // Progress symbols
-  CIRCLE_FILLED,
-  CIRCLE_EMPTY,
-  CIRCLE_HALF,
+  arrow,
   ARROW_RIGHT,
-  BULLET,
-  // Spinner frames
-  SPINNER_DOTS,
-  SPINNER_LINE,
-  SPINNER_BOUNCE,
   // Box drawing
   BOX,
   BOX_DOUBLE,
   BOX_ROUNDED,
+  BULLET,
+  bullet,
+  // Status symbols
+  CHECK,
   // Formatted status strings
   checkMark,
+  CIRCLE_EMPTY,
+  // Progress symbols
+  CIRCLE_FILLED,
+  CIRCLE_HALF,
+  CROSS,
   crossMark,
-  warningMark,
+  INFO,
   infoMark,
-  bullet,
-  arrow,
   // Progress bar chars (but not progressBar function - that comes from progress.ts)
   PROGRESS_BAR,
+  QUESTION,
+  SPINNER_BOUNCE,
+  // Spinner frames
+  SPINNER_DOTS,
+  SPINNER_LINE,
+  WARNING,
+  warningMark,
 } from './symbols.ts';
 
 // Theme and formatting
@@ -134,23 +134,23 @@ export * from './format.ts';
 
 // UI components (ColorFn is re-exported from theme.ts)
 export {
-  createBox,
-  createLine,
   type BoxConfig,
   type BoxOptions,
   type BoxStyle,
+  createBox,
+  createLine,
   type Spacing,
 } from './box.ts';
 
 // Progress bar (progressBar function from here, not from symbols.ts)
 export {
-  progressBar,
+  createBulletList,
+  createNumberedList,
   createProgressBar,
-  formatTask,
   createTaskList,
   createTaskSummary,
-  createNumberedList,
-  createBulletList,
+  formatTask,
+  progressBar,
   type ProgressBarConfig,
   type ProgressBarOptions,
   type TaskItem,

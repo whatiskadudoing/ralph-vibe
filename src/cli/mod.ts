@@ -14,7 +14,7 @@ import { createResearchCommand } from './research.ts';
 import { createPlanCommand } from './plan.ts';
 import { createWorkCommand } from './work.ts';
 import { createSpecCommand } from './spec.ts';
-import { renderVersion, renderHelp } from '@components/mod.ts';
+import { renderHelp, renderVersion } from '@components/mod.ts';
 import denoConfig from '../../deno.json' with { type: 'json' };
 
 // ============================================================================

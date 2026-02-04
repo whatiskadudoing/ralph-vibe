@@ -4,8 +4,8 @@
  * Badge/tag component for small inline indicators.
  */
 
-import { amber, cyan, dim } from './colors.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { dim } from './colors.ts';
+import { type ColorFn, theme } from './theme.ts';
 
 // ============================================================================
 // Badge Types
@@ -86,7 +86,10 @@ export function modelBadge(model: ModelName | string): string {
 /**
  * Creates a status badge.
  */
-export function statusBadge(text: string, status: 'success' | 'warning' | 'error' | 'info'): string {
+export function statusBadge(
+  text: string,
+  status: 'success' | 'warning' | 'error' | 'info',
+): string {
   const colors: Record<string, ColorFn> = {
     success: theme.status.success,
     warning: theme.status.warning,

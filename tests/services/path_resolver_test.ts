@@ -10,12 +10,12 @@ import { assertEquals, assertRejects } from '@std/assert';
 import { join } from '@std/path';
 import {
   findProjectRoot,
+  getPathsConfig,
   requireProjectRoot,
+  resolveDefaultPaths,
   resolvePaths,
   resolvePathsFromConfig,
-  resolveDefaultPaths,
   tryResolvePaths,
-  getPathsConfig,
 } from '../../src/services/path_resolver.ts';
 import { createConfig, DEFAULT_PATHS } from '../../src/core/config.ts';
 

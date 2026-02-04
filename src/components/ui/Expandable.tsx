@@ -5,9 +5,9 @@
  * Collapsed by default per user preference.
  */
 
-import React, { useState, useCallback } from "react";
-import { Box, Text, useInput } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React, { useCallback, useState } from 'react';
+import { Box, Text, useInput } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 export interface ExpandableProps {
   /**
@@ -66,10 +66,10 @@ export function Expandable({
   });
 
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column'>
+      <Box flexDirection='row' gap={1}>
         <Text color={expanded ? colors.accent : colors.dim}>
-          {expanded ? "▼" : "▶"}
+          {expanded ? '▼' : '▶'}
         </Text>
         <Text color={expanded ? colors.text : colors.muted}>{title}</Text>
         {shortcut && (

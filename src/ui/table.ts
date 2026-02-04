@@ -5,7 +5,7 @@
  */
 
 import { bold, dim, underline, visibleLength } from './colors.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // Table Types

@@ -4,8 +4,8 @@
  * Timer and countdown display components using deno-ink.
  */
 
-import React, { useState, useEffect } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface TimerProps {
   /** Duration in seconds (for countdown) */
@@ -13,7 +13,7 @@ export interface TimerProps {
   /** Start time (for elapsed time) */
   startTime?: number;
   /** Format: "hh:mm:ss" | "mm:ss" | "human" */
-  format?: "hh:mm:ss" | "mm:ss" | "human";
+  format?: 'hh:mm:ss' | 'mm:ss' | 'human';
   /** Color when time is running */
   color?: string;
   /** Color when time is low (countdown) */
@@ -28,32 +28,34 @@ export interface TimerProps {
   onComplete?: () => void;
 }
 
-function formatTime(seconds: number, format: "hh:mm:ss" | "mm:ss" | "human"): string {
+function formatTime(seconds: number, format: 'hh:mm:ss' | 'mm:ss' | 'human'): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
 
-  if (format === "human") {
+  if (format === 'human') {
     if (h > 0) return `${h}h ${m}m ${s}s`;
     if (m > 0) return `${m}m ${s}s`;
     return `${s}s`;
   }
 
-  if (format === "hh:mm:ss") {
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  if (format === 'hh:mm:ss') {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${
+      String(s).padStart(2, '0')
+    }`;
   }
 
   // mm:ss
   const totalMinutes = h * 60 + m;
-  return `${String(totalMinutes).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(totalMinutes).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // Countdown timer
 export function Countdown({
   duration,
-  format = "mm:ss",
-  color = "cyan",
-  warningColor = "red",
+  format = 'mm:ss',
+  color = 'cyan',
+  warningColor = 'red',
   warningThreshold = 10,
   showIcon = true,
   label,
@@ -79,8 +81,8 @@ export function Countdown({
 
   return (
     <Box>
-      {showIcon && <Text>⏱ </Text>}
-      {label && <Text dimColor>{label}: </Text>}
+      {showIcon && <Text>⏱</Text>}
+      {label && <Text dimColor>{label}:</Text>}
       <Text color={displayColor} bold>
         {formatTime(remaining, format)}
       </Text>
@@ -91,8 +93,8 @@ export function Countdown({
 // Elapsed time (stopwatch)
 export function Elapsed({
   startTime,
-  format = "mm:ss",
-  color = "cyan",
+  format = 'mm:ss',
+  color = 'cyan',
   showIcon = true,
   label,
 }: TimerProps): React.ReactElement {
@@ -111,8 +113,8 @@ export function Elapsed({
 
   return (
     <Box>
-      {showIcon && <Text>⏱ </Text>}
-      {label && <Text dimColor>{label}: </Text>}
+      {showIcon && <Text>⏱</Text>}
+      {label && <Text dimColor>{label}:</Text>}
       <Text color={color}>{formatTime(elapsed, format)}</Text>
     </Box>
   );
@@ -121,21 +123,21 @@ export function Elapsed({
 // Static duration display (no animation)
 export function Duration({
   seconds,
-  format = "human",
+  format = 'human',
   color,
   showIcon = false,
   label,
 }: {
   seconds: number;
-  format?: "hh:mm:ss" | "mm:ss" | "human";
+  format?: 'hh:mm:ss' | 'mm:ss' | 'human';
   color?: string;
   showIcon?: boolean;
   label?: string;
 }): React.ReactElement {
   return (
     <Box>
-      {showIcon && <Text>⏱ </Text>}
-      {label && <Text dimColor>{label}: </Text>}
+      {showIcon && <Text>⏱</Text>}
+      {label && <Text dimColor>{label}:</Text>}
       <Text color={color}>{formatTime(seconds, format)}</Text>
     </Box>
   );
@@ -145,7 +147,7 @@ export function Duration({
 export function TimeRange({
   start,
   end,
-  separator = " → ",
+  separator = ' → ',
 }: {
   start: string;
   end: string;
@@ -163,7 +165,7 @@ export function TimeRange({
 // Relative time display
 export function RelativeTime({
   timestamp,
-  prefix = "",
+  prefix = '',
 }: {
   timestamp: number;
   prefix?: string;
@@ -173,7 +175,7 @@ export function RelativeTime({
 
   let text: string;
   if (diff < 60) {
-    text = "just now";
+    text = 'just now';
   } else if (diff < 3600) {
     const m = Math.floor(diff / 60);
     text = `${m}m ago`;
@@ -187,7 +189,7 @@ export function RelativeTime({
 
   return (
     <Box>
-      {prefix && <Text>{prefix} </Text>}
+      {prefix && <Text>{prefix}</Text>}
       <Text dimColor>{text}</Text>
     </Box>
   );
@@ -210,8 +212,8 @@ export function ETA({
 
   return (
     <Box>
-      <Text dimColor>ETA: </Text>
-      <Text>{formatTime(Math.round(remaining), "human")}</Text>
+      <Text dimColor>ETA:</Text>
+      <Text>{formatTime(Math.round(remaining), 'human')}</Text>
     </Box>
   );
 }

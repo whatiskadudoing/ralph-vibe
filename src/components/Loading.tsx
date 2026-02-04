@@ -5,65 +5,65 @@
  * Inspired by Gemini CLI's loading phrases feature.
  */
 
-import React, { useState, useEffect } from "react";
-import { Box, Text, Spinner } from "@ink/mod.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, Spinner, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // DEFAULT WITTY PHRASES
 // ============================================================================
 
 export const DEFAULT_LOADING_PHRASES = [
-  "Thinking...",
-  "Processing your request...",
-  "Crunching the numbers...",
-  "Consulting the oracle...",
-  "Brewing some magic...",
-  "Analyzing possibilities...",
-  "Connecting the dots...",
-  "Loading awesomeness...",
-  "Preparing something special...",
-  "Working on it...",
-  "Almost there...",
-  "Doing the thing...",
-  "Making it happen...",
-  "Computing brilliance...",
-  "Gathering insights...",
+  'Thinking...',
+  'Processing your request...',
+  'Crunching the numbers...',
+  'Consulting the oracle...',
+  'Brewing some magic...',
+  'Analyzing possibilities...',
+  'Connecting the dots...',
+  'Loading awesomeness...',
+  'Preparing something special...',
+  'Working on it...',
+  'Almost there...',
+  'Doing the thing...',
+  'Making it happen...',
+  'Computing brilliance...',
+  'Gathering insights...',
 ];
 
 export const WITTY_PHRASES = [
-  "Summoning digital elves...",
-  "Convincing the bits to cooperate...",
-  "Teaching electrons to dance...",
-  "Warming up the flux capacitor...",
-  "Consulting the AI council...",
-  "Bribing the algorithms...",
-  "Herding quantum cats...",
-  "Negotiating with the cloud...",
-  "Polishing the pixels...",
-  "Feeding the neural networks...",
-  "Untangling the spaghetti code...",
-  "Asking nicely...",
-  "Performing digital magic...",
-  "Channeling inner wisdom...",
-  "Reticulating splines...",
-  "Generating witty response...",
-  "Calibrating the coffee maker...",
-  "Counting backwards from infinity...",
-  "Dividing by zero safely...",
-  "Reversing the polarity...",
+  'Summoning digital elves...',
+  'Convincing the bits to cooperate...',
+  'Teaching electrons to dance...',
+  'Warming up the flux capacitor...',
+  'Consulting the AI council...',
+  'Bribing the algorithms...',
+  'Herding quantum cats...',
+  'Negotiating with the cloud...',
+  'Polishing the pixels...',
+  'Feeding the neural networks...',
+  'Untangling the spaghetti code...',
+  'Asking nicely...',
+  'Performing digital magic...',
+  'Channeling inner wisdom...',
+  'Reticulating splines...',
+  'Generating witty response...',
+  'Calibrating the coffee maker...',
+  'Counting backwards from infinity...',
+  'Dividing by zero safely...',
+  'Reversing the polarity...',
 ];
 
 export const TECHNICAL_PHRASES = [
-  "Initializing neural pathways...",
-  "Optimizing token generation...",
-  "Running inference pipeline...",
-  "Loading model weights...",
-  "Computing attention scores...",
-  "Processing embeddings...",
-  "Generating response tokens...",
-  "Executing forward pass...",
-  "Applying context window...",
-  "Tokenizing input...",
+  'Initializing neural pathways...',
+  'Optimizing token generation...',
+  'Running inference pipeline...',
+  'Loading model weights...',
+  'Computing attention scores...',
+  'Processing embeddings...',
+  'Generating response tokens...',
+  'Executing forward pass...',
+  'Applying context window...',
+  'Tokenizing input...',
 ];
 
 // ============================================================================
@@ -76,7 +76,7 @@ export interface LoadingPhraseProps {
   /** Interval between phrase changes (ms) */
   interval?: number;
   /** Spinner type */
-  spinnerType?: "dots" | "line" | "circle" | "bounce" | "pulse";
+  spinnerType?: 'dots' | 'line' | 'circle' | 'bounce' | 'pulse';
   /** Color */
   color?: string;
   /** Show spinner */
@@ -88,13 +88,13 @@ export interface LoadingPhraseProps {
 export function LoadingPhrase({
   phrases = WITTY_PHRASES,
   interval = 3000,
-  spinnerType = "dots",
-  color = "cyan",
+  spinnerType = 'dots',
+  color = 'cyan',
   showSpinner = true,
   staticPhrase,
 }: LoadingPhraseProps): React.ReactElement {
   const [phraseIndex, setPhraseIndex] = useState(
-    Math.floor(Math.random() * phrases.length)
+    Math.floor(Math.random() * phrases.length),
   );
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export interface LoadingStateProps {
   /** Color */
   color?: string;
   /** Spinner type */
-  spinnerType?: "dots" | "line" | "circle" | "bounce" | "pulse";
+  spinnerType?: 'dots' | 'line' | 'circle' | 'bounce' | 'pulse';
   /** Bordered */
   bordered?: boolean;
   /** Width */
@@ -168,28 +168,26 @@ export function LoadingState({
   currentStep,
   witty = false,
   phrases,
-  color = "cyan",
-  spinnerType = "dots",
+  color = 'cyan',
+  spinnerType = 'dots',
   bordered = false,
   width,
 }: LoadingStateProps): React.ReactElement {
   const content = (
-    <Box flexDirection="column" width={width}>
+    <Box flexDirection='column' width={width}>
       {/* Title with spinner */}
       <Box>
         <Spinner type={spinnerType} color={color} />
-        <Text> </Text>
-        {title ? (
-          <Text bold color={color}>{title}</Text>
-        ) : witty ? (
-          <LoadingPhrase
-            phrases={phrases || WITTY_PHRASES}
-            color={color}
-            showSpinner={false}
-          />
-        ) : (
-          <Text color={color}>Loading...</Text>
-        )}
+        <Text></Text>
+        {title ? <Text bold color={color}>{title}</Text> : witty
+          ? (
+            <LoadingPhrase
+              phrases={phrases || WITTY_PHRASES}
+              color={color}
+              showSpinner={false}
+            />
+          )
+          : <Text color={color}>Loading...</Text>}
       </Box>
 
       {/* Subtitle */}
@@ -221,7 +219,7 @@ export function LoadingState({
   if (bordered) {
     return (
       <Box
-        borderStyle="round"
+        borderStyle='round'
         borderColor={color}
         paddingX={2}
         paddingY={1}
@@ -252,7 +250,7 @@ export interface ProgressIndicatorProps {
 export function ProgressIndicator({
   progress,
   width = 20,
-  color = "cyan",
+  color = 'cyan',
   showPercent = true,
 }: ProgressIndicatorProps): React.ReactElement {
   const filled = Math.round((progress / 100) * width);
@@ -260,9 +258,9 @@ export function ProgressIndicator({
 
   return (
     <Box>
-      <Text color={color}>{"█".repeat(filled)}</Text>
-      <Text dimColor>{"░".repeat(empty)}</Text>
-      {showPercent && <Text dimColor> {Math.round(progress)}%</Text>}
+      <Text color={color}>{'█'.repeat(filled)}</Text>
+      <Text dimColor>{'░'.repeat(empty)}</Text>
+      {showPercent && <Text dimColor>{Math.round(progress)}%</Text>}
     </Box>
   );
 }
@@ -274,7 +272,7 @@ export function ProgressIndicator({
 export interface StepLoaderStep {
   id: string;
   label: string;
-  status: "pending" | "loading" | "complete" | "error";
+  status: 'pending' | 'loading' | 'complete' | 'error';
 }
 
 export interface StepLoaderProps {
@@ -292,10 +290,10 @@ export interface StepLoaderProps {
 }
 
 const DEFAULT_STEP_COLORS = {
-  pending: "gray",
-  loading: "cyan",
-  complete: "green",
-  error: "red",
+  pending: 'gray',
+  loading: 'cyan',
+  complete: 'green',
+  error: 'red',
 };
 
 export function StepLoader({
@@ -305,21 +303,21 @@ export function StepLoader({
 }: StepLoaderProps): React.ReactElement {
   const mergedColors = { ...DEFAULT_STEP_COLORS, ...colors };
 
-  const getIcon = (status: StepLoaderStep["status"]) => {
+  const getIcon = (status: StepLoaderStep['status']) => {
     switch (status) {
-      case "complete":
-        return "✓";
-      case "error":
-        return "✗";
-      case "loading":
-        return "◐";
+      case 'complete':
+        return '✓';
+      case 'error':
+        return '✗';
+      case 'loading':
+        return '◐';
       default:
-        return "○";
+        return '○';
     }
   };
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {title && (
         <Box marginBottom={1}>
           <Text bold>{title}</Text>
@@ -327,16 +325,15 @@ export function StepLoader({
       )}
       {steps.map((step) => (
         <Box key={step.id}>
-          {step.status === "loading" ? (
-            <Spinner type="dots" color={mergedColors.loading} />
-          ) : (
-            <Text color={mergedColors[step.status]}>{getIcon(step.status)}</Text>
-          )}
+          {step.status === 'loading'
+            ? <Spinner type='dots' color={mergedColors.loading} />
+            : <Text color={mergedColors[step.status]}>{getIcon(step.status)}</Text>}
           <Text
-            color={step.status === "loading" ? mergedColors.loading : undefined}
-            dimColor={step.status === "pending"}
+            color={step.status === 'loading' ? mergedColors.loading : undefined}
+            dimColor={step.status === 'pending'}
           >
-            {" "}{step.label}
+            {' '}
+            {step.label}
           </Text>
         </Box>
       ))}
@@ -366,7 +363,7 @@ export function SkeletonLoader({
   gap = 0,
 }: SkeletonLoaderProps): React.ReactElement {
   const [phase, setPhase] = useState(0);
-  const chars = ["░", "▒", "░"];
+  const chars = ['░', '▒', '░'];
 
   useEffect(() => {
     if (!animate) return undefined;
@@ -377,17 +374,16 @@ export function SkeletonLoader({
     return () => clearInterval(timer);
   }, [animate, chars.length]);
 
-  const widths = Array.isArray(width)
-    ? width
-    : Array(lines).fill(width);
+  const widths = Array.isArray(width) ? width : Array(lines).fill(width);
 
   return (
-    <Box flexDirection="column" gap={gap}>
+    <Box flexDirection='column' gap={gap}>
       {Array.from({ length: lines }).map((_, i) => {
-        const lineWidth = widths[i] || widths[0]!;
+        const lineWidth = widths[i] ?? widths[0] ?? 40;
+        const charToRepeat = chars[phase] ?? '░';
         return (
           <Text key={i} dimColor>
-            {chars[phase]!.repeat(lineWidth)}
+            {charToRepeat.repeat(lineWidth)}
           </Text>
         );
       })}
@@ -413,23 +409,23 @@ export interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({
-  title = "Loading",
+  title = 'Loading',
   subtitle,
   witty = true,
-  color = "cyan",
+  color = 'cyan',
   bordered = true,
 }: LoadingOverlayProps): React.ReactElement {
   return (
-    <Box justifyContent="center" alignItems="center" flexGrow={1}>
+    <Box justifyContent='center' alignItems='center' flexGrow={1}>
       <Box
-        flexDirection="column"
-        alignItems="center"
-        borderStyle={bordered ? "round" : undefined}
+        flexDirection='column'
+        alignItems='center'
+        borderStyle={bordered ? 'round' : undefined}
         borderColor={bordered ? color : undefined}
         paddingX={4}
         paddingY={2}
       >
-        <Spinner type="dots" color={color} />
+        <Spinner type='dots' color={color} />
         <Box marginTop={1}>
           <Text bold color={color}>{title}</Text>
         </Box>
@@ -461,7 +457,7 @@ export interface OperationStatusProps {
   /** Operation name */
   operation: string;
   /** Status */
-  status: "pending" | "running" | "success" | "error";
+  status: 'pending' | 'running' | 'success' | 'error';
   /** Error message (when status is error) */
   error?: string;
   /** Duration (when complete) */
@@ -478,40 +474,37 @@ export function OperationStatus({
   details,
 }: OperationStatusProps): React.ReactElement {
   const statusConfig = {
-    pending: { icon: "○", color: "gray" },
-    running: { icon: "◐", color: "cyan" },
-    success: { icon: "✓", color: "green" },
-    error: { icon: "✗", color: "red" },
+    pending: { icon: '○', color: 'gray' },
+    running: { icon: '◐', color: 'cyan' },
+    success: { icon: '✓', color: 'green' },
+    error: { icon: '✗', color: 'red' },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
-        {status === "running" ? (
-          <Spinner type="dots" color={config.color} />
-        ) : (
-          <Text color={config.color}>{config.icon}</Text>
-        )}
+        {status === 'running'
+          ? <Spinner type='dots' color={config.color} />
+          : <Text color={config.color}>{config.icon}</Text>}
         <Text
-          color={status === "running" ? config.color : undefined}
-          bold={status === "running"}
+          color={status === 'running' ? config.color : undefined}
+          bold={status === 'running'}
         >
-          {" "}{operation}
+          {' '}
+          {operation}
         </Text>
-        {duration && status === "success" && (
-          <Text dimColor> ({duration})</Text>
-        )}
+        {duration && status === 'success' && <Text dimColor>({duration})</Text>}
       </Box>
-      {details && status === "running" && (
+      {details && status === 'running' && (
         <Box marginLeft={2}>
           <Text dimColor>{details}</Text>
         </Box>
       )}
-      {error && status === "error" && (
+      {error && status === 'error' && (
         <Box marginLeft={2}>
-          <Text color="red">{error}</Text>
+          <Text color='red'>{error}</Text>
         </Box>
       )}
     </Box>
@@ -525,7 +518,7 @@ export function OperationStatus({
 export interface BatchOperation {
   id: string;
   operation: string;
-  status: "pending" | "running" | "success" | "error";
+  status: 'pending' | 'running' | 'success' | 'error';
   error?: string;
   duration?: string;
 }
@@ -544,12 +537,12 @@ export function BatchOperations({
   title,
   showSummary = true,
 }: BatchOperationsProps): React.ReactElement {
-  const completed = operations.filter((op) => op.status === "success").length;
-  const failed = operations.filter((op) => op.status === "error").length;
-  const running = operations.filter((op) => op.status === "running").length;
+  const completed = operations.filter((op) => op.status === 'success').length;
+  const failed = operations.filter((op) => op.status === 'error').length;
+  const running = operations.filter((op) => op.status === 'running').length;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {title && (
         <Box marginBottom={1}>
           <Text bold>{title}</Text>
@@ -569,8 +562,8 @@ export function BatchOperations({
         <Box marginTop={1}>
           <Text dimColor>
             {completed}/{operations.length} completed
-            {failed > 0 && <Text color="red"> ({failed} failed)</Text>}
-            {running > 0 && <Text color="cyan"> ({running} running)</Text>}
+            {failed > 0 && <Text color='red'>({failed} failed)</Text>}
+            {running > 0 && <Text color='cyan'>({running} running)</Text>}
           </Text>
         </Box>
       )}

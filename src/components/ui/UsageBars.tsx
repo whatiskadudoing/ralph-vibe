@@ -5,15 +5,15 @@
  * Matches the original Ralph CLI design with full-width colored bars.
  */
 
-import React, { useState } from "react";
-import { Box, Text, useInput } from "../../../packages/deno-ink/src/mod.ts";
-import { useTerminalSize } from "../../../packages/deno-ink/src/mod.ts";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
+import React, { useState } from 'react';
+import { Box, Text, useInput } from '../../../packages/deno-ink/src/mod.ts';
+import { useTerminalSize } from '../../../packages/deno-ink/src/mod.ts';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
 
 // Colors matching original design
-const AMBER = "#FFD700";   // 5h bar
-const DIM = "#666666";     // 7d bar
-const CYAN = "#00FFFF";    // sonnet bar
+const AMBER = '#FFD700'; // 5h bar
+const DIM = '#666666'; // 7d bar
+const CYAN = '#00FFFF'; // sonnet bar
 
 export interface UsageBarsProps {
   usage: SubscriptionUsage;
@@ -37,13 +37,13 @@ function ProgressBar({
   const empty = width - filled;
 
   // Entire bar is same color (original design)
-  const bar = "█".repeat(filled) + "░".repeat(empty);
+  const bar = '█'.repeat(filled) + '░'.repeat(empty);
 
   return (
-    <Box flexDirection="row">
-      <Text color="#666">{label.padEnd(9)}</Text>
+    <Box flexDirection='row'>
+      <Text color='#666'>{label.padEnd(9)}</Text>
       <Text color={color}>{bar}</Text>
-      <Text color="#666"> {pct}%</Text>
+      <Text color='#666'>{pct}%</Text>
     </Box>
   );
 }
@@ -51,7 +51,7 @@ function ProgressBar({
 export function UsageBars({
   usage,
   defaultVisible = false,
-  toggleKey = "u",
+  toggleKey = 'u',
 }: UsageBarsProps): React.ReactElement | null {
   const [visible, setVisible] = useState(defaultVisible);
   const { columns } = useTerminalSize();
@@ -70,25 +70,25 @@ export function UsageBars({
   const barWidth = Math.max(20, columns - 25);
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection='column' marginBottom={1}>
       <ProgressBar
-        label="5h:"
+        label='5h:'
         percent={usage.fiveHour.utilization}
         color={AMBER}
         width={barWidth}
       />
-      <Text> </Text>
+      <Text></Text>
       <ProgressBar
-        label="7d:"
+        label='7d:'
         percent={usage.sevenDay.utilization}
         color={DIM}
         width={barWidth}
       />
       {usage.sevenDaySonnet && (
         <>
-          <Text> </Text>
+          <Text></Text>
           <ProgressBar
-            label="sonnet:"
+            label='sonnet:'
             percent={usage.sevenDaySonnet.utilization}
             color={CYAN}
             width={barWidth}

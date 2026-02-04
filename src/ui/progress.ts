@@ -4,9 +4,9 @@
  * Progress bar and task list display utilities.
  */
 
-import { dim, muted, primary, success, warning, visibleLength } from './colors.ts';
+import { dim, muted, primary, success, warning } from './colors.ts';
 import { ARROW_RIGHT, CHECK, CIRCLE_EMPTY, PROGRESS_BAR } from './symbols.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { type ColorFn, theme } from './theme.ts';
 
 // ============================================================================
 // Progress Bar Component
@@ -55,7 +55,11 @@ export interface ProgressBarConfig {
  * progressBar({ percent: 95, thresholds: { warning: 70, danger: 90 } });
  * // ███████████████████░ 95%  (auto-red because > 90)
  */
-export function progressBar(config: ProgressBarConfig | number, width?: number, label?: string): string {
+export function progressBar(
+  config: ProgressBarConfig | number,
+  width?: number,
+  label?: string,
+): string {
   // Support legacy call signature: progressBar(percent, width?, label?)
   if (typeof config === 'number') {
     return legacyProgressBar(config, width, label);

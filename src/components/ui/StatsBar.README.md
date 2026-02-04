@@ -16,7 +16,7 @@ A unified token/cost/usage display component for all Ralph CLI commands.
 ### Basic Usage
 
 ```tsx
-import { StatsBar } from "@/components/ui/StatsBar.tsx";
+import { StatsBar } from '@/components/ui/StatsBar.tsx';
 
 <StatsBar
   tokens={{
@@ -25,14 +25,14 @@ import { StatsBar } from "@/components/ui/StatsBar.tsx";
     cacheRead: 12000,
   }}
   cacheEfficiency={83}
-/>
+/>;
 ```
 
 ### With Cost (API Users)
 
 ```tsx
-import { StatsBar } from "@/components/ui/StatsBar.tsx";
-import type { CostBreakdown } from "@/services/cost_calculator.ts";
+import { StatsBar } from '@/components/ui/StatsBar.tsx';
+import type { CostBreakdown } from '@/services/cost_calculator.ts';
 
 const cost: CostBreakdown = {
   input: 0.1356,
@@ -49,7 +49,7 @@ const cost: CostBreakdown = {
   }}
   cost={cost}
   showCost={true}
-/>
+/>;
 ```
 
 ### Compact Mode
@@ -58,7 +58,7 @@ const cost: CostBreakdown = {
 <StatsBar
   tokens={{ input: 45200, output: 13100 }}
   compact={true}
-/>
+/>;
 ```
 
 ### With Delta Tracking
@@ -71,19 +71,19 @@ const cost: CostBreakdown = {
     tokens: 1200,
     cost: 0.05,
   }}
-/>
+/>;
 ```
 
 ### With Usage Bars (Subscription Users)
 
 ```tsx
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
 
 <StatsBar
   tokens={{ input: 45200, output: 13100 }}
   cacheEfficiency={83}
   usage={subscriptionUsage}
-/>
+/>;
 ```
 
 ## Convenience Components
@@ -93,13 +93,13 @@ import type { SubscriptionUsage } from "@/services/usage_service.ts";
 For subscription users who don't need cost display:
 
 ```tsx
-import { TokenStatsBar } from "@/components/ui/StatsBar.tsx";
+import { TokenStatsBar } from '@/components/ui/StatsBar.tsx';
 
 <TokenStatsBar
   tokens={{ input: 45200, output: 13100, cacheRead: 12000 }}
   cacheEfficiency={83}
   usage={subscriptionUsage}
-/>
+/>;
 ```
 
 ### CostStatsBar
@@ -107,23 +107,25 @@ import { TokenStatsBar } from "@/components/ui/StatsBar.tsx";
 For API users with cost tracking:
 
 ```tsx
-import { CostStatsBar } from "@/components/ui/StatsBar.tsx";
+import { CostStatsBar } from '@/components/ui/StatsBar.tsx';
 
 <CostStatsBar
   tokens={{ input: 45200, output: 13100 }}
   cost={costBreakdown}
   cacheEfficiency={20}
-/>
+/>;
 ```
 
 ## Display Format
 
 ### Full Mode
+
 ```
 Tokens: 45.2K (↑32.1K ↓13.1K)  Cost: $0.48  Cache: 83%
 ```
 
 ### Compact Mode
+
 ```
 Tokens: 45.2K  Cost: $0.48  Cache: 83%
 ```
@@ -138,15 +140,15 @@ Tokens: 45.2K  Cost: $0.48  Cache: 83%
 
 ### StatsBarProps
 
-| Prop | Type | Required | Default | Description |
-|------|------|----------|---------|-------------|
-| `tokens` | `TokenBreakdown` | Yes | - | Token usage breakdown |
-| `cost` | `CostBreakdown` | No | - | Cost breakdown for API users |
-| `cacheEfficiency` | `number` | No | - | Cache efficiency percentage (0-100) |
-| `usage` | `SubscriptionUsage` | No | - | Subscription usage data |
-| `showCost` | `boolean` | No | `true` | Whether to display cost |
-| `compact` | `boolean` | No | `false` | Use compact single-line display |
-| `delta` | `StatsDelta` | No | - | Delta from previous iteration |
+| Prop              | Type                | Required | Default | Description                         |
+| ----------------- | ------------------- | -------- | ------- | ----------------------------------- |
+| `tokens`          | `TokenBreakdown`    | Yes      | -       | Token usage breakdown               |
+| `cost`            | `CostBreakdown`     | No       | -       | Cost breakdown for API users        |
+| `cacheEfficiency` | `number`            | No       | -       | Cache efficiency percentage (0-100) |
+| `usage`           | `SubscriptionUsage` | No       | -       | Subscription usage data             |
+| `showCost`        | `boolean`           | No       | `true`  | Whether to display cost             |
+| `compact`         | `boolean`           | No       | `false` | Use compact single-line display     |
+| `delta`           | `StatsDelta`        | No       | -       | Delta from previous iteration       |
 
 ### TokenBreakdown
 
@@ -173,5 +175,5 @@ interface StatsDelta {
 The StatsBar component is exported from the main UI components module:
 
 ```tsx
-import { StatsBar, TokenStatsBar, CostStatsBar } from "@/components/ui/mod.ts";
+import { CostStatsBar, StatsBar, TokenStatsBar } from '@/components/ui/mod.ts';
 ```

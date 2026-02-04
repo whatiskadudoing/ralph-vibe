@@ -34,6 +34,18 @@ export interface UsageError {
 
 /**
  * Creates a UsageError.
+ *
+ * This is an error factory function following the pattern used throughout the codebase.
+ * Error factories create structured error objects with a discriminant `type` field
+ * for type-safe error handling using Result types.
+ *
+ * @param code - The error code indicating the type of usage tracking failure
+ * @param message - A human-readable error message
+ * @returns A structured UsageError object
+ *
+ * @example
+ * const error = usageError('auth_error', 'Failed to authenticate with API');
+ * // Returns: { type: 'usage_error', code: 'auth_error', message: 'Failed to authenticate with API' }
  */
 const usageError = (code: UsageError['code'], message: string): UsageError => ({
   type: 'usage_error',

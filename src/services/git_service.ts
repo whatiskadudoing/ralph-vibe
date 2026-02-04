@@ -27,6 +27,18 @@ export interface GitStatus {
 
 /**
  * Creates a GitError.
+ *
+ * This is an error factory function following the pattern used throughout the codebase.
+ * Error factories create structured error objects with a discriminant `type` field
+ * for type-safe error handling using Result types.
+ *
+ * @param code - The error code indicating the type of git failure
+ * @param message - A human-readable error message
+ * @returns A structured GitError object
+ *
+ * @example
+ * const error = gitError('not_repo', 'Not a git repository');
+ * // Returns: { type: 'git_error', code: 'not_repo', message: 'Not a git repository' }
  */
 function gitError(code: GitError['code'], message: string): GitError {
   return { type: 'git_error', code, message };
@@ -460,8 +472,15 @@ export async function pushTags(cwd?: string): Promise<Result<void, GitError>> {
   }
 }
 
+// ============================================================================
+// Pure Utility Functions
+// ============================================================================
+
 /**
  * Increments a semver version.
+ *
+ * @pure No side effects - string manipulation only
+ *
  * @param version - Current version (e.g., "v1.2.3" or "1.2.3")
  * @param type - Type of increment: "major", "minor", or "patch"
  * @returns New version with "v" prefix

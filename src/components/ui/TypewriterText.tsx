@@ -10,9 +10,9 @@
  * - Cursor: Streaming explanations before tool calls
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 // ============================================================================
 // Types
@@ -86,15 +86,13 @@ export function ShimmerText({
 
   return (
     <Text bold={bold}>
-      {text.split("").map((char, i) => {
+      {text.split('').map((char, i) => {
         const charPos = i / Math.max(text.length - 1, 1);
         const distance = Math.abs(charPos - shimmerPos);
 
         // Determine if this character is in the shimmer zone
         const inShimmer = distance < shimmerWidth;
-        const brightness = inShimmer
-          ? 1 - distance / shimmerWidth
-          : 0;
+        const brightness = inShimmer ? 1 - distance / shimmerWidth : 0;
 
         // Interpolate color based on brightness
         const charColor = brightness > 0.5 ? highlightColor : color;
@@ -136,7 +134,7 @@ export function TypewriterText({
   bold = false,
   dim = false,
   showCursor = true,
-  cursorChar = "▌",
+  cursorChar = '▌',
 }: TypewriterTextProps): React.ReactElement {
   const [displayedLength, setDisplayedLength] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -197,7 +195,7 @@ export function TypewriterText({
 
   // Show typing animation
   const displayedText = text.slice(0, displayedLength);
-  const cursor = showCursor ? cursorChar : "";
+  const cursor = showCursor ? cursorChar : '';
 
   return (
     <Text color={color} bold={bold} dimColor={dim}>
@@ -227,7 +225,7 @@ export interface AnimatedEllipsisProps {
  * Shows "Loading." -> "Loading.." -> "Loading..." cycling.
  */
 export function AnimatedEllipsis({
-  text = "",
+  text = '',
   speed = 500,
   maxDots = 3,
   color = colors.muted,
@@ -241,12 +239,14 @@ export function AnimatedEllipsis({
     return () => clearInterval(timer);
   }, [speed, maxDots]);
 
-  const ellipsis = ".".repeat(dots);
-  const padding = " ".repeat(maxDots - dots); // Prevent layout shift
+  const ellipsis = '.'.repeat(dots);
+  const padding = ' '.repeat(maxDots - dots); // Prevent layout shift
 
   return (
     <Text color={color}>
-      {text}{ellipsis}{padding}
+      {text}
+      {ellipsis}
+      {padding}
     </Text>
   );
 }
@@ -320,7 +320,7 @@ export interface ThinkingIndicatorProps {
  */
 export function ThinkingIndicator({
   isThinking = true,
-  text = "Thinking",
+  text = 'Thinking',
   color = colors.muted,
 }: ThinkingIndicatorProps): React.ReactElement | null {
   if (!isThinking) {
@@ -328,7 +328,7 @@ export function ThinkingIndicator({
   }
 
   return (
-    <Box flexDirection="row">
+    <Box flexDirection='row'>
       <AnimatedEllipsis text={text} color={color} speed={600} />
     </Box>
   );

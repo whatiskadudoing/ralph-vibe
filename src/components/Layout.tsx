@@ -5,8 +5,8 @@
  * All components support customizable colors, borders, and spacing.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // COLUMNS - Horizontal split with flexible widths
@@ -18,16 +18,16 @@ export interface ColumnsProps {
   /** Gap between columns */
   gap?: number;
   /** Align columns vertically */
-  alignItems?: "flex-start" | "center" | "flex-end" | "stretch";
+  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
 }
 
 export function Columns({
   children,
   gap = 1,
-  alignItems = "stretch",
+  alignItems = 'stretch',
 }: ColumnsProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={gap} alignItems={alignItems}>
+    <Box flexDirection='row' gap={gap} alignItems={alignItems}>
       {children}
     </Box>
   );
@@ -37,7 +37,7 @@ export interface ColumnProps {
   /** Column content */
   children: ReactNode;
   /** Width (number = chars, "auto" = fit content, percentage string e.g. "50%") */
-  width?: number | "auto" | string;
+  width?: number | 'auto' | string;
   /** Minimum width */
   minWidth?: number;
   /** Maximum width */
@@ -53,7 +53,14 @@ export interface ColumnProps {
   paddingX?: number;
   paddingY?: number;
   /** Border */
-  borderStyle?: "single" | "round" | "double" | "bold" | "singleDouble" | "doubleSingle" | "classic";
+  borderStyle?:
+    | 'single'
+    | 'round'
+    | 'double'
+    | 'bold'
+    | 'singleDouble'
+    | 'doubleSingle'
+    | 'classic';
   borderColor?: string;
 }
 
@@ -64,7 +71,7 @@ export function Column({
   maxWidth,
   grow = 1,
   shrink = 1,
-  backgroundColor,
+  backgroundColor: _backgroundColor,
   padding,
   paddingX,
   paddingY,
@@ -73,17 +80,17 @@ export function Column({
 }: ColumnProps): React.ReactElement {
   // Parse percentage widths
   let widthValue: number | undefined;
-  if (typeof width === "string" && width.endsWith("%")) {
+  if (typeof width === 'string' && width.endsWith('%')) {
     // Percentage widths need to be calculated differently in yoga
     // We'll use flexBasis with percentage
     widthValue = undefined;
-  } else if (typeof width === "number") {
+  } else if (typeof width === 'number') {
     widthValue = width;
   }
 
   return (
     <Box
-      flexDirection="column"
+      flexDirection='column'
       width={widthValue}
       minWidth={minWidth}
       maxWidth={maxWidth}
@@ -110,16 +117,16 @@ export interface RowsProps {
   /** Gap between rows */
   gap?: number;
   /** Align rows horizontally */
-  alignItems?: "flex-start" | "center" | "flex-end" | "stretch";
+  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
 }
 
 export function Rows({
   children,
   gap = 0,
-  alignItems = "stretch",
+  alignItems = 'stretch',
 }: RowsProps): React.ReactElement {
   return (
-    <Box flexDirection="column" gap={gap} alignItems={alignItems}>
+    <Box flexDirection='column' gap={gap} alignItems={alignItems}>
       {children}
     </Box>
   );
@@ -141,10 +148,23 @@ export interface RowProps {
   paddingX?: number;
   paddingY?: number;
   /** Border */
-  borderStyle?: "single" | "round" | "double" | "bold" | "singleDouble" | "doubleSingle" | "classic";
+  borderStyle?:
+    | 'single'
+    | 'round'
+    | 'double'
+    | 'bold'
+    | 'singleDouble'
+    | 'doubleSingle'
+    | 'classic';
   borderColor?: string;
   /** Justify content horizontally */
-  justifyContent?: "flex-start" | "center" | "flex-end" | "space-between" | "space-around" | "space-evenly";
+  justifyContent?:
+    | 'flex-start'
+    | 'center'
+    | 'flex-end'
+    | 'space-between'
+    | 'space-around'
+    | 'space-evenly';
 }
 
 export function Row({
@@ -162,7 +182,7 @@ export function Row({
 }: RowProps): React.ReactElement {
   return (
     <Box
-      flexDirection="row"
+      flexDirection='row'
       height={height}
       minHeight={minHeight}
       flexGrow={grow}
@@ -189,7 +209,7 @@ export interface SplitProps {
   /** Right/bottom panel content */
   right: ReactNode;
   /** Direction of split */
-  direction?: "horizontal" | "vertical";
+  direction?: 'horizontal' | 'vertical';
   /** Split ratio (0-1, default 0.5 = equal) */
   ratio?: number;
   /** Show divider between panels */
@@ -201,7 +221,7 @@ export interface SplitProps {
   /** Gap (if no divider) */
   gap?: number;
   /** Panel border style */
-  panelBorder?: "single" | "round" | "double" | "bold";
+  panelBorder?: 'single' | 'round' | 'double' | 'bold';
   /** Panel border color */
   panelBorderColor?: string;
   /** Left/top panel border color override */
@@ -217,11 +237,11 @@ export interface SplitProps {
 export function Split({
   left,
   right,
-  direction = "horizontal",
+  direction = 'horizontal',
   ratio = 0.5,
   showDivider = true,
   dividerChar,
-  dividerColor = "gray",
+  dividerColor = 'gray',
   gap = 0,
   panelBorder,
   panelBorderColor,
@@ -230,8 +250,8 @@ export function Split({
   width,
   height,
 }: SplitProps): React.ReactElement {
-  const isHorizontal = direction === "horizontal";
-  const defaultDividerChar = isHorizontal ? "│" : "─";
+  const isHorizontal = direction === 'horizontal';
+  const defaultDividerChar = isHorizontal ? '│' : '─';
   const actualDividerChar = dividerChar ?? defaultDividerChar;
 
   // For horizontal: left gets ratio%, right gets (1-ratio)%
@@ -239,30 +259,30 @@ export function Split({
   const leftGrow = ratio;
   const rightGrow = 1 - ratio;
 
-  const dividerElement = showDivider ? (
-    <Box
-      flexDirection={isHorizontal ? "column" : "row"}
-      alignItems="center"
-      justifyContent="center"
-    >
-      <Text color={dividerColor}>
-        {isHorizontal
-          ? actualDividerChar.repeat(1)
-          : actualDividerChar.repeat(20)}
-      </Text>
-    </Box>
-  ) : null;
+  const dividerElement = showDivider
+    ? (
+      <Box
+        flexDirection={isHorizontal ? 'column' : 'row'}
+        alignItems='center'
+        justifyContent='center'
+      >
+        <Text color={dividerColor}>
+          {isHorizontal ? actualDividerChar.repeat(1) : actualDividerChar.repeat(20)}
+        </Text>
+      </Box>
+    )
+    : null;
 
   return (
     <Box
-      flexDirection={isHorizontal ? "row" : "column"}
+      flexDirection={isHorizontal ? 'row' : 'column'}
       width={width}
       height={height}
       gap={showDivider ? 0 : gap}
     >
       <Box
         flexGrow={leftGrow}
-        flexDirection="column"
+        flexDirection='column'
         borderStyle={panelBorder}
         borderColor={leftBorderColor ?? panelBorderColor}
       >
@@ -271,7 +291,7 @@ export function Split({
       {dividerElement}
       <Box
         flexGrow={rightGrow}
-        flexDirection="column"
+        flexDirection='column'
         borderStyle={panelBorder}
         borderColor={rightBorderColor ?? panelBorderColor}
       >
@@ -302,15 +322,15 @@ export interface GridLayoutProps {
 
 export function GridLayout({
   children,
-  columns = 2,
+  columns: _columns = 2,
   gap = 1,
-  rowGap,
+  rowGap: _rowGap,
   columnGap,
 }: GridLayoutProps): React.ReactElement {
   return (
     <Box
-      flexDirection="row"
-      flexWrap="wrap"
+      flexDirection='row'
+      flexWrap='wrap'
       gap={columnGap ?? gap}
     >
       {children}
@@ -330,7 +350,7 @@ export interface GridCellProps {
   /** Cell height */
   height?: number;
   /** Border */
-  borderStyle?: "single" | "round" | "double" | "bold";
+  borderStyle?: 'single' | 'round' | 'double' | 'bold';
   borderColor?: string;
   /** Padding */
   padding?: number;
@@ -361,7 +381,7 @@ export function GridCell({
       padding={padding}
       paddingX={paddingX}
       paddingY={paddingY}
-      flexDirection="column"
+      flexDirection='column'
     >
       {children}
     </Box>
@@ -378,9 +398,9 @@ export interface StackProps {
   /** Gap between items */
   gap?: number;
   /** Alignment */
-  align?: "flex-start" | "center" | "flex-end" | "stretch";
+  align?: 'flex-start' | 'center' | 'flex-end' | 'stretch';
   /** Direction */
-  direction?: "vertical" | "horizontal";
+  direction?: 'vertical' | 'horizontal';
   /** Padding */
   padding?: number;
   paddingX?: number;
@@ -390,15 +410,15 @@ export interface StackProps {
 export function Stack({
   children,
   gap = 1,
-  align = "stretch",
-  direction = "vertical",
+  align = 'stretch',
+  direction = 'vertical',
   padding,
   paddingX,
   paddingY,
 }: StackProps): React.ReactElement {
   return (
     <Box
-      flexDirection={direction === "vertical" ? "column" : "row"}
+      flexDirection={direction === 'vertical' ? 'column' : 'row'}
       gap={gap}
       alignItems={align}
       padding={padding}
@@ -438,8 +458,8 @@ export function Center({
     <Box
       width={width}
       height={height}
-      justifyContent={horizontal ? "center" : "flex-start"}
-      alignItems={vertical ? "center" : "flex-start"}
+      justifyContent={horizontal ? 'center' : 'flex-start'}
+      alignItems={vertical ? 'center' : 'flex-start'}
     >
       {children}
     </Box>
@@ -501,17 +521,17 @@ export interface SidebarLayoutProps {
   /** Sidebar width */
   sidebarWidth?: number;
   /** Sidebar position */
-  sidebarPosition?: "left" | "right";
+  sidebarPosition?: 'left' | 'right';
   /** Show divider */
   showDivider?: boolean;
   /** Divider color */
   dividerColor?: string;
   /** Sidebar border */
-  sidebarBorder?: "single" | "round" | "double";
+  sidebarBorder?: 'single' | 'round' | 'double';
   /** Sidebar border color */
   sidebarBorderColor?: string;
   /** Main border */
-  mainBorder?: "single" | "round" | "double";
+  mainBorder?: 'single' | 'round' | 'double';
   /** Main border color */
   mainBorderColor?: string;
 }
@@ -520,9 +540,9 @@ export function SidebarLayout({
   sidebar,
   main,
   sidebarWidth = 25,
-  sidebarPosition = "left",
+  sidebarPosition = 'left',
   showDivider = true,
-  dividerColor = "gray",
+  dividerColor = 'gray',
   sidebarBorder,
   sidebarBorderColor,
   mainBorder,
@@ -532,7 +552,7 @@ export function SidebarLayout({
     <Box
       width={sidebarWidth}
       flexShrink={0}
-      flexDirection="column"
+      flexDirection='column'
       borderStyle={sidebarBorder}
       borderColor={sidebarBorderColor}
     >
@@ -540,16 +560,18 @@ export function SidebarLayout({
     </Box>
   );
 
-  const dividerElement = showDivider ? (
-    <Box>
-      <Text color={dividerColor}>│</Text>
-    </Box>
-  ) : null;
+  const dividerElement = showDivider
+    ? (
+      <Box>
+        <Text color={dividerColor}>│</Text>
+      </Box>
+    )
+    : null;
 
   const mainElement = (
     <Box
       flexGrow={1}
-      flexDirection="column"
+      flexDirection='column'
       borderStyle={mainBorder}
       borderColor={mainBorderColor}
     >
@@ -558,20 +580,22 @@ export function SidebarLayout({
   );
 
   return (
-    <Box flexDirection="row">
-      {sidebarPosition === "left" ? (
-        <>
-          {sidebarElement}
-          {dividerElement}
-          {mainElement}
-        </>
-      ) : (
-        <>
-          {mainElement}
-          {dividerElement}
-          {sidebarElement}
-        </>
-      )}
+    <Box flexDirection='row'>
+      {sidebarPosition === 'left'
+        ? (
+          <>
+            {sidebarElement}
+            {dividerElement}
+            {mainElement}
+          </>
+        )
+        : (
+          <>
+            {mainElement}
+            {dividerElement}
+            {sidebarElement}
+          </>
+        )}
     </Box>
   );
 }
@@ -584,7 +608,7 @@ export interface FullScreenProps {
   /** Content */
   children: ReactNode;
   /** Border */
-  borderStyle?: "single" | "round" | "double" | "bold";
+  borderStyle?: 'single' | 'round' | 'double' | 'bold';
   /** Border color */
   borderColor?: string;
   /** Padding */
@@ -615,7 +639,7 @@ export function FullScreen({
       borderStyle={borderStyle}
       borderColor={borderColor}
       padding={padding}
-      flexDirection="column"
+      flexDirection='column'
     >
       {children}
     </Box>
@@ -650,7 +674,7 @@ export interface HolyGrailLayoutProps {
   /** Divider color */
   dividerColor?: string;
   /** Border style for sections */
-  borderStyle?: "single" | "round" | "double";
+  borderStyle?: 'single' | 'round' | 'double';
   /** Header border color */
   headerBorderColor?: string;
   /** Footer border color */
@@ -672,25 +696,27 @@ export function HolyGrailLayout({
   leftSidebarWidth = 20,
   rightSidebarWidth = 20,
   showDividers = true,
-  dividerColor = "gray",
+  dividerColor = 'gray',
   borderStyle,
   headerBorderColor,
   footerBorderColor,
   sidebarBorderColor,
   mainBorderColor,
 }: HolyGrailLayoutProps): React.ReactElement {
-  const horizontalDivider = showDividers ? (
-    <Text dimColor color={dividerColor}>{"─".repeat(80)}</Text>
-  ) : null;
+  const horizontalDivider = showDividers
+    ? <Text dimColor color={dividerColor}>{'─'.repeat(80)}</Text>
+    : null;
 
-  const verticalDivider = showDividers ? (
-    <Box>
-      <Text color={dividerColor}>│</Text>
-    </Box>
-  ) : null;
+  const verticalDivider = showDividers
+    ? (
+      <Box>
+        <Text color={dividerColor}>│</Text>
+      </Box>
+    )
+    : null;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {/* Header */}
       {header && (
         <>
@@ -706,7 +732,7 @@ export function HolyGrailLayout({
       )}
 
       {/* Middle row: sidebars + main */}
-      <Box flexDirection="row" flexGrow={1}>
+      <Box flexDirection='row' flexGrow={1}>
         {leftSidebar && (
           <>
             <Box
@@ -791,7 +817,7 @@ export function ResponsiveColumns({
 
   return (
     <Box
-      flexDirection={isStacked ? "column" : "row"}
+      flexDirection={isStacked ? 'column' : 'row'}
       gap={gap}
     >
       {children}
@@ -811,7 +837,7 @@ export interface AspectBoxProps {
   /** Width (height calculated from ratio) */
   width?: number;
   /** Border */
-  borderStyle?: "single" | "round" | "double";
+  borderStyle?: 'single' | 'round' | 'double';
   borderColor?: string;
 }
 
@@ -833,7 +859,7 @@ export function AspectBox({
       height={height}
       borderStyle={borderStyle}
       borderColor={borderColor}
-      flexDirection="column"
+      flexDirection='column'
     >
       {children}
     </Box>
@@ -859,13 +885,16 @@ export function Masonry({
   gap = 1,
 }: MasonryProps): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={gap}>
-      {Array.from({ length: columns }, (_, colIndex) => (
-        <Box key={colIndex} flexDirection="column" flexGrow={1} gap={gap}>
-          {/* Children would be distributed here - simplified for terminal */}
-          {colIndex === 0 ? children : null}
-        </Box>
-      ))}
+    <Box flexDirection='row' gap={gap}>
+      {Array.from(
+        { length: columns },
+        (_, colIndex) => (
+          <Box key={colIndex} flexDirection='column' flexGrow={1} gap={gap}>
+            {/* Children would be distributed here - simplified for terminal */}
+            {colIndex === 0 ? children : null}
+          </Box>
+        ),
+      )}
     </Box>
   );
 }
@@ -889,7 +918,7 @@ export function Overlay({
   visible = true,
 }: OverlayProps): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {children}
       {visible && overlay}
     </Box>
@@ -916,9 +945,9 @@ export function Inline({
 }: InlineProps): React.ReactElement {
   return (
     <Box
-      flexDirection="row"
+      flexDirection='row'
       gap={gap}
-      flexWrap={wrap ? "wrap" : "nowrap"}
+      flexWrap={wrap ? 'wrap' : 'nowrap'}
     >
       {children}
     </Box>
@@ -939,7 +968,7 @@ export interface TitledSectionProps {
   /** Content */
   children: ReactNode;
   /** Border style */
-  borderStyle?: "single" | "round" | "double" | "bold";
+  borderStyle?: 'single' | 'round' | 'double' | 'bold';
   /** Border color */
   borderColor?: string;
   /** Padding */
@@ -955,7 +984,7 @@ export function TitledSection({
   icon,
   titleColor,
   children,
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   padding = 1,
   paddingX,
@@ -963,17 +992,17 @@ export function TitledSection({
   width,
 }: TitledSectionProps): React.ReactElement {
   return (
-    <Box flexDirection="column" width={width}>
+    <Box flexDirection='column' width={width}>
       <Box
         borderStyle={borderStyle}
         borderColor={borderColor}
-        flexDirection="column"
+        flexDirection='column'
         padding={padding}
         paddingX={paddingX}
         paddingY={paddingY}
       >
         <Box marginBottom={1}>
-          {icon && <Text color={titleColor}>{icon} </Text>}
+          {icon && <Text color={titleColor}>{icon}</Text>}
           <Text bold color={titleColor}>{title}</Text>
         </Box>
         {children}
@@ -994,7 +1023,7 @@ export interface TwoColumnCardProps {
   /** Left column width */
   leftWidth?: number;
   /** Border style */
-  borderStyle?: "single" | "round" | "double";
+  borderStyle?: 'single' | 'round' | 'double';
   /** Border color */
   borderColor?: string;
   /** Show middle divider */
@@ -1013,10 +1042,10 @@ export function TwoColumnCard({
   left,
   right,
   leftWidth = 30,
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   showDivider = true,
-  dividerColor = "gray",
+  dividerColor = 'gray',
   title,
   titleColor,
   padding = 1,
@@ -1025,7 +1054,7 @@ export function TwoColumnCard({
     <Box
       borderStyle={borderStyle}
       borderColor={borderColor}
-      flexDirection="column"
+      flexDirection='column'
       padding={padding}
     >
       {title && (
@@ -1033,8 +1062,8 @@ export function TwoColumnCard({
           <Text bold color={titleColor}>{title}</Text>
         </Box>
       )}
-      <Box flexDirection="row">
-        <Box width={leftWidth} flexDirection="column">
+      <Box flexDirection='row'>
+        <Box width={leftWidth} flexDirection='column'>
           {left}
         </Box>
         {showDivider && (
@@ -1042,7 +1071,7 @@ export function TwoColumnCard({
             <Text color={dividerColor}>│</Text>
           </Box>
         )}
-        <Box flexGrow={1} flexDirection="column">
+        <Box flexGrow={1} flexDirection='column'>
           {right}
         </Box>
       </Box>

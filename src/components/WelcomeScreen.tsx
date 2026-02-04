@@ -5,16 +5,16 @@
  * Uses Ralph's actual color palette.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import {
   Box,
-  Text,
   Newline,
   render,
-  useInput,
-  useApp,
   Spinner,
-} from "../../packages/deno-ink/src/mod.ts";
+  Text,
+  useApp,
+  useInput,
+} from '../../packages/deno-ink/src/mod.ts';
 
 // ============================================================================
 // Theme Colors (from ralph-cli src/ui/colors.ts)
@@ -23,19 +23,19 @@ import {
 // Using 256-color codes that match the project
 const colors = {
   // Brand colors
-  primary: "#00FFFF",      // Bright Cyan (ANSI 96)
-  orange: "#FFAF00",       // 256-color 214 - Bright orange
-  amber: "#FF8700",        // 256-color 208 - Amber/gold
+  primary: '#00FFFF', // Bright Cyan (ANSI 96)
+  orange: '#FFAF00', // 256-color 214 - Bright orange
+  amber: '#FF8700', // 256-color 208 - Amber/gold
 
   // Status colors
-  success: "#00FF00",      // Bright Green
-  warning: "#FFFF00",      // Bright Yellow
-  error: "#FF5F5F",        // Bright Red
+  success: '#00FF00', // Bright Green
+  warning: '#FFFF00', // Bright Yellow
+  error: '#FF5F5F', // Bright Red
 
   // Text colors
-  muted: "#808080",        // Gray (ANSI 90)
-  dim: "#4E4E4E",          // Darker gray
-  white: "#FFFFFF",        // White
+  muted: '#808080', // Gray (ANSI 90)
+  dim: '#4E4E4E', // Darker gray
+  white: '#FFFFFF', // White
 };
 
 // ============================================================================
@@ -43,7 +43,7 @@ const colors = {
 // ============================================================================
 
 // Option 1: Simple stylized "R" robot
-const RALPH_ROBOT_SIMPLE = `
+const _RALPH_ROBOT_SIMPLE = `
   ╔═══════╗
   ║ ◉   ◉ ║
   ║   R   ║
@@ -64,7 +64,7 @@ const RALPH_ROBOT_V2 = `
 `.trim();
 
 // Option 3: Minimal block R
-const RALPH_BLOCK = `
+const _RALPH_BLOCK = `
  ██████╗
  ██╔══██╗
  ██████╔╝
@@ -74,7 +74,7 @@ const RALPH_BLOCK = `
 `.trim();
 
 // Option 4: Simple face in double border
-const RALPH_FACE = `
+const _RALPH_FACE = `
 ╔═══════════╗
 ║           ║
 ║   ◉   ◉   ║
@@ -85,7 +85,7 @@ const RALPH_FACE = `
 `.trim();
 
 // Option 5: Pixel art style robot (cleaner)
-const RALPH_PIXEL = `
+const _RALPH_PIXEL = `
    ▄▄▄▄▄▄▄
   █ ◉   ◉ █
   █   ▽   █
@@ -128,11 +128,13 @@ interface WelcomeScreenProps {
 // Sub-Components
 // ============================================================================
 
-function Shortcut({ keys, description }: { keys: string; description: string }) {
+function Shortcut(
+  { keys, description }: { keys: string; description: string },
+): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Box
-        borderStyle="double"
+        borderStyle='double'
         borderColor={colors.dim}
         paddingX={1}
       >
@@ -145,24 +147,24 @@ function Shortcut({ keys, description }: { keys: string; description: string }) 
 
 function StatusBadge({
   status,
-  text
+  text,
 }: {
-  status: "ready" | "warning" | "info";
+  status: 'ready' | 'warning' | 'info';
   text: string;
-}) {
+}): React.ReactElement {
   const statusColors = {
     ready: colors.success,
     warning: colors.warning,
     info: colors.primary,
   };
   const icons = {
-    ready: "✓",
-    warning: "!",
-    info: "i",
+    ready: '✓',
+    warning: '!',
+    info: 'i',
   };
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={statusColors[status]} bold>[{icons[status]}]</Text>
       <Text color={statusColors[status]}>{text}</Text>
     </Box>
@@ -177,12 +179,12 @@ function WorkflowStep({
   name: string;
   done: boolean;
   current?: boolean;
-}) {
-  const icon = done ? "●" : current ? "◐" : "○";
+}): React.ReactElement {
+  const icon = done ? '●' : current ? '◐' : '○';
   const color = done ? colors.success : current ? colors.orange : colors.dim;
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={color}>{icon}</Text>
       <Text color={done ? colors.muted : color}>{name}</Text>
     </Box>
@@ -199,28 +201,28 @@ export function WelcomeScreen({
   projectStatus,
   updateInfo,
   recentCommands = [],
-}: WelcomeScreenProps) {
+}: WelcomeScreenProps): React.ReactElement {
   const { exit } = useApp();
   const [showTips, setShowTips] = useState(true);
 
   // Keyboard shortcuts
   useInput((input, key) => {
-    if (input === "q" || key.escape) exit();
-    if (input === "i") {
-      console.log("\nRunning: ralph init\n");
+    if (input === 'q' || key.escape) exit();
+    if (input === 'i') {
+      console.log('\nRunning: ralph init\n');
       exit();
     }
-    if (input === "w") {
-      console.log("\nRunning: ralph work\n");
+    if (input === 'w') {
+      console.log('\nRunning: ralph work\n');
       exit();
     }
-    if (input === "?") {
+    if (input === '?') {
       setShowTips(!showTips);
     }
   });
 
   // Generate welcome message
-  const greeting = userName ? `Welcome back, ${userName}!` : "Welcome to Ralph!";
+  const greeting = userName ? `Welcome back, ${userName}!` : 'Welcome to Ralph!';
 
   // Context-aware tip
   const contextTip = !projectStatus.isRalphProject
@@ -232,23 +234,23 @@ export function WelcomeScreen({
     : "Ready! Run 'ralph work' to start building";
 
   return (
-    <Box flexDirection="column" padding={1}>
+    <Box flexDirection='column' padding={1}>
       {/* Main Container with Double Border */}
       <Box
-        borderStyle="double"
+        borderStyle='double'
         borderColor={colors.orange}
         paddingX={2}
         paddingY={1}
-        flexDirection="column"
+        flexDirection='column'
       >
         {/* Header Row */}
-        <Box flexDirection="row" justifyContent="space-between" marginBottom={1}>
-          <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' justifyContent='space-between' marginBottom={1}>
+          <Box flexDirection='row' gap={1}>
             <Text color={colors.orange} bold>Ralph</Text>
             <Text color={colors.muted}>v{version}</Text>
           </Box>
           {updateInfo.hasUpdate && (
-            <Box flexDirection="row" gap={1}>
+            <Box flexDirection='row' gap={1}>
               <Text color={colors.warning}>⬆</Text>
               <Text color={colors.warning}>
                 New version: v{updateInfo.latestVersion}
@@ -258,20 +260,18 @@ export function WelcomeScreen({
         </Box>
 
         {/* Content Row */}
-        <Box flexDirection="row" gap={4}>
+        <Box flexDirection='row' gap={4}>
           {/* Left: Mascot & Status */}
-          <Box flexDirection="column" alignItems="center" minWidth={20}>
+          <Box flexDirection='column' alignItems='center' minWidth={20}>
             <Text color={colors.primary} bold>{greeting}</Text>
             <Newline />
             <Text color={colors.orange}>{RALPH_MASCOT}</Text>
             <Newline />
 
             {/* Project Status */}
-            {projectStatus.isRalphProject ? (
-              <StatusBadge status="ready" text="Ralph Project" />
-            ) : (
-              <StatusBadge status="warning" text="Not initialized" />
-            )}
+            {projectStatus.isRalphProject
+              ? <StatusBadge status='ready' text='Ralph Project' />
+              : <StatusBadge status='warning' text='Not initialized' />}
 
             {projectStatus.projectName && (
               <Box marginTop={1}>
@@ -283,16 +283,16 @@ export function WelcomeScreen({
           </Box>
 
           {/* Right: Info Panels */}
-          <Box flexDirection="column" flexGrow={1}>
+          <Box flexDirection='column' flexGrow={1}>
             {/* Tip Box */}
             <Box
-              borderStyle="single"
+              borderStyle='single'
               borderColor={colors.primary}
               paddingX={2}
               paddingY={1}
               marginBottom={1}
             >
-              <Box flexDirection="column">
+              <Box flexDirection='column'>
                 <Text bold color={colors.primary}>💡 Tip</Text>
                 <Text color={colors.white}>{contextTip}</Text>
               </Box>
@@ -300,43 +300,43 @@ export function WelcomeScreen({
 
             {/* Workflow Progress */}
             <Box
-              borderStyle="single"
+              borderStyle='single'
               borderColor={colors.dim}
               paddingX={2}
               paddingY={1}
               marginBottom={1}
             >
-              <Box flexDirection="column">
+              <Box flexDirection='column'>
                 <Text bold color={colors.orange}>Workflow</Text>
-                <Box marginTop={1} flexDirection="row" gap={2}>
-                  <WorkflowStep name="init" done={projectStatus.isRalphProject} />
+                <Box marginTop={1} flexDirection='row' gap={2}>
+                  <WorkflowStep name='init' done={projectStatus.isRalphProject} />
                   <Text color={colors.dim}>→</Text>
-                  <WorkflowStep name="specs" done={projectStatus.hasSpecs} />
+                  <WorkflowStep name='specs' done={projectStatus.hasSpecs} />
                   <Text color={colors.dim}>→</Text>
-                  <WorkflowStep name="plan" done={projectStatus.hasPlan} />
+                  <WorkflowStep name='plan' done={projectStatus.hasPlan} />
                   <Text color={colors.dim}>→</Text>
-                  <WorkflowStep name="work" done={false} />
+                  <WorkflowStep name='work' done={false} />
                 </Box>
               </Box>
             </Box>
 
             {/* Recent Activity */}
             <Box
-              borderStyle="single"
+              borderStyle='single'
               borderColor={colors.dim}
               paddingX={2}
               paddingY={1}
             >
-              <Box flexDirection="column">
+              <Box flexDirection='column'>
                 <Text bold color={colors.orange}>Recent Activity</Text>
-                <Box marginTop={1} flexDirection="column">
-                  {recentCommands.length > 0 ? (
-                    recentCommands.slice(0, 3).map((cmd, i) => (
-                      <Text key={i} color={colors.muted}>• {cmd}</Text>
-                    ))
-                  ) : (
-                    <Text color={colors.dim}>No recent activity</Text>
-                  )}
+                <Box marginTop={1} flexDirection='column'>
+                  {recentCommands.length > 0
+                    ? (
+                      recentCommands.slice(0, 3).map((cmd, i) => (
+                        <Text key={i} color={colors.muted}>• {cmd}</Text>
+                      ))
+                    )
+                    : <Text color={colors.dim}>No recent activity</Text>}
                 </Box>
               </Box>
             </Box>
@@ -346,25 +346,25 @@ export function WelcomeScreen({
 
       {/* Keyboard Shortcuts */}
       {showTips && (
-        <Box marginTop={1} flexDirection="column">
+        <Box marginTop={1} flexDirection='column'>
           <Text bold color={colors.muted}>Shortcuts</Text>
-          <Box flexDirection="row" gap={3} marginTop={1}>
-            <Shortcut keys="i" description="init" />
-            <Shortcut keys="s" description="start" />
-            <Shortcut keys="p" description="plan" />
-            <Shortcut keys="w" description="work" />
-            <Shortcut keys="?" description="tips" />
-            <Shortcut keys="q" description="quit" />
+          <Box flexDirection='row' gap={3} marginTop={1}>
+            <Shortcut keys='i' description='init' />
+            <Shortcut keys='s' description='start' />
+            <Shortcut keys='p' description='plan' />
+            <Shortcut keys='w' description='work' />
+            <Shortcut keys='?' description='tips' />
+            <Shortcut keys='q' description='quit' />
           </Box>
         </Box>
       )}
 
       {/* Command Prompt */}
-      <Box marginTop={1} flexDirection="row" gap={1}>
+      <Box marginTop={1} flexDirection='row' gap={1}>
         <Text color={colors.muted}>~/</Text>
         <Text color={colors.orange} bold>ralph</Text>
         <Text color={colors.muted}>›</Text>
-        <Spinner type="dots" />
+        <Spinner type='dots' />
         <Text color={colors.dim}>Ready...</Text>
       </Box>
     </Box>
@@ -385,11 +385,11 @@ export async function detectProjectStatus(): Promise<ProjectStatus> {
   try {
     // Check for .ralph directory or ralph.config.ts
     try {
-      await Deno.stat(".ralph");
+      await Deno.stat('.ralph');
       status.isRalphProject = true;
     } catch {
       try {
-        await Deno.stat("ralph.config.ts");
+        await Deno.stat('ralph.config.ts');
         status.isRalphProject = true;
       } catch {
         // Not a ralph project
@@ -399,7 +399,7 @@ export async function detectProjectStatus(): Promise<ProjectStatus> {
     // Check for specs
     if (status.isRalphProject) {
       try {
-        const specs = await Deno.readDir(".ralph/specs");
+        const specs = await Deno.readDir('.ralph/specs');
         for await (const _ of specs) {
           status.hasSpecs = true;
           break;
@@ -410,7 +410,7 @@ export async function detectProjectStatus(): Promise<ProjectStatus> {
 
       // Check for plan
       try {
-        await Deno.stat(".ralph/plan.md");
+        await Deno.stat('.ralph/plan.md');
         status.hasPlan = true;
       } catch {
         // No plan
@@ -419,11 +419,11 @@ export async function detectProjectStatus(): Promise<ProjectStatus> {
 
     // Get project name from package.json or deno.json
     try {
-      const denoJson = JSON.parse(await Deno.readTextFile("deno.json"));
+      const denoJson = JSON.parse(await Deno.readTextFile('deno.json'));
       status.projectName = denoJson.name;
     } catch {
       try {
-        const packageJson = JSON.parse(await Deno.readTextFile("package.json"));
+        const packageJson = JSON.parse(await Deno.readTextFile('package.json'));
         status.projectName = packageJson.name;
       } catch {
         // No project name found
@@ -440,19 +440,15 @@ export async function detectProjectStatus(): Promise<ProjectStatus> {
 // Utility: Check for Updates
 // ============================================================================
 
-export async function checkForUpdates(currentVersion: string): Promise<UpdateInfo> {
+export function checkForUpdates(currentVersion: string): UpdateInfo {
   const info: UpdateInfo = {
     hasUpdate: false,
     currentVersion,
   };
 
-  try {
-    // In a real implementation, this would fetch from a registry
-    info.latestVersion = currentVersion;
-    info.hasUpdate = false;
-  } catch {
-    // Failed to check for updates
-  }
+  // In a real implementation, this would fetch from a registry
+  info.latestVersion = currentVersion;
+  info.hasUpdate = false;
 
   return info;
 }
@@ -467,14 +463,14 @@ export async function showWelcome(version: string): Promise<void> {
 
   let userName: string | undefined;
   try {
-    const process = new Deno.Command("git", {
-      args: ["config", "user.name"],
-      stdout: "piped",
+    const process = new Deno.Command('git', {
+      args: ['config', 'user.name'],
+      stdout: 'piped',
     });
     const output = await process.output();
     userName = new TextDecoder().decode(output.stdout).trim();
   } catch {
-    userName = Deno.env.get("USER");
+    userName = Deno.env.get('USER');
   }
 
   const { waitUntilExit } = await render(
@@ -484,7 +480,7 @@ export async function showWelcome(version: string): Promise<void> {
       projectStatus={projectStatus}
       updateInfo={updateInfo}
       recentCommands={[]}
-    />
+    />,
   );
 
   await waitUntilExit();

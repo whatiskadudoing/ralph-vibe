@@ -4,8 +4,8 @@
  * Card component for grouped content using deno-ink.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface CardProps {
   /** Card title */
@@ -15,7 +15,7 @@ export interface CardProps {
   /** Title color */
   titleColor?: string;
   /** Border style */
-  borderStyle?: "single" | "round" | "double" | "bold";
+  borderStyle?: 'single' | 'round' | 'double' | 'bold';
   /** Border color */
   borderColor?: string;
   /** Card width */
@@ -32,7 +32,7 @@ export function Card({
   title,
   subtitle,
   titleColor,
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   width,
   padding = 1,
@@ -45,14 +45,14 @@ export function Card({
       width={width}
       paddingX={padding}
       paddingY={padding > 0 ? 1 : 0}
-      flexDirection="column"
+      flexDirection='column'
     >
       {title && (
         <Box marginBottom={children ? 1 : 0}>
           <Text bold color={titleColor}>{title}</Text>
           {subtitle && (
             <>
-              <Text> </Text>
+              <Text></Text>
               <Text dimColor>{subtitle}</Text>
             </>
           )}
@@ -95,10 +95,10 @@ export function FeatureCard({
   color,
 }: FeatureCardProps): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box>
         <Text color={color}>{icon}</Text>
-        <Text> </Text>
+        <Text></Text>
         <Text bold color={color}>{title}</Text>
       </Box>
       {description && (
@@ -116,7 +116,7 @@ export interface StatCardProps {
   value: string | number;
   icon?: string;
   color?: string;
-  trend?: "up" | "down" | "neutral";
+  trend?: 'up' | 'down' | 'neutral';
 }
 
 export function StatCard({
@@ -126,21 +126,21 @@ export function StatCard({
   color,
   trend,
 }: StatCardProps): React.ReactElement {
-  const trendIcon = trend === "up" ? "↑" : trend === "down" ? "↓" : "";
-  const trendColor = trend === "up" ? "green" : trend === "down" ? "red" : undefined;
+  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '';
+  const trendColor = trend === 'up' ? 'green' : trend === 'down' ? 'red' : undefined;
 
   return (
     <Box
-      borderStyle="round"
+      borderStyle='round'
       paddingX={2}
       paddingY={1}
-      flexDirection="column"
-      alignItems="center"
+      flexDirection='column'
+      alignItems='center'
     >
       {icon && <Text color={color}>{icon}</Text>}
       <Box>
         <Text bold color={color}>{String(value)}</Text>
-        {trendIcon && <Text color={trendColor}> {trendIcon}</Text>}
+        {trendIcon && <Text color={trendColor}>{trendIcon}</Text>}
       </Box>
       <Text dimColor>{label}</Text>
     </Box>
@@ -166,11 +166,11 @@ export function InfoCard({
 
   return (
     <Card title={title} titleColor={titleColor} borderColor={borderColor}>
-      <Box flexDirection="column">
+      <Box flexDirection='column'>
         {entries.map(([key, value], index) => (
           <Box key={index}>
             <Text dimColor>{key.padEnd(maxKeyWidth)}</Text>
-            <Text>  </Text>
+            <Text></Text>
             <Text>{String(value)}</Text>
           </Box>
         ))}

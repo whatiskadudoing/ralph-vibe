@@ -65,7 +65,189 @@ export interface ProjectInfo {
 }
 
 /**
+ * All project files that can be created/overwritten during init.
+ */
+export type ProjectFile =
+  | 'config'
+  | 'specs'
+  | 'research'
+  | 'agents'
+  | 'plan'
+  | 'audience_jtbd'
+  | 'prompt_build'
+  | 'prompt_plan'
+  | 'prompt_research'
+  | 'prompt_start'
+  | 'prompt_spec'
+  | 'prompt_audience';
+
+/**
+ * A file template definition.
+ * Separates the pure template rendering logic from I/O operations.
+ *
+ * @pure The render function is pure - no side effects
+ * @pure The getPath function is pure - simple string concatenation
+ */
+export interface FileTemplate {
+  /** The project file key this template corresponds to */
+  readonly key: ProjectFile;
+  /** Pure function that renders the template content */
+  readonly render: () => string;
+  /** Pure function that returns the file path given the project root */
+  readonly getPath: (root: string) => string;
+}
+
+/**
+ * Information about a project file.
+ */
+export interface ProjectFileInfo {
+  readonly key: ProjectFile;
+  readonly path: string;
+  readonly name: string;
+  readonly description: string;
+  readonly exists: boolean;
+}
+
+// ============================================================================
+// File Templates (Pure)
+// ============================================================================
+
+/**
+ * File templates for project initialization.
+ * Each template is a pure function that renders content without I/O.
+ *
+ * @pure All render functions are pure - they only produce string output
+ * @pure All getPath functions are pure - they only perform string operations
+ */
+const FILE_TEMPLATES: readonly FileTemplate[] = [
+  {
+    key: 'prompt_build',
+    render: renderBuildPrompt,
+    getPath: getBuildPromptPath,
+  },
+  {
+    key: 'prompt_plan',
+    render: renderPlanPrompt,
+    getPath: getPlanPromptPath,
+  },
+  {
+    key: 'prompt_research',
+    render: renderResearchPrompt,
+    getPath: getResearchPromptPath,
+  },
+  {
+    key: 'prompt_start',
+    render: renderStartPrompt,
+    getPath: getStartPromptPath,
+  },
+  {
+    key: 'prompt_spec',
+    render: renderSpecInterviewPrompt,
+    getPath: getSpecPromptPath,
+  },
+  {
+    key: 'prompt_audience',
+    render: renderAudiencePrompt,
+    getPath: getAudiencePromptPath,
+  },
+  {
+    key: 'agents',
+    render: renderAgentsMd,
+    getPath: getAgentsMdPath,
+  },
+  {
+    key: 'plan',
+    render: renderInitialPlan,
+    getPath: getPlanPath,
+  },
+  {
+    key: 'audience_jtbd',
+    render: renderInitialAudienceJtbd,
+    getPath: getAudienceJtbdPath,
+  },
+];
+
+/**
+ * Templates that should be regenerated with `ralph regenerate`.
+ * These are a subset of FILE_TEMPLATES.
+ */
+const REGENERATABLE_TEMPLATES: readonly FileTemplate[] = FILE_TEMPLATES.filter(
+  (t) => t.key === 'prompt_build' || t.key === 'prompt_plan' || t.key === 'agents',
+);
+
+// ============================================================================
+// Template Writing Utilities (Pure + I/O Separation)
+// ============================================================================
+
+/**
+ * Writes a single template to disk.
+ *
+ * @impure Performs file I/O
+ */
+async function writeTemplate(
+  template: FileTemplate,
+  root: string,
+): Promise<Result<void, ProjectError>> {
+  const path = template.getPath(root);
+  const content = template.render();
+  const result = await writeTextFile(path, content);
+  if (!result.ok) {
+    return err(fromFileError(result.error));
+  }
+  return ok(undefined);
+}
+
+/**
+ * Writes multiple templates to disk.
+ * Stops on first error.
+ *
+ * @impure Performs file I/O
+ */
+async function writeTemplates(
+  templates: readonly FileTemplate[],
+  root: string,
+): Promise<Result<void, ProjectError>> {
+  for (const template of templates) {
+    const result = await writeTemplate(template, root);
+    if (!result.ok) {
+      return result;
+    }
+  }
+  return ok(undefined);
+}
+
+/**
+ * Writes templates that match the given filter.
+ *
+ * @impure Performs file I/O
+ */
+function writeFilteredTemplates(
+  templates: readonly FileTemplate[],
+  filter: Set<ProjectFile>,
+  root: string,
+): Promise<Result<void, ProjectError>> {
+  const filtered = templates.filter((t) => filter.has(t.key));
+  return writeTemplates(filtered, root);
+}
+
+// ============================================================================
+// Error Factories
+// ============================================================================
+
+/**
  * Creates a ProjectError.
+ *
+ * This is an error factory function following the pattern used throughout the codebase.
+ * Error factories create structured error objects with a discriminant `type` field
+ * for type-safe error handling using Result types.
+ *
+ * @param code - The error code indicating the type of project operation failure
+ * @param message - A human-readable error message
+ * @returns A structured ProjectError object
+ *
+ * @example
+ * const error = projectError('not_found', 'Project directory not found');
+ * // Returns: { type: 'project_error', code: 'not_found', message: 'Project directory not found' }
  */
 function projectError(code: ProjectError['code'], message: string): ProjectError {
   return { type: 'project_error', code, message };
@@ -136,6 +318,8 @@ export async function getProjectInfo(cwd?: string): Promise<Result<ProjectInfo, 
  * - AGENTS.md (operational guide)
  * - IMPLEMENTATION_PLAN.md (task list)
  * - specs/.gitkeep (specs directory)
+ *
+ * @impure Performs file I/O operations
  */
 export async function initProject(
   cwd?: string,
@@ -149,126 +333,32 @@ export async function initProject(
     return err(projectError('already_exists', 'Ralph project already initialized'));
   }
 
-  // Create specs directory
+  // Create specs directory with .gitkeep
   const specsDir = getSpecsDir(root);
   const createDirResult = await createDirectory(specsDir);
   if (!createDirResult.ok) {
     return err(fromFileError(createDirResult.error));
   }
-
-  // Create .gitkeep in specs directory
-  const gitkeepPath = `${specsDir}/.gitkeep`;
-  const writeGitkeepResult = await writeTextFile(gitkeepPath, '');
-  if (!writeGitkeepResult.ok) {
-    return err(fromFileError(writeGitkeepResult.error));
+  const gitkeepResult = await writeTextFile(`${specsDir}/.gitkeep`, '');
+  if (!gitkeepResult.ok) {
+    return err(fromFileError(gitkeepResult.error));
   }
 
-  // Write config file
+  // Write config file (special case: needs configOverrides)
   const config = createConfig(configOverrides);
   const configContent = serializeConfig(config);
-  const writeConfigResult = await writeTextFile(configPath, configContent);
-  if (!writeConfigResult.ok) {
-    return err(fromFileError(writeConfigResult.error));
+  const configResult = await writeTextFile(configPath, configContent);
+  if (!configResult.ok) {
+    return err(fromFileError(configResult.error));
   }
 
-  // Write PROMPT_build.md
-  const buildPromptPath = getBuildPromptPath(root);
-  const buildPrompt = renderBuildPrompt();
-  const writeBuildResult = await writeTextFile(buildPromptPath, buildPrompt);
-  if (!writeBuildResult.ok) {
-    return err(fromFileError(writeBuildResult.error));
-  }
-
-  // Write PROMPT_plan.md
-  const planPromptPath = getPlanPromptPath(root);
-  const planPrompt = renderPlanPrompt();
-  const writePlanResult = await writeTextFile(planPromptPath, planPrompt);
-  if (!writePlanResult.ok) {
-    return err(fromFileError(writePlanResult.error));
-  }
-
-  // Write AGENTS.md
-  const agentsMdPath = getAgentsMdPath(root);
-  const agentsMd = renderAgentsMd();
-  const writeAgentsResult = await writeTextFile(agentsMdPath, agentsMd);
-  if (!writeAgentsResult.ok) {
-    return err(fromFileError(writeAgentsResult.error));
-  }
-
-  // Write IMPLEMENTATION_PLAN.md
-  const planPath = getPlanPath(root);
-  const initialPlan = renderInitialPlan();
-  const writePlanFileResult = await writeTextFile(planPath, initialPlan);
-  if (!writePlanFileResult.ok) {
-    return err(fromFileError(writePlanFileResult.error));
-  }
-
-  // Write AUDIENCE_JTBD.md
-  const audienceJtbdPath = getAudienceJtbdPath(root);
-  const audienceJtbd = renderInitialAudienceJtbd();
-  const writeAudienceResult = await writeTextFile(audienceJtbdPath, audienceJtbd);
-  if (!writeAudienceResult.ok) {
-    return err(fromFileError(writeAudienceResult.error));
-  }
-
-  // Write PROMPT_start.md
-  const startPromptPath = getStartPromptPath(root);
-  const startPrompt = renderStartPrompt();
-  const writeStartResult = await writeTextFile(startPromptPath, startPrompt);
-  if (!writeStartResult.ok) {
-    return err(fromFileError(writeStartResult.error));
-  }
-
-  // Write PROMPT_spec.md
-  const specPromptPath = getSpecPromptPath(root);
-  const specPrompt = renderSpecInterviewPrompt();
-  const writeSpecResult = await writeTextFile(specPromptPath, specPrompt);
-  if (!writeSpecResult.ok) {
-    return err(fromFileError(writeSpecResult.error));
-  }
-
-  // Write PROMPT_audience.md
-  const audiencePromptPath = getAudiencePromptPath(root);
-  const audiencePrompt = renderAudiencePrompt();
-  const writeAudiencePromptResult = await writeTextFile(audiencePromptPath, audiencePrompt);
-  if (!writeAudiencePromptResult.ok) {
-    return err(fromFileError(writeAudiencePromptResult.error));
-  }
-
-  return ok(undefined);
+  // Write all template-based files
+  return writeTemplates(FILE_TEMPLATES, root);
 }
 
 // ============================================================================
-// Project File Types
+// Project File Utilities
 // ============================================================================
-
-/**
- * All project files that can be created/overwritten during init.
- */
-export type ProjectFile =
-  | 'config'
-  | 'specs'
-  | 'research'
-  | 'agents'
-  | 'plan'
-  | 'audience_jtbd'
-  | 'prompt_build'
-  | 'prompt_plan'
-  | 'prompt_research'
-  | 'prompt_start'
-  | 'prompt_spec'
-  | 'prompt_audience';
-
-/**
- * Information about a project file.
- */
-export interface ProjectFileInfo {
-  readonly key: ProjectFile;
-  readonly path: string;
-  readonly name: string;
-  readonly description: string;
-  readonly exists: boolean;
-}
 
 /**
  * Gets information about all project files.
@@ -278,10 +368,30 @@ export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> 
 
   const files: Array<Omit<ProjectFileInfo, 'exists'>> = [
     { key: 'config', path: getConfigPath(root), name: '.ralph.json', description: 'Configuration' },
-    { key: 'specs', path: getSpecsDir(root), name: 'specs/', description: 'Feature specifications' },
-    { key: 'research', path: getResearchDir(root), name: 'research/', description: 'Research & discovery' },
-    { key: 'agents', path: getAgentsMdPath(root), name: 'AGENTS.md', description: 'Build/test commands' },
-    { key: 'plan', path: getPlanPath(root), name: 'IMPLEMENTATION_PLAN.md', description: 'Task checklist' },
+    {
+      key: 'specs',
+      path: getSpecsDir(root),
+      name: 'specs/',
+      description: 'Feature specifications',
+    },
+    {
+      key: 'research',
+      path: getResearchDir(root),
+      name: 'research/',
+      description: 'Research & discovery',
+    },
+    {
+      key: 'agents',
+      path: getAgentsMdPath(root),
+      name: 'AGENTS.md',
+      description: 'Build/test commands',
+    },
+    {
+      key: 'plan',
+      path: getPlanPath(root),
+      name: 'IMPLEMENTATION_PLAN.md',
+      description: 'Task checklist',
+    },
     {
       key: 'audience_jtbd',
       path: getAudienceJtbdPath(root),
@@ -337,8 +447,87 @@ export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> 
 }
 
 /**
+ * Creates the specs directory with .gitkeep.
+ *
+ * @impure Performs file I/O
+ */
+async function createSpecsDirectory(root: string): Promise<Result<void, ProjectError>> {
+  const specsDir = getSpecsDir(root);
+  const createDirResult = await createDirectory(specsDir);
+  if (!createDirResult.ok) {
+    return err(fromFileError(createDirResult.error));
+  }
+  const gitkeepResult = await writeTextFile(`${specsDir}/.gitkeep`, '');
+  if (!gitkeepResult.ok) {
+    return err(fromFileError(gitkeepResult.error));
+  }
+  return ok(undefined);
+}
+
+/**
+ * Creates the research directory with subdirectories and README.
+ *
+ * @impure Performs file I/O
+ */
+async function createResearchDirectory(root: string): Promise<Result<void, ProjectError>> {
+  const researchDir = getResearchDir(root);
+
+  // Create main directory
+  const createDirResult = await createDirectory(researchDir);
+  if (!createDirResult.ok) {
+    return err(fromFileError(createDirResult.error));
+  }
+
+  // Create subdirectories
+  const apisDir = `${researchDir}/apis`;
+  const approachesDir = `${researchDir}/approaches`;
+
+  for (const dir of [apisDir, approachesDir]) {
+    const result = await createDirectory(dir);
+    if (!result.ok) {
+      return err(fromFileError(result.error));
+    }
+    const gitkeepResult = await writeTextFile(`${dir}/.gitkeep`, '');
+    if (!gitkeepResult.ok) {
+      return err(fromFileError(gitkeepResult.error));
+    }
+  }
+
+  // Create README.md
+  const readmePath = `${researchDir}/README.md`;
+  const readme = renderInitialResearchReadme();
+  const readmeResult = await writeTextFile(readmePath, readme);
+  if (!readmeResult.ok) {
+    return err(fromFileError(readmeResult.error));
+  }
+
+  return ok(undefined);
+}
+
+/**
+ * Writes the config file.
+ *
+ * @impure Performs file I/O
+ */
+async function writeConfigFile(
+  root: string,
+  configOverrides?: DeepPartial<RalphConfig>,
+): Promise<Result<void, ProjectError>> {
+  const configPath = getConfigPath(root);
+  const config = createConfig(configOverrides);
+  const configContent = serializeConfig(config);
+  const result = await writeTextFile(configPath, configContent);
+  if (!result.ok) {
+    return err(fromFileError(result.error));
+  }
+  return ok(undefined);
+}
+
+/**
  * Creates project files selectively.
  * Only creates files that are in the `filesToCreate` set.
+ *
+ * @impure Performs file I/O
  */
 export async function createProjectFiles(
   filesToCreate: Set<ProjectFile>,
@@ -347,159 +536,25 @@ export async function createProjectFiles(
 ): Promise<Result<void, ProjectError>> {
   const root = cwd ?? Deno.cwd();
 
-  // Create specs directory
+  // Handle special cases: directories
   if (filesToCreate.has('specs')) {
-    const specsDir = getSpecsDir(root);
-    const createDirResult = await createDirectory(specsDir);
-    if (!createDirResult.ok) {
-      return err(fromFileError(createDirResult.error));
-    }
-    // Create .gitkeep
-    const gitkeepPath = `${specsDir}/.gitkeep`;
-    const writeGitkeepResult = await writeTextFile(gitkeepPath, '');
-    if (!writeGitkeepResult.ok) {
-      return err(fromFileError(writeGitkeepResult.error));
-    }
+    const result = await createSpecsDirectory(root);
+    if (!result.ok) return result;
   }
 
-  // Create research directory with subdirectories
   if (filesToCreate.has('research')) {
-    const researchDir = getResearchDir(root);
-    const createDirResult = await createDirectory(researchDir);
-    if (!createDirResult.ok) {
-      return err(fromFileError(createDirResult.error));
-    }
-    // Create subdirectories
-    const apisDir = `${researchDir}/apis`;
-    const approachesDir = `${researchDir}/approaches`;
-    const createApisResult = await createDirectory(apisDir);
-    if (!createApisResult.ok) {
-      return err(fromFileError(createApisResult.error));
-    }
-    const createApproachesResult = await createDirectory(approachesDir);
-    if (!createApproachesResult.ok) {
-      return err(fromFileError(createApproachesResult.error));
-    }
-    // Create README.md
-    const readmePath = `${researchDir}/README.md`;
-    const readme = renderInitialResearchReadme();
-    const writeReadmeResult = await writeTextFile(readmePath, readme);
-    if (!writeReadmeResult.ok) {
-      return err(fromFileError(writeReadmeResult.error));
-    }
-    // Create .gitkeep files in subdirectories
-    const writeApisGitkeep = await writeTextFile(`${apisDir}/.gitkeep`, '');
-    if (!writeApisGitkeep.ok) {
-      return err(fromFileError(writeApisGitkeep.error));
-    }
-    const writeApproachesGitkeep = await writeTextFile(`${approachesDir}/.gitkeep`, '');
-    if (!writeApproachesGitkeep.ok) {
-      return err(fromFileError(writeApproachesGitkeep.error));
-    }
+    const result = await createResearchDirectory(root);
+    if (!result.ok) return result;
   }
 
-  // Write config file
+  // Handle special case: config file (needs configOverrides)
   if (filesToCreate.has('config')) {
-    const configPath = getConfigPath(root);
-    const config = createConfig(configOverrides);
-    const configContent = serializeConfig(config);
-    const writeResult = await writeTextFile(configPath, configContent);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
+    const result = await writeConfigFile(root, configOverrides);
+    if (!result.ok) return result;
   }
 
-  // Write PROMPT_build.md
-  if (filesToCreate.has('prompt_build')) {
-    const buildPromptPath = getBuildPromptPath(root);
-    const buildPrompt = renderBuildPrompt();
-    const writeResult = await writeTextFile(buildPromptPath, buildPrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write PROMPT_plan.md
-  if (filesToCreate.has('prompt_plan')) {
-    const planPromptPath = getPlanPromptPath(root);
-    const planPrompt = renderPlanPrompt();
-    const writeResult = await writeTextFile(planPromptPath, planPrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write PROMPT_research.md
-  if (filesToCreate.has('prompt_research')) {
-    const researchPromptPath = getResearchPromptPath(root);
-    const researchPrompt = renderResearchPrompt();
-    const writeResult = await writeTextFile(researchPromptPath, researchPrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write PROMPT_start.md
-  if (filesToCreate.has('prompt_start')) {
-    const startPromptPath = getStartPromptPath(root);
-    const startPrompt = renderStartPrompt();
-    const writeResult = await writeTextFile(startPromptPath, startPrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write PROMPT_spec.md
-  if (filesToCreate.has('prompt_spec')) {
-    const specPromptPath = getSpecPromptPath(root);
-    const specPrompt = renderSpecInterviewPrompt();
-    const writeResult = await writeTextFile(specPromptPath, specPrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write PROMPT_audience.md
-  if (filesToCreate.has('prompt_audience')) {
-    const audiencePromptPath = getAudiencePromptPath(root);
-    const audiencePrompt = renderAudiencePrompt();
-    const writeResult = await writeTextFile(audiencePromptPath, audiencePrompt);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write AGENTS.md
-  if (filesToCreate.has('agents')) {
-    const agentsMdPath = getAgentsMdPath(root);
-    const agentsMd = renderAgentsMd();
-    const writeResult = await writeTextFile(agentsMdPath, agentsMd);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write IMPLEMENTATION_PLAN.md
-  if (filesToCreate.has('plan')) {
-    const planPath = getPlanPath(root);
-    const initialPlan = renderInitialPlan();
-    const writeResult = await writeTextFile(planPath, initialPlan);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  // Write AUDIENCE_JTBD.md
-  if (filesToCreate.has('audience_jtbd')) {
-    const audienceJtbdPath = getAudienceJtbdPath(root);
-    const audienceJtbd = renderInitialAudienceJtbd();
-    const writeResult = await writeTextFile(audienceJtbdPath, audienceJtbd);
-    if (!writeResult.ok) {
-      return err(fromFileError(writeResult.error));
-    }
-  }
-
-  return ok(undefined);
+  // Write all template-based files that match the filter
+  return writeFilteredTemplates(FILE_TEMPLATES, filesToCreate, root);
 }
 
 // ============================================================================
@@ -585,33 +640,11 @@ export async function updatePlan(
 
 /**
  * Regenerates the prompt files.
+ * Regenerates only the templates marked as regeneratable (build, plan, agents).
+ *
+ * @impure Performs file I/O
  */
-export async function regeneratePrompts(cwd?: string): Promise<Result<void, ProjectError>> {
+export function regeneratePrompts(cwd?: string): Promise<Result<void, ProjectError>> {
   const root = cwd ?? Deno.cwd();
-
-  // Regenerate PROMPT_build.md
-  const buildPromptPath = getBuildPromptPath(root);
-  const buildPrompt = renderBuildPrompt();
-  const writeBuildResult = await writeTextFile(buildPromptPath, buildPrompt);
-  if (!writeBuildResult.ok) {
-    return err(fromFileError(writeBuildResult.error));
-  }
-
-  // Regenerate PROMPT_plan.md
-  const planPromptPath = getPlanPromptPath(root);
-  const planPrompt = renderPlanPrompt();
-  const writePlanResult = await writeTextFile(planPromptPath, planPrompt);
-  if (!writePlanResult.ok) {
-    return err(fromFileError(writePlanResult.error));
-  }
-
-  // Regenerate AGENTS.md
-  const agentsMdPath = getAgentsMdPath(root);
-  const agentsMd = renderAgentsMd();
-  const writeAgentsResult = await writeTextFile(agentsMdPath, agentsMd);
-  if (!writeAgentsResult.ok) {
-    return err(fromFileError(writeAgentsResult.error));
-  }
-
-  return ok(undefined);
+  return writeTemplates(REGENERATABLE_TEMPLATES, root);
 }

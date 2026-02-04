@@ -6,33 +6,47 @@
  * Now with all the stats from the original UI.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, render, useApp, useInput, useFinalOutput, useTerminalSize } from "../../packages/deno-ink/src/mod.ts";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Box,
+  render,
+  Text,
+  useApp,
+  useFinalOutput,
+  useInput,
+  useTerminalSize,
+} from '../../packages/deno-ink/src/mod.ts';
+import {
+  colors,
   CommandBox,
+  ContextIndicator,
+  CostBadge,
+  type EnhancedToolCall,
   Header,
-  UsageBars,
-  ToolActivity,
+  KeyboardHints,
   ProgressLine,
   StatusResult,
-  KeyboardHints,
   TokenStats,
-  CostBadge,
-  ContextIndicator,
-  colors,
-  type EnhancedToolCall,
-} from "./ui/mod.ts";
-import { ansi } from "./CommandScreen.tsx";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
-import { calculateCostBreakdown, calculateCacheSavings, formatCost, type CostBreakdown } from "../services/cost_calculator.ts";
+  ToolActivity,
+  UsageBars,
+} from './ui/mod.ts';
+import { ansi } from './CommandScreen.tsx';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
+import {
+  calculateCacheSavings,
+  calculateCostBreakdown,
+  type CostBreakdown,
+  formatCost,
+} from '../services/cost_calculator.ts';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type { EnhancedToolCall } from "./ui/mod.ts";
+export type { EnhancedToolCall } from './ui/mod.ts';
 
-export type WorkPhase = "running" | "pause" | "done" | "error";
+export type WorkPhase = 'running' | 'pause' | 'done' | 'error';
 
 export interface ModelBreakdown {
   opus?: number;
@@ -44,7 +58,7 @@ export interface IterationResult {
   id: number;
   task: string;
   success: boolean;
-  validation: "pass" | "fail";
+  validation: 'pass' | 'fail';
   model: string;
   operations: number;
   durationSec: number;
@@ -56,6 +70,7 @@ export interface IterationResult {
   usageDelta?: number; // How much 5h usage increased
   costUsd?: number; // Estimated cost for this iteration (deprecated - use cost)
   cost?: CostBreakdown; // Detailed cost breakdown
+  usedBaseSession?: boolean; // Whether cached base session was used (forked)
 }
 
 export interface SessionStats {
@@ -84,11 +99,11 @@ export interface WorkScreenProps {
       onStatusUpdate: (status: string) => void;
       onTaskUpdate: (task: string) => void;
       onModelBreakdownUpdate: (breakdown: ModelBreakdown) => void;
-    }
+    },
   ) => Promise<{
     success: boolean;
     task?: string;
-    validation?: "pass" | "fail";
+    validation?: 'pass' | 'fail';
     exitSignal?: boolean;
     model: string;
     operations: number;
@@ -111,14 +126,12 @@ export interface WorkScreenProps {
 // Helpers
 // ============================================================================
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins < 60) return `${mins}m ${secs}s`;
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}h ${remainingMins}m`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ * Converts seconds to milliseconds and calls the shared formatter.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatTokens(tokens: number): string {
@@ -129,7 +142,7 @@ function formatTokens(tokens: number): string {
 
 function truncateTask(task: string, maxLen: number): string {
   if (task.length <= maxLen) return task;
-  return task.slice(0, maxLen - 3) + "...";
+  return task.slice(0, maxLen - 3) + '...';
 }
 
 // ============================================================================
@@ -137,9 +150,13 @@ function truncateTask(task: string, maxLen: number): string {
 // ============================================================================
 
 /** Completed iteration line with full stats */
-function IterationLine({ iteration, showCost = true }: { iteration: IterationResult; showCost?: boolean }): React.ReactElement {
-  const icon = iteration.success && iteration.validation === "pass" ? "✓" : "✗";
-  const iconColor = iteration.success && iteration.validation === "pass" ? colors.success : colors.error;
+function IterationLine(
+  { iteration, showCost = true }: { iteration: IterationResult; showCost?: boolean },
+): React.ReactElement {
+  const icon = iteration.success && iteration.validation === 'pass' ? '✓' : '✗';
+  const iconColor = iteration.success && iteration.validation === 'pass'
+    ? colors.success
+    : colors.error;
 
   // Build stats parts
   const statsParts: React.ReactNode[] = [];
@@ -149,46 +166,55 @@ function IterationLine({ iteration, showCost = true }: { iteration: IterationRes
     const breakdown = iteration.modelBreakdown;
     if (breakdown.opus) {
       statsParts.push(
-        <Text key="opus" color={colors.accent}>opus:{breakdown.opus}</Text>
+        <Text key='opus' color={colors.accent}>opus:{breakdown.opus}</Text>,
       );
     }
     if (breakdown.sonnet) {
       statsParts.push(
-        <Text key="sonnet" color={colors.info}>sonnet:{breakdown.sonnet}</Text>
+        <Text key='sonnet' color={colors.info}>sonnet:{breakdown.sonnet}</Text>,
       );
     }
   } else {
     statsParts.push(
-      <Text key="model" color={colors.dim}>{iteration.model}</Text>
+      <Text key='model' color={colors.dim}>{iteration.model}</Text>,
+    );
+  }
+
+  // Add base session indicator if used
+  if (iteration.usedBaseSession) {
+    statsParts.push(
+      <Text key='cached' color={colors.magenta}>cached</Text>,
     );
   }
 
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column'>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>[#{iteration.id}]</Text>
         <Text color={iconColor}>{icon}</Text>
         <Text color={colors.text}>{truncateTask(iteration.task, 40)}</Text>
       </Box>
-      <Box flexDirection="row" gap={1} marginLeft={5}>
+      <Box flexDirection='row' gap={1} marginLeft={5}>
         {statsParts.map((part, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text color={colors.dim}> </Text>}
+            {i > 0 && <Text color={colors.dim}></Text>}
             {part}
           </React.Fragment>
         ))}
         <Text color={colors.dim}>·</Text>
         <Text color={colors.dim}>{iteration.operations} ops</Text>
         <Text color={colors.dim}>·</Text>
-        <Text color={colors.dim}>{formatDuration(iteration.durationSec)}</Text>
+        <Text color={colors.dim}>{formatDurationSec(iteration.durationSec)}</Text>
         {iteration.inputTokens !== undefined && iteration.outputTokens !== undefined && (
           <>
             <Text color={colors.dim}>·</Text>
-            <Text color={colors.tokenTotal}>{formatTokens(iteration.inputTokens + iteration.outputTokens)}</Text>
+            <Text color={colors.tokenTotal}>
+              {formatTokens(iteration.inputTokens + iteration.outputTokens)}
+            </Text>
             {showCost && iteration.cost && (
-              <Text color={colors.dim}> ({formatCost(iteration.cost.total)})</Text>
+              <Text color={colors.dim}>({formatCost(iteration.cost.total)})</Text>
             )}
-            <Text color={colors.dim}> tokens (</Text>
+            <Text color={colors.dim}>tokens (</Text>
             <Text color={colors.tokenInput}>{formatTokens(iteration.inputTokens)}</Text>
             <Text color={colors.dim}>in/</Text>
             <Text color={colors.tokenOutput}>{formatTokens(iteration.outputTokens)}</Text>
@@ -211,7 +237,7 @@ function StatsLine({
   model,
   operations,
   startTime,
-  modelBreakdown
+  modelBreakdown,
 }: {
   model: string;
   operations: number;
@@ -233,23 +259,23 @@ function StatsLine({
   }
 
   // Subagent breakdown
-  const hasSubagents = Object.values(modelBreakdown).some(v => v && v > 0);
+  const hasSubagents = Object.values(modelBreakdown).some((v) => v && v > 0);
   if (hasSubagents) {
     const subagentParts: string[] = [];
-    if (modelBreakdown.opus && model !== "opus") {
+    if (modelBreakdown.opus && model !== 'opus') {
       subagentParts.push(`opus:${modelBreakdown.opus}`);
     }
-    if (modelBreakdown.sonnet && model !== "sonnet") {
+    if (modelBreakdown.sonnet && model !== 'sonnet') {
       subagentParts.push(`sonnet:${modelBreakdown.sonnet}`);
     }
     if (subagentParts.length > 0) {
-      parts.push(`subagents: ${subagentParts.join(" ")}`);
+      parts.push(`subagents: ${subagentParts.join(' ')}`);
     }
   }
 
   return (
-    <Box flexDirection="row">
-      <Text color={colors.dim}>{parts.join(" · ")}</Text>
+    <Box flexDirection='row'>
+      <Text color={colors.dim}>{parts.join(' · ')}</Text>
     </Box>
   );
 }
@@ -268,17 +294,17 @@ function WorkScreen({
   pauseDuration = 2000,
   onRefreshUsage,
   nextSteps,
-  sessionFile,
+  sessionFile: _sessionFile,
 }: WorkScreenProps): React.ReactElement {
   const { exit } = useApp();
   const setFinalOutput = useFinalOutput();
   const { columns } = useTerminalSize();
 
   // State
-  const [phase, setPhase] = useState<WorkPhase>("running");
+  const [phase, setPhase] = useState<WorkPhase>('running');
   const [currentIteration, setCurrentIteration] = useState(1);
-  const [status, setStatus] = useState("Starting...");
-  const [currentTask, setCurrentTask] = useState("Selecting next task...");
+  const [status, setStatus] = useState('Starting...');
+  const [currentTask, setCurrentTask] = useState('Selecting next task...');
   const [tools, setTools] = useState<EnhancedToolCall[]>([]);
   const [startTime, setStartTime] = useState(() => Date.now());
   const [iterations, setIterations] = useState<IterationResult[]>([]);
@@ -286,7 +312,7 @@ function WorkScreen({
   const [usage, setUsage] = useState<SubscriptionUsage | undefined>(initialUsage);
   const [errorMsg, setErrorMsg] = useState<string | undefined>();
   const [allComplete, setAllComplete] = useState(false);
-  const [currentModel, setCurrentModel] = useState(modelMode === "adaptive" ? "opus" : modelMode);
+  const [currentModel, setCurrentModel] = useState(modelMode === 'adaptive' ? 'opus' : modelMode);
   const [liveModelBreakdown, setLiveModelBreakdown] = useState<ModelBreakdown>({});
 
   // Session stats
@@ -325,16 +351,16 @@ function WorkScreen({
 
   // Handle keyboard input for toggles
   useInput((input: string) => {
-    if (input === "t" || input === "T") {
+    if (input === 't' || input === 'T') {
       setShowTools((v: boolean) => !v);
     }
-    if (input === "k" || input === "K") {
+    if (input === 'k' || input === 'K') {
       setShowTokens((v: boolean) => !v);
     }
-    if (input === "c" || input === "C") {
+    if (input === 'c' || input === 'C') {
       setShowCost((v: boolean) => !v);
     }
-    if (input === "x" || input === "X") {
+    if (input === 'x' || input === 'X') {
       setShowContext((v: boolean) => !v);
     }
   });
@@ -347,14 +373,20 @@ function WorkScreen({
       const existingIndex = prev.findIndex((t) => t.id === tool.id);
 
       if (existingIndex >= 0) {
-        // Update existing tool with new status/endTime
+        // Update existing tool with new status/endTime/tokenUsage
         const updated = [...prev];
-        updated[existingIndex] = {
-          ...prev[existingIndex]!,
-          status: tool.status,
-          endTime: tool.endTime,
-          result: tool.result ?? prev[existingIndex]!.result,
-        };
+        const existingTool = prev[existingIndex];
+        if (existingTool) {
+          updated[existingIndex] = {
+            ...existingTool,
+            status: tool.status,
+            endTime: tool.endTime,
+            result: tool.result ?? existingTool.result,
+            tokenUsage: tool.tokenUsage ?? existingTool.tokenUsage,
+            costUsd: tool.costUsd ?? existingTool.costUsd,
+            model: tool.model ?? existingTool.model,
+          };
+        }
         return updated;
       }
 
@@ -385,7 +417,7 @@ function WorkScreen({
 
     setFinalOutput(buildWorkFinalOutput({
       success: iterations.length > 0,
-      title: iterations.length > 0 ? `Stopped after ${iterations.length} iterations` : "Cancelled",
+      title: iterations.length > 0 ? `Stopped after ${iterations.length} iterations` : 'Cancelled',
       completedTasks: completedTasks.slice(0, 3),
       stats: sessionStats,
     }));
@@ -409,12 +441,12 @@ function WorkScreen({
 
         // Reset state for new iteration
         setCurrentIteration(iter);
-        setStatus("Starting iteration...");
-        setCurrentTask("Selecting next task...");
+        setStatus('Starting iteration...');
+        setCurrentTask('Selecting next task...');
         setTools([]);
         setOperationCount(0);
         setStartTime(Date.now());
-        setPhase("running");
+        setPhase('running');
         setLiveModelBreakdown({});
 
         const result = await onRunIteration(iter, {
@@ -447,28 +479,28 @@ function WorkScreen({
         // Calculate cost for this iteration
         const iterationCost = result.inputTokens && result.outputTokens
           ? calculateCostBreakdown(
-              {
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                cacheReadTokens: result.cacheReadTokens,
-                cacheWriteTokens: (result as any).cacheWriteTokens,
-              },
-              result.model
-            )
+            {
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              cacheReadTokens: result.cacheReadTokens,
+              cacheWriteTokens: result.cacheWriteTokens,
+            },
+            result.model,
+          )
           : undefined;
 
         const iterResult: IterationResult = {
           id: iter,
-          task: result.task ?? "Unknown task",
+          task: result.task ?? 'Unknown task',
           success: result.success,
-          validation: result.validation ?? "fail",
+          validation: result.validation ?? 'fail',
           model: result.model,
           operations: result.operations,
           durationSec: result.durationSec,
           inputTokens: result.inputTokens,
           outputTokens: result.outputTokens,
           cacheReadTokens: result.cacheReadTokens,
-          cacheWriteTokens: (result as any).cacheWriteTokens,
+          cacheWriteTokens: result.cacheWriteTokens,
           modelBreakdown: result.modelBreakdown,
           usageDelta,
           cost: iterationCost,
@@ -486,7 +518,7 @@ function WorkScreen({
             totalInputTokens: prev.totalInputTokens + (result.inputTokens ?? 0),
             totalOutputTokens: prev.totalOutputTokens + (result.outputTokens ?? 0),
             cacheTokensSaved: prev.cacheTokensSaved + (result.cacheReadTokens ?? 0),
-            cacheWriteTokens: prev.cacheWriteTokens + ((result as any).cacheWriteTokens ?? 0),
+            cacheWriteTokens: prev.cacheWriteTokens + (result.cacheWriteTokens ?? 0),
           };
 
           // Update context window usage (cumulative tokens represent context usage)
@@ -513,14 +545,14 @@ function WorkScreen({
                 outputTokens: result.outputTokens,
                 cacheReadTokens: result.cacheReadTokens,
               },
-              result.model
+              result.model,
             );
             newStats.cacheSavings = prev.cacheSavings + savings;
           }
 
           // Update model breakdown for iterations
           const modelKey = result.model as keyof ModelBreakdown;
-          if (modelKey === "opus" || modelKey === "sonnet" || modelKey === "haiku") {
+          if (modelKey === 'opus' || modelKey === 'sonnet' || modelKey === 'haiku') {
             newStats.modelBreakdown = {
               ...prev.modelBreakdown,
               [modelKey]: (prev.modelBreakdown[modelKey] ?? 0) + 1,
@@ -530,9 +562,9 @@ function WorkScreen({
         });
 
         // Check for failure
-        if (!result.success || result.validation === "fail") {
-          setErrorMsg(result.error ?? "Iteration failed");
-          setPhase("error");
+        if (!result.success || result.validation === 'fail') {
+          setErrorMsg(result.error ?? 'Iteration failed');
+          setPhase('error');
 
           const finalStats = {
             ...sessionStats,
@@ -541,7 +573,7 @@ function WorkScreen({
 
           setFinalOutput(buildWorkFinalOutput({
             success: false,
-            title: "Build loop stopped",
+            title: 'Build loop stopped',
             completedTasks: [],
             stats: finalStats,
           }));
@@ -556,7 +588,7 @@ function WorkScreen({
         // Check for completion
         if (result.exitSignal) {
           setAllComplete(true);
-          setPhase("done");
+          setPhase('done');
 
           const completedTasks = [...iterations, iterResult]
             .filter((i: IterationResult) => i.success)
@@ -573,7 +605,7 @@ function WorkScreen({
 
           setFinalOutput(buildWorkFinalOutput({
             success: true,
-            title: "Build complete!",
+            title: 'Build complete!',
             completedTasks: completedTasks.slice(0, 3),
             stats: finalStats,
             nextSteps,
@@ -588,7 +620,7 @@ function WorkScreen({
 
         // Pause between iterations
         if (iter < maxIterations && shouldContinueRef.current) {
-          setPhase("pause");
+          setPhase('pause');
 
           if (onRefreshUsage) {
             const newUsage = await onRefreshUsage();
@@ -606,7 +638,7 @@ function WorkScreen({
 
       // Reached max iterations
       if (!cancelled && shouldContinueRef.current) {
-        setPhase("done");
+        setPhase('done');
 
         const completedTasks = iterations
           .filter((i: IterationResult) => i.success)
@@ -628,50 +660,74 @@ function WorkScreen({
     };
 
     runLoop();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally run only once on mount; iterations/sessionStats are managed inside the loop
-  }, [maxIterations, onRunIteration, handleToolUse, handleStatusUpdate, handleTaskUpdate, handleModelBreakdownUpdate, setFinalOutput, onComplete, exit, pauseDuration, onRefreshUsage, nextSteps]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally run only once on mount; iterations/sessionStats are managed inside the loop
+  }, [
+    maxIterations,
+    onRunIteration,
+    handleToolUse,
+    handleStatusUpdate,
+    handleTaskUpdate,
+    handleModelBreakdownUpdate,
+    setFinalOutput,
+    onComplete,
+    exit,
+    pauseDuration,
+    onRefreshUsage,
+    nextSteps,
+  ]);
 
-  const modelDisplay = modelMode === "adaptive" ? "adaptive" : modelMode;
+  const modelDisplay = modelMode === 'adaptive' ? 'adaptive' : modelMode;
   const hints = [
-    { key: "t", label: showTools ? "hide tools" : "show tools" },
-    { key: "k", label: showTokens ? "hide tokens" : "show tokens" },
-    { key: "c", label: showCost ? "hide cost" : "show cost" },
-    { key: "x", label: showContext ? "hide context" : "show context" },
-    ...(usage ? [{ key: "u", label: "usage" }] : []),
-    { key: "q", label: "quit" },
+    { key: 't', label: showTools ? 'hide tools' : 'show tools' },
+    { key: 'k', label: showTokens ? 'hide tokens' : 'show tokens' },
+    { key: 'c', label: showCost ? 'hide cost' : 'show cost' },
+    { key: 'x', label: showContext ? 'hide context' : 'show context' },
+    ...(usage ? [{ key: 'u', label: 'usage' }] : []),
+    { key: 'q', label: 'quit' },
   ];
 
-  // Get completed tasks for summary
-  const completedTasks = iterations
+  // Calculate actual content width available inside CommandBox
+  // CommandBox uses: width={columns - 4} with paddingX={2}
+  // So content width = (columns - 4) - 4 = columns - 8
+  const contentWidth = columns - 8;
+
+  // Get completed tasks for summary (available for future use)
+  const _completedTasks = iterations
     .filter((i: IterationResult) => i.success)
     .map((i: IterationResult) => i.task);
 
   return (
-    <CommandBox onQuit={handleQuit} animateBorder={phase === "running"}>
+    <CommandBox onQuit={handleQuit} animateBorder={phase === 'running'}>
       <Header
-        name="Ralph Work"
+        name='Ralph Work'
         description={`${modelDisplay} · max ${maxIterations}`}
         vibeMode={vibeMode}
-        vibeCurrentStep="work"
-        vibeSteps={["work"]}
+        vibeCurrentStep='work'
+        vibeSteps={['work']}
       />
 
       {/* Token stats, cost, context, and usage metrics */}
-      <Box flexDirection="row" gap={2} marginBottom={1}>
+      <Box flexDirection='row' gap={2} marginBottom={1}>
         {showTokens && (sessionStats.totalInputTokens + sessionStats.totalOutputTokens > 0) && (
           <TokenStats
             inputTokens={sessionStats.totalInputTokens}
             outputTokens={sessionStats.totalOutputTokens}
             cacheReadTokens={sessionStats.cacheTokensSaved}
-            iterationDelta={iterationTokens.input + iterationTokens.output > 0 ? iterationTokens : undefined}
+            iterationDelta={iterationTokens.input + iterationTokens.output > 0
+              ? iterationTokens
+              : undefined}
             compact={true}
           />
         )}
         {showCost && sessionStats.totalCost && sessionStats.totalCost.total > 0 && (
           <CostBadge
             sessionCost={sessionStats.totalCost.total}
-            iterationCost={iterations.length > 0 ? iterations[iterations.length - 1]?.cost?.total : undefined}
+            iterationCost={iterations.length > 0
+              ? iterations[iterations.length - 1]?.cost?.total
+              : undefined}
             compact={false}
           />
         )}
@@ -679,7 +735,7 @@ function WorkScreen({
           <ContextIndicator
             used={contextUsed}
             max={contextMax}
-            isGrowing={phase === "running"}
+            isGrowing={phase === 'running'}
           />
         )}
         {usage && <UsageBars usage={usage} />}
@@ -687,7 +743,7 @@ function WorkScreen({
 
       {/* Completed iterations - only show last 5 to prevent DOM growth */}
       {iterations.length > 0 && (
-        <Box flexDirection="column" marginBottom={1}>
+        <Box flexDirection='column' marginBottom={1}>
           {iterations.length > 5 && (
             <Text color={colors.dim}>... {iterations.length - 5} earlier iterations</Text>
           )}
@@ -700,16 +756,16 @@ function WorkScreen({
       )}
 
       {/* Running phase */}
-      {phase === "running" && (
-        <Box flexDirection="column">
+      {phase === 'running' && (
+        <Box flexDirection='column'>
           {/* Task title - use most of available width */}
           {(() => {
             const maxTaskWidth = Math.max(60, columns - 20);
             const displayTask = currentTask.length > maxTaskWidth
-              ? currentTask.slice(0, maxTaskWidth - 3) + "..."
+              ? currentTask.slice(0, maxTaskWidth - 3) + '...'
               : currentTask;
             return (
-              <Box flexDirection="row" gap={1} marginBottom={1}>
+              <Box flexDirection='row' gap={1} marginBottom={1}>
                 <Text color={colors.accent}>[#{currentIteration}]</Text>
                 <Text bold>{displayTask}</Text>
               </Box>
@@ -726,23 +782,33 @@ function WorkScreen({
 
           {/* Progress status */}
           <Box marginTop={1}>
-            <ProgressLine status={status} startTime={startTime} width={columns - 6} />
+            <ProgressLine status={status} startTime={startTime} width={contentWidth} />
           </Box>
 
-          {/* Tool activity with left margin for grouping */}
+          {/* Tool activity - full width */}
           {showTools && tools.length > 0 && (
-            <Box marginTop={2} marginLeft={2}>
-              <ToolActivity tools={tools} visible={showTools} showStats={true} showTimeline={false} />
+            <Box marginTop={2}>
+              <ToolActivity
+                tools={tools}
+                visible={showTools}
+                terminalWidth={contentWidth}
+                showStats={true}
+                showTimeline={false}
+                showTokens={true}
+                showTokenDetails={false}
+                showCacheDots={false}
+                showModels={false}
+              />
             </Box>
           )}
         </Box>
       )}
 
       {/* Pause phase */}
-      {phase === "pause" && (
-        <Box flexDirection="column">
+      {phase === 'pause' && (
+        <Box flexDirection='column'>
           <Text color={colors.dim}>Next iteration in {pauseCountdown}s...</Text>
-          <Box marginTop={1} flexDirection="row" gap={1}>
+          <Box marginTop={1} flexDirection='row' gap={1}>
             <Text color={colors.dim}>
               {iterations.length}/{maxIterations} iterations · {sessionStats.totalOperations} ops
             </Text>
@@ -760,18 +826,18 @@ function WorkScreen({
       )}
 
       {/* Done phase - simple status, useFinalOutput handles detailed output */}
-      {phase === "done" && (
+      {phase === 'done' && (
         <StatusResult
-          type="success"
-          title={allComplete ? "Build complete!" : `Completed ${iterations.length} iterations`}
+          type='success'
+          title={allComplete ? 'Build complete!' : `Completed ${iterations.length} iterations`}
         />
       )}
 
       {/* Error phase */}
-      {phase === "error" && (
+      {phase === 'error' && (
         <StatusResult
-          type="error"
-          title="Build loop stopped"
+          type='error'
+          title='Build loop stopped'
           detail={errorMsg}
         />
       )}
@@ -805,64 +871,114 @@ function buildWorkFinalOutput(options: {
 
   // Stats summary (one-liner)
   const statsStr = [
-    formatDuration(options.stats.totalDurationSec),
+    formatDurationSec(options.stats.totalDurationSec),
     `${options.stats.totalIterations} iterations`,
     `${options.stats.totalOperations} ops`,
-  ].join(" · ");
+  ].join(' · ');
   lines.push(`${ansi.dimGray}${statsStr}${ansi.reset}`);
-  lines.push("");
+  lines.push('');
 
   // Token breakdown
   const totalTokens = options.stats.totalInputTokens + options.stats.totalOutputTokens;
   if (totalTokens > 0) {
     lines.push(`${ansi.bold}Tokens${ansi.reset}`);
-    lines.push(`  ${ansi.cyan}↓${ansi.reset} ${formatTokens(options.stats.totalInputTokens).padStart(8)} ${ansi.dimGray}input tokens${ansi.reset}`);
-    lines.push(`  ${ansi.green}↑${ansi.reset} ${formatTokens(options.stats.totalOutputTokens).padStart(8)} ${ansi.dimGray}output tokens${ansi.reset}`);
+    lines.push(
+      `  ${ansi.cyan}↓${ansi.reset} ${
+        formatTokens(options.stats.totalInputTokens).padStart(8)
+      } ${ansi.dimGray}input tokens${ansi.reset}`,
+    );
+    lines.push(
+      `  ${ansi.green}↑${ansi.reset} ${
+        formatTokens(options.stats.totalOutputTokens).padStart(8)
+      } ${ansi.dimGray}output tokens${ansi.reset}`,
+    );
 
     if (options.stats.cacheTokensSaved > 0) {
-      lines.push(`  ${ansi.magenta}●${ansi.reset} ${formatTokens(options.stats.cacheTokensSaved).padStart(8)} ${ansi.dimGray}cache read (saved)${ansi.reset}`);
+      lines.push(
+        `  ${ansi.magenta}●${ansi.reset} ${
+          formatTokens(options.stats.cacheTokensSaved).padStart(8)
+        } ${ansi.dimGray}cache read (saved)${ansi.reset}`,
+      );
     }
 
     if (options.stats.cacheWriteTokens > 0) {
-      lines.push(`  ${ansi.dimGray}○${ansi.reset} ${ansi.dimGray}${formatTokens(options.stats.cacheWriteTokens).padStart(8)} cache write${ansi.reset}`);
+      lines.push(
+        `  ${ansi.dimGray}○${ansi.reset} ${ansi.dimGray}${
+          formatTokens(options.stats.cacheWriteTokens).padStart(8)
+        } cache write${ansi.reset}`,
+      );
     }
 
     const grandTotal = totalTokens + options.stats.cacheTokensSaved;
     lines.push(`  ${ansi.dimGray}${'─'.repeat(20)}${ansi.reset}`);
-    lines.push(`  ${ansi.yellow}Σ${ansi.reset} ${ansi.bold}${formatTokens(grandTotal).padStart(8)}${ansi.reset} ${ansi.dimGray}total processed${ansi.reset}`);
-    lines.push("");
+    lines.push(
+      `  ${ansi.yellow}Σ${ansi.reset} ${ansi.bold}${
+        formatTokens(grandTotal).padStart(8)
+      }${ansi.reset} ${ansi.dimGray}total processed${ansi.reset}`,
+    );
+    lines.push('');
   }
 
   // Cache efficiency (prominent)
   if (options.stats.cacheTokensSaved > 0 && options.stats.totalInputTokens > 0) {
     const totalInput = options.stats.totalInputTokens + options.stats.cacheTokensSaved;
     const efficiency = (options.stats.cacheTokensSaved / totalInput) * 100;
-    lines.push(`${ansi.bold}Cache Efficiency${ansi.reset} ${ansi.magenta}${ansi.bold}${efficiency.toFixed(1)}%${ansi.reset} ${ansi.dimGray}(${formatTokens(options.stats.cacheTokensSaved)} tokens saved)${ansi.reset}`);
-    lines.push("");
+    lines.push(
+      `${ansi.bold}Cache Efficiency${ansi.reset} ${ansi.magenta}${ansi.bold}${
+        efficiency.toFixed(1)
+      }%${ansi.reset} ${ansi.dimGray}(${
+        formatTokens(options.stats.cacheTokensSaved)
+      } tokens saved)${ansi.reset}`,
+    );
+    lines.push('');
   }
 
   // Cost breakdown
   if (options.stats.totalCost && options.stats.totalCost.total > 0) {
     lines.push(`${ansi.bold}Cost${ansi.reset}`);
     if (options.stats.totalCost.input > 0) {
-      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.input).padStart(10)} ${ansi.dimGray}input tokens${ansi.reset}`);
+      lines.push(
+        `  ${ansi.dimGray}•${ansi.reset} ${
+          formatCost(options.stats.totalCost.input).padStart(10)
+        } ${ansi.dimGray}input tokens${ansi.reset}`,
+      );
     }
     if (options.stats.totalCost.output > 0) {
-      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.output).padStart(10)} ${ansi.dimGray}output tokens${ansi.reset}`);
+      lines.push(
+        `  ${ansi.dimGray}•${ansi.reset} ${
+          formatCost(options.stats.totalCost.output).padStart(10)
+        } ${ansi.dimGray}output tokens${ansi.reset}`,
+      );
     }
     if (options.stats.totalCost.cacheWrite > 0) {
-      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.cacheWrite).padStart(10)} ${ansi.dimGray}cache write${ansi.reset}`);
+      lines.push(
+        `  ${ansi.dimGray}•${ansi.reset} ${
+          formatCost(options.stats.totalCost.cacheWrite).padStart(10)
+        } ${ansi.dimGray}cache write${ansi.reset}`,
+      );
     }
     if (options.stats.totalCost.cacheRead > 0) {
-      lines.push(`  ${ansi.dimGray}•${ansi.reset} ${formatCost(options.stats.totalCost.cacheRead).padStart(10)} ${ansi.dimGray}cache read${ansi.reset}`);
+      lines.push(
+        `  ${ansi.dimGray}•${ansi.reset} ${
+          formatCost(options.stats.totalCost.cacheRead).padStart(10)
+        } ${ansi.dimGray}cache read${ansi.reset}`,
+      );
     }
     lines.push(`  ${ansi.dimGray}${'─'.repeat(20)}${ansi.reset}`);
-    lines.push(`  ${ansi.green}💰${ansi.reset} ${ansi.bold}${formatCost(options.stats.totalCost.total).padStart(10)}${ansi.reset} ${ansi.dimGray}total cost${ansi.reset}`);
+    lines.push(
+      `  ${ansi.green}💰${ansi.reset} ${ansi.bold}${
+        formatCost(options.stats.totalCost.total).padStart(10)
+      }${ansi.reset} ${ansi.dimGray}total cost${ansi.reset}`,
+    );
 
     if (options.stats.cacheSavings > 0) {
-      lines.push(`       ${ansi.magenta}-${formatCost(options.stats.cacheSavings)}${ansi.reset} ${ansi.dimGray}saved by cache${ansi.reset}`);
+      lines.push(
+        `       ${ansi.magenta}-${
+          formatCost(options.stats.cacheSavings)
+        }${ansi.reset} ${ansi.dimGray}saved by cache${ansi.reset}`,
+      );
     }
-    lines.push("");
+    lines.push('');
   }
 
   // Completed tasks
@@ -871,7 +987,7 @@ function buildWorkFinalOutput(options: {
     for (const task of options.completedTasks) {
       lines.push(`  ${ansi.green}✓${ansi.reset} ${truncateTask(task, 60)}`);
     }
-    lines.push("");
+    lines.push('');
   }
 
   // Next steps
@@ -880,10 +996,10 @@ function buildWorkFinalOutput(options: {
     for (const step of options.nextSteps) {
       lines.push(`  ${ansi.orange}▸${ansi.reset} ${step}`);
     }
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 // ============================================================================
@@ -895,7 +1011,7 @@ export interface RenderWorkOptions {
   modelMode: string;
   usage?: SubscriptionUsage;
   vibeMode?: boolean;
-  onRunIteration: WorkScreenProps["onRunIteration"];
+  onRunIteration: WorkScreenProps['onRunIteration'];
   pauseDuration?: number;
   onRefreshUsage?: () => Promise<SubscriptionUsage | undefined>;
   nextSteps?: string[];
@@ -903,7 +1019,7 @@ export interface RenderWorkOptions {
 }
 
 export async function renderWork(
-  options: RenderWorkOptions
+  options: RenderWorkOptions,
 ): Promise<{ completed: boolean; iterations: IterationResult[]; stats: SessionStats }> {
   let result = {
     completed: false,
@@ -938,7 +1054,7 @@ export async function renderWork(
       nextSteps={options.nextSteps}
       sessionFile={options.sessionFile}
     />,
-    { fullScreen: true }
+    { fullScreen: true },
   );
 
   await waitUntilExit();

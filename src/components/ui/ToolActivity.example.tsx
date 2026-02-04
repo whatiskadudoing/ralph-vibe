@@ -10,12 +10,9 @@
  * - Live duration updates
  */
 
-import React from "react";
-import { Box } from "../../../packages/deno-ink/src/mod.ts";
-import {
-  EnhancedToolActivity,
-  type EnhancedToolCall,
-} from "./ToolActivity.tsx";
+import React from 'react';
+import { Box } from '../../../packages/deno-ink/src/mod.ts';
+import { EnhancedToolActivity, type EnhancedToolCall } from './ToolActivity.tsx';
 
 /**
  * Example tool calls showing different states and features
@@ -23,49 +20,49 @@ import {
 function ExampleToolActivity(): React.ReactElement {
   const exampleTools: EnhancedToolCall[] = [
     {
-      id: "1",
-      name: "Read",
-      status: "success",
+      id: '1',
+      name: 'Read',
+      status: 'success',
       startTime: Date.now() - 5000,
       endTime: Date.now() - 4800,
       input: {
-        file_path: "/Users/kadu/developer/personal-projects/ralph-cli/src/auth/session.ts",
+        file_path: '/Users/kadu/developer/personal-projects/ralph-cli/src/auth/session.ts',
       },
     },
     {
-      id: "2",
-      name: "Edit",
-      status: "success",
+      id: '2',
+      name: 'Edit',
+      status: 'success',
       startTime: Date.now() - 4500,
       endTime: Date.now() - 4000,
       input: {
-        file_path: "/Users/kadu/developer/personal-projects/ralph-cli/src/auth/session.ts",
+        file_path: '/Users/kadu/developer/personal-projects/ralph-cli/src/auth/session.ts',
       },
     },
     {
-      id: "3",
-      name: "Task",
-      status: "success",
+      id: '3',
+      name: 'Task',
+      status: 'success',
       startTime: Date.now() - 3500,
       endTime: Date.now() - 1200,
-      subagentModel: "sonnet",
+      subagentModel: 'sonnet',
       input: {
-        description: "analyze code structure and dependencies",
+        description: 'analyze code structure and dependencies',
       },
     },
     {
-      id: "4",
-      name: "Bash",
-      status: "running",
+      id: '4',
+      name: 'Bash',
+      status: 'running',
       startTime: Date.now() - 8000,
       input: {
-        command: "npm test",
+        command: 'npm test',
       },
     },
   ];
 
   return (
-    <Box flexDirection="column" padding={1}>
+    <Box flexDirection='column' padding={1}>
       <EnhancedToolActivity
         tools={exampleTools}
         maxVisible={5}

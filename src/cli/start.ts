@@ -14,19 +14,15 @@ import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { formatSubscriptionUsage, getSubscriptionUsage } from '@/services/usage_service.ts';
 import { exists, readTextFile } from '@/services/file_service.ts';
-import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
+import { type ResolvedPaths, resolvePaths } from '@/services/path_resolver.ts';
+import { continueVibeFlow, enableVibeMode, isVibeMode } from './vibe.ts';
 import {
-  continueVibeFlow,
-  enableVibeMode,
-  isVibeMode,
-} from './vibe.ts';
-import {
-  renderStartOptions,
-  printAudienceInterviewHeader,
   printAudienceCompleted,
-  printSpecsInterviewHeader,
+  printAudienceInterviewHeader,
   printCompletionSummary,
   printError,
+  printSpecsInterviewHeader,
+  renderStartOptions,
 } from '@/components/StartScreen.tsx';
 
 // ============================================================================
@@ -213,7 +209,7 @@ async function startAction(cliOptions: StartOptions): Promise<void> {
     if (!audiencePrompt) {
       printError(
         'Audience prompt file not found',
-        `Expected: ${paths.audiencePrompt}\nRun \`ralph init\` to create the prompt file.`
+        `Expected: ${paths.audiencePrompt}\nRun \`ralph init\` to create the prompt file.`,
       );
       Deno.exit(1);
     }
@@ -236,7 +232,7 @@ async function startAction(cliOptions: StartOptions): Promise<void> {
   if (!prompt) {
     printError(
       'Start prompt file not found',
-      `Expected: ${paths.startPrompt}\nRun \`ralph init\` to create the prompt file.`
+      `Expected: ${paths.startPrompt}\nRun \`ralph init\` to create the prompt file.`,
     );
     Deno.exit(1);
   }
@@ -248,7 +244,8 @@ async function startAction(cliOptions: StartOptions): Promise<void> {
     let usageInfo: string | undefined;
 
     if (initialUsage.ok && finalUsage.ok) {
-      const usageDelta = finalUsage.value.fiveHour.utilization - initialUsage.value.fiveHour.utilization;
+      const usageDelta = finalUsage.value.fiveHour.utilization -
+        initialUsage.value.fiveHour.utilization;
       usageInfo = `Subscription: ${formatSubscriptionUsage(finalUsage.value)}`;
       if (usageDelta > 0) {
         usageInfo += ` (+${usageDelta.toFixed(1)}%)`;

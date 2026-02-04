@@ -115,7 +115,14 @@ const BOX_ASCII = {
 function getBoxChars(
   style: BoxStyle,
   nested?: boolean,
-): { topLeft: string; topRight: string; bottomLeft: string; bottomRight: string; horizontal: string; vertical: string } {
+): {
+  topLeft: string;
+  topRight: string;
+  bottomLeft: string;
+  bottomRight: string;
+  horizontal: string;
+  vertical: string;
+} {
   // For nested boxes, use single/light border
   if (nested) {
     return BOX_SINGLE;
@@ -147,7 +154,9 @@ function getBoxChars(
 /**
  * Normalizes spacing configuration to individual values.
  */
-function normalizeSpacing(spacing?: number | Spacing): { top: number; bottom: number; left: number; right: number } {
+function normalizeSpacing(
+  spacing?: number | Spacing,
+): { top: number; bottom: number; left: number; right: number } {
   if (spacing === undefined) {
     return { top: 0, bottom: 0, left: 1, right: 1 };
   }
@@ -175,10 +184,10 @@ function createBorderLine(
   leftChar: string,
   rightChar: string,
   horizontal: string,
-  text?: string,
-  textColor?: ColorFn,
+  text: string | undefined,
+  textColor: ColorFn | undefined,
+  borderColor: ColorFn | undefined,
   align: 'left' | 'center' | 'right' = 'left',
-  borderColor?: ColorFn,
 ): string {
   const colorBorder = borderColor ?? ((s: string) => s);
   const colorText = textColor ?? ((s: string) => s);
@@ -320,8 +329,8 @@ function createEnhancedBox(config: BoxConfig): string {
     box.horizontal,
     titleText,
     titleColor,
-    titleAlign,
     borderColor,
+    titleAlign,
   );
 
   // Create bottom border
@@ -332,8 +341,8 @@ function createEnhancedBox(config: BoxConfig): string {
     box.horizontal,
     footer,
     footerColor,
-    footerAlign,
     borderColor,
+    footerAlign,
   );
 
   // Create content lines with padding
@@ -344,7 +353,9 @@ function createEnhancedBox(config: BoxConfig): string {
   });
 
   // Add vertical padding
-  const emptyLine = `${borderColor(box.vertical)}${' '.repeat(innerWidth)}${borderColor(box.vertical)}`;
+  const emptyLine = `${borderColor(box.vertical)}${' '.repeat(innerWidth)}${
+    borderColor(box.vertical)
+  }`;
   const topPadding = Array(pad.top).fill(emptyLine);
   const bottomPadding = Array(pad.bottom).fill(emptyLine);
 
@@ -394,11 +405,15 @@ function createLegacyBox(content: string, options: BoxOptions = {}): string {
   const paddedLines = lines.map((line) => {
     const lineLength = visibleLength(line);
     const rightPad = ' '.repeat(maxContentWidth - lineLength);
-    return `${colorBorder(box.vertical)}${hPad}${line}${rightPad}${hPad}${colorBorder(box.vertical)}`;
+    return `${colorBorder(box.vertical)}${hPad}${line}${rightPad}${hPad}${
+      colorBorder(box.vertical)
+    }`;
   });
 
   // Add vertical padding
-  const emptyLine = `${colorBorder(box.vertical)}${' '.repeat(innerWidth)}${colorBorder(box.vertical)}`;
+  const emptyLine = `${colorBorder(box.vertical)}${' '.repeat(innerWidth)}${
+    colorBorder(box.vertical)
+  }`;
   const verticalPadding = Array(padY).fill(emptyLine);
 
   // Create top border (with optional title)
@@ -408,8 +423,7 @@ function createLegacyBox(content: string, options: BoxOptions = {}): string {
     const remainingWidth = innerWidth - visibleLength(titleText);
     const leftWidth = Math.floor(remainingWidth / 2);
     const rightWidth = remainingWidth - leftWidth;
-    topBorder =
-      colorBorder(box.topLeft) +
+    topBorder = colorBorder(box.topLeft) +
       colorBorder(box.horizontal.repeat(leftWidth)) +
       titleText +
       colorBorder(box.horizontal.repeat(rightWidth)) +
@@ -419,10 +433,14 @@ function createLegacyBox(content: string, options: BoxOptions = {}): string {
   }
 
   // Create bottom border
-  const bottomBorder = colorBorder(box.bottomLeft + box.horizontal.repeat(innerWidth) + box.bottomRight);
+  const bottomBorder = colorBorder(
+    box.bottomLeft + box.horizontal.repeat(innerWidth) + box.bottomRight,
+  );
 
   // Assemble the box
-  return [topBorder, ...verticalPadding, ...paddedLines, ...verticalPadding, bottomBorder].join('\n');
+  return [topBorder, ...verticalPadding, ...paddedLines, ...verticalPadding, bottomBorder].join(
+    '\n',
+  );
 }
 
 /**

@@ -5,8 +5,8 @@
  * Provides typewriter effects, pulsing, wave animations, and more.
  */
 
-import React, { useState, useEffect } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // TYPEWRITER - Character-by-character text reveal
@@ -35,8 +35,8 @@ export function Typewriter({
   text,
   delay = 50,
   showCursor = true,
-  cursor = "▌",
-  cursorColor = "cyan",
+  cursor = '▌',
+  cursorColor = 'cyan',
   color,
   bold = false,
   onComplete,
@@ -62,9 +62,7 @@ export function Typewriter({
       <Text color={color} bold={bold}>
         {text.slice(0, displayedLength)}
       </Text>
-      {showCursor && !isComplete && (
-        <Text color={cursorColor}>{cursor}</Text>
-      )}
+      {showCursor && !isComplete && <Text color={cursorColor}>{cursor}</Text>}
     </Box>
   );
 }
@@ -138,7 +136,7 @@ export function Blink({
 
   return (
     <Text color={color}>
-      {visible ? children : " ".repeat(children.length)}
+      {visible ? children : ' '.repeat(children.length)}
     </Text>
   );
 }
@@ -147,7 +145,7 @@ export function Blink({
 // FADE IN - Text that fades in using intensity
 // ============================================================================
 
-const FADE_CHARS = ["░", "▒", "▓", "█"];
+const FADE_CHARS = ['░', '▒', '▓', '█'];
 
 export interface FadeInProps {
   /** Text to fade in */
@@ -182,7 +180,7 @@ export function FadeIn({
   }, [phase, duration, onComplete]);
 
   if (phase === 0) {
-    return <Text dimColor>{" ".repeat(children.length)}</Text>;
+    return <Text dimColor>{' '.repeat(children.length)}</Text>;
   }
 
   if (phase >= maxPhase) {
@@ -190,7 +188,8 @@ export function FadeIn({
   }
 
   // During fade, show intensity character
-  return <Text dimColor>{FADE_CHARS[phase - 1]!.repeat(children.length)}</Text>;
+  const fadeChar = FADE_CHARS[phase - 1] ?? '░';
+  return <Text dimColor>{fadeChar.repeat(children.length)}</Text>;
 }
 
 // ============================================================================
@@ -209,7 +208,7 @@ export interface WaveProps {
 export function Wave({
   children,
   speed = 150,
-  colors = ["red", "yellow", "green", "cyan", "blue", "magenta"],
+  colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta'],
 }: WaveProps): React.ReactElement {
   const [offset, setOffset] = useState(0);
 
@@ -220,7 +219,7 @@ export function Wave({
     return () => clearInterval(timer);
   }, [speed, colors.length]);
 
-  const chars = children.split("");
+  const chars = children.split('');
 
   return (
     <Box>
@@ -240,7 +239,7 @@ export function Wave({
 // RAINBOW - Rainbow cycling text
 // ============================================================================
 
-const RAINBOW_COLORS = ["red", "#FF7F00", "yellow", "green", "cyan", "blue", "#8B00FF"];
+const RAINBOW_COLORS = ['red', '#FF7F00', 'yellow', 'green', 'cyan', 'blue', '#8B00FF'];
 
 export interface RainbowProps {
   /** Text to colorize */
@@ -267,7 +266,7 @@ export function Rainbow({
     return () => clearInterval(timer);
   }, [speed, animate]);
 
-  const chars = children.split("");
+  const chars = children.split('');
 
   return (
     <Box>
@@ -301,8 +300,8 @@ export interface ShimmerProps {
 export function Shimmer({
   children,
   speed = 100,
-  baseColor = "gray",
-  shimmerColor = "white",
+  baseColor = 'gray',
+  shimmerColor = 'white',
 }: ShimmerProps): React.ReactElement {
   const [shimmerPos, setShimmerPos] = useState(0);
 
@@ -313,7 +312,7 @@ export function Shimmer({
     return () => clearInterval(timer);
   }, [speed, children.length]);
 
-  const chars = children.split("");
+  const chars = children.split('');
 
   return (
     <Box>
@@ -362,10 +361,10 @@ export function Bounce({
   }, [speed]);
 
   return (
-    <Box flexDirection="column">
-      {isUp && <Text> </Text>}
+    <Box flexDirection='column'>
+      {isUp && <Text></Text>}
       <Text color={color}>{children}</Text>
-      {!isUp && <Text> </Text>}
+      {!isUp && <Text></Text>}
     </Box>
   );
 }
@@ -374,7 +373,7 @@ export function Bounce({
 // GLITCH - Glitchy text effect
 // ============================================================================
 
-const GLITCH_CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?/~`";
+const GLITCH_CHARS = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
 
 export interface GlitchProps {
   /** Text to glitch */
@@ -394,20 +393,20 @@ export function Glitch({
   intensity = 0.1,
   speed = 100,
   color,
-  glitchColor = "red",
+  glitchColor = 'red',
 }: GlitchProps): React.ReactElement {
   const [glitchedText, setGlitchedText] = useState(children);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const chars = children.split("");
+      const chars = children.split('');
       const newChars = chars.map((char) => {
         if (Math.random() < intensity) {
           return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
         }
         return char;
       });
-      setGlitchedText(newChars.join(""));
+      setGlitchedText(newChars.join(''));
     }, speed);
     return () => clearInterval(timer);
   }, [children, intensity, speed]);
@@ -434,7 +433,7 @@ export interface MarqueeProps {
   /** Scroll speed (ms) */
   speed?: number;
   /** Scroll direction */
-  direction?: "left" | "right";
+  direction?: 'left' | 'right';
   /** Gap between repeats */
   gap?: number;
   /** Color */
@@ -445,12 +444,12 @@ export function Marquee({
   children,
   width = 30,
   speed = 150,
-  direction = "left",
+  direction = 'left',
   gap = 5,
   color,
 }: MarqueeProps): React.ReactElement {
   const [offset, setOffset] = useState(0);
-  const fullText = children + " ".repeat(gap) + children;
+  const fullText = children + ' '.repeat(gap) + children;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -459,12 +458,10 @@ export function Marquee({
     return () => clearInterval(timer);
   }, [speed, children.length, gap]);
 
-  const start = direction === "left" ? offset : fullText.length - offset - width;
+  const start = direction === 'left' ? offset : fullText.length - offset - width;
   const visibleText = fullText.slice(start, start + width).padEnd(width);
 
-  return (
-    <Text color={color}>{visibleText}</Text>
-  );
+  return <Text color={color}>{visibleText}</Text>;
 }
 
 // ============================================================================
@@ -541,8 +538,8 @@ export interface LoadingDotsProps {
 export function LoadingDots({
   count = 3,
   speed = 300,
-  color = "cyan",
-  dot = ".",
+  color = 'cyan',
+  dot = '.',
 }: LoadingDotsProps): React.ReactElement {
   const [visibleDots, setVisibleDots] = useState(0);
 
@@ -556,7 +553,7 @@ export function LoadingDots({
   return (
     <Text color={color}>
       {dot.repeat(visibleDots)}
-      {" ".repeat(count - visibleDots)}
+      {' '.repeat(count - visibleDots)}
     </Text>
   );
 }
@@ -583,7 +580,7 @@ export function Skeleton({
   speed = 200,
 }: SkeletonProps): React.ReactElement {
   const [phase, setPhase] = useState(0);
-  const chars = ["░", "▒", "▓", "▒"];
+  const chars = ['░', '▒', '▓', '▒'];
 
   useEffect(() => {
     if (!animate) return undefined;
@@ -594,13 +591,11 @@ export function Skeleton({
     return () => clearInterval(timer);
   }, [speed, animate, chars.length]);
 
-  const line = chars[phase]!.repeat(width);
+  const line = (chars[phase] ?? '░').repeat(width);
 
   return (
-    <Box flexDirection="column">
-      {Array.from({ length: height }).map((_, i) => (
-        <Text key={i} dimColor>{line}</Text>
-      ))}
+    <Box flexDirection='column'>
+      {Array.from({ length: height }).map((_, i) => <Text key={i} dimColor>{line}</Text>)}
     </Box>
   );
 }

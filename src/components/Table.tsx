@@ -4,10 +4,10 @@
  * Table component for aligned column display using deno-ink.
  */
 
-import React from "react";
-import { Box, Text, measureText } from "@ink/mod.ts";
+import React from 'react';
+import { Box, measureText, Text } from '@ink/mod.ts';
 
-export type ColumnAlign = "left" | "right" | "center";
+export type ColumnAlign = 'left' | 'right' | 'center';
 
 export interface ColumnConfig {
   /** Column header text */
@@ -20,7 +20,7 @@ export interface ColumnConfig {
   color?: string;
 }
 
-export type HeaderStyle = "bold" | "underline" | "dim" | "none";
+export type HeaderStyle = 'bold' | 'underline' | 'dim' | 'none';
 
 export interface TableProps {
   /** Column definitions */
@@ -44,16 +44,16 @@ function padString(str: string, width: number, align: ColumnAlign): string {
   const padding = width - strWidth;
 
   switch (align) {
-    case "right":
-      return " ".repeat(padding) + str;
-    case "center": {
+    case 'right':
+      return ' '.repeat(padding) + str;
+    case 'center': {
       const left = Math.floor(padding / 2);
       const right = padding - left;
-      return " ".repeat(left) + str + " ".repeat(right);
+      return ' '.repeat(left) + str + ' '.repeat(right);
     }
-    case "left":
+    case 'left':
     default:
-      return str + " ".repeat(padding);
+      return str + ' '.repeat(padding);
   }
 }
 
@@ -66,7 +66,7 @@ function calculateColumnWidths(columns: ColumnConfig[], rows: (string | number)[
     const headerWidth = measureText(col.header).width;
     const maxRowWidth = rows.reduce((max, row) => {
       const cell = row[colIndex];
-      const cellStr = cell !== undefined ? String(cell) : "";
+      const cellStr = cell !== undefined ? String(cell) : '';
       return Math.max(max, measureText(cellStr).width);
     }, 0);
 
@@ -83,7 +83,9 @@ interface TableCellProps {
   dimColor?: boolean;
 }
 
-function TableCell({ value, width, align, color, bold, dimColor }: TableCellProps): React.ReactElement {
+function TableCell(
+  { value, width, align, color, bold, dimColor }: TableCellProps,
+): React.ReactElement {
   const paddedValue = padString(value, width, align);
   return (
     <Text color={color} bold={bold} dimColor={dimColor}>
@@ -95,15 +97,15 @@ function TableCell({ value, width, align, color, bold, dimColor }: TableCellProp
 export function Table({
   columns,
   rows,
-  headerStyle = "bold",
+  headerStyle = 'bold',
   rowSeparator = false,
   columnGap = 2,
 }: TableProps): React.ReactElement {
   const widths = calculateColumnWidths(columns, rows);
-  const gap = " ".repeat(columnGap);
+  const gap = ' '.repeat(columnGap);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {/* Header row */}
       <Box>
         {columns.map((col, i) => (
@@ -112,9 +114,9 @@ export function Table({
             <TableCell
               value={col.header}
               width={widths[i] ?? 0}
-              align={col.align ?? "left"}
-              bold={headerStyle === "bold"}
-              dimColor={headerStyle === "dim"}
+              align={col.align ?? 'left'}
+              bold={headerStyle === 'bold'}
+              dimColor={headerStyle === 'dim'}
             />
           </Box>
         ))}
@@ -126,7 +128,7 @@ export function Table({
           {columns.map((_, i) => (
             <Box key={i}>
               {i > 0 && <Text>{gap}</Text>}
-              <Text dimColor>{"─".repeat(widths[i] ?? 0)}</Text>
+              <Text dimColor>{'─'.repeat(widths[i] ?? 0)}</Text>
             </Box>
           ))}
         </Box>
@@ -134,18 +136,18 @@ export function Table({
 
       {/* Data rows */}
       {rows.map((row, rowIndex) => (
-        <Box key={rowIndex} flexDirection="column">
+        <Box key={rowIndex} flexDirection='column'>
           <Box>
             {columns.map((col, colIndex) => {
               const value = row[colIndex];
-              const valueStr = value !== undefined ? String(value) : "";
+              const valueStr = value !== undefined ? String(value) : '';
               return (
                 <Box key={colIndex}>
                   {colIndex > 0 && <Text>{gap}</Text>}
                   <TableCell
                     value={valueStr}
                     width={widths[colIndex] ?? 0}
-                    align={col.align ?? "left"}
+                    align={col.align ?? 'left'}
                     color={col.color}
                   />
                 </Box>
@@ -157,7 +159,7 @@ export function Table({
               {columns.map((_, i) => (
                 <Box key={i}>
                   {i > 0 && <Text>{gap}</Text>}
-                  <Text dimColor>{"─".repeat(widths[i] ?? 0)}</Text>
+                  <Text dimColor>{'─'.repeat(widths[i] ?? 0)}</Text>
                 </Box>
               ))}
             </Box>
@@ -182,13 +184,13 @@ export function KeyValueTable({
   const maxKeyWidth = Math.max(...entries.map(([key]) => measureText(key).width));
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {entries.map(([key, value], index) => (
         <Box key={index}>
           <Text color={keyColor} dimColor={!keyColor}>
             {key.padEnd(maxKeyWidth)}
           </Text>
-          <Text>  </Text>
+          <Text></Text>
           <Text color={valueColor}>{String(value)}</Text>
         </Box>
       ))}

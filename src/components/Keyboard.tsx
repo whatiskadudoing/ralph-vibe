@@ -4,21 +4,21 @@
  * Keyboard shortcut display components using deno-ink.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface KeyProps {
   /** Key label (e.g., "Enter", "Ctrl", "A") */
   children: string;
   /** Key style */
-  variant?: "default" | "primary" | "muted";
+  variant?: 'default' | 'primary' | 'muted';
 }
 
-export function Key({ children, variant = "default" }: KeyProps): React.ReactElement {
+export function Key({ children, variant = 'default' }: KeyProps): React.ReactElement {
   const colors = {
-    default: { border: "white", text: undefined },
-    primary: { border: "cyan", text: "cyan" },
-    muted: { border: "gray", text: "gray" },
+    default: { border: 'white', text: undefined },
+    primary: { border: 'cyan', text: 'cyan' },
+    muted: { border: 'gray', text: 'gray' },
   };
   const style = colors[variant];
 
@@ -38,7 +38,7 @@ export interface KeyComboProps {
   separator?: string;
 }
 
-export function KeyCombo({ keys, separator = "+" }: KeyComboProps): React.ReactElement {
+export function KeyCombo({ keys, separator = '+' }: KeyComboProps): React.ReactElement {
   return (
     <Box>
       {keys.map((key, index) => (
@@ -65,12 +65,12 @@ export function Shortcut({
   description,
   highlighted = false,
 }: ShortcutProps): React.ReactElement {
-  const keyArray = typeof keys === "string" ? [keys] : keys;
+  const keyArray = typeof keys === 'string' ? [keys] : keys;
 
   return (
     <Box>
       <KeyCombo keys={keyArray} />
-      <Text> </Text>
+      <Text></Text>
       <Text dimColor={!highlighted}>{description}</Text>
     </Box>
   );
@@ -83,7 +83,7 @@ export interface ShortcutListProps {
 
 export function ShortcutList({ shortcuts }: ShortcutListProps): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {shortcuts.map((shortcut, index) => (
         <React.Fragment key={index}>
           <Shortcut keys={shortcut.keys} description={shortcut.description} />
@@ -99,14 +99,14 @@ export interface ShortcutBarProps {
   separator?: string;
 }
 
-export function ShortcutBar({ shortcuts, separator = "  " }: ShortcutBarProps): React.ReactElement {
+export function ShortcutBar({ shortcuts, separator = '  ' }: ShortcutBarProps): React.ReactElement {
   return (
     <Box>
       {shortcuts.map((shortcut, index) => (
         <Box key={index}>
           {index > 0 && <Text dimColor>{separator}</Text>}
-          <Text inverse bold> {shortcut.key} </Text>
-          <Text> {shortcut.label}</Text>
+          <Text inverse bold>{shortcut.key}</Text>
+          <Text>{shortcut.label}</Text>
         </Box>
       ))}
     </Box>
@@ -118,10 +118,10 @@ export function HelpFooter(): React.ReactElement {
   return (
     <ShortcutBar
       shortcuts={[
-        { key: "?", label: "Help" },
-        { key: "q", label: "Quit" },
-        { key: "↑↓", label: "Navigate" },
-        { key: "Enter", label: "Select" },
+        { key: '?', label: 'Help' },
+        { key: 'q', label: 'Quit' },
+        { key: '↑↓', label: 'Navigate' },
+        { key: 'Enter', label: 'Select' },
       ]}
     />
   );

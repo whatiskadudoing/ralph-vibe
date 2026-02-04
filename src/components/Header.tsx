@@ -4,8 +4,8 @@
  * Header and Footer components for app layout using deno-ink.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface HeaderProps {
   /** Main title */
@@ -25,19 +25,19 @@ export interface HeaderProps {
 export function Header({
   title,
   subtitle,
-  color = "#FF9500",
+  color = '#FF9500',
   bordered = true,
   icon,
   right,
 }: HeaderProps): React.ReactElement {
   const content = (
-    <Box justifyContent="space-between" width="100%">
+    <Box justifyContent='space-between' width='100%'>
       <Box>
-        {icon && <Text color={color}>{icon} </Text>}
+        {icon && <Text color={color}>{icon}</Text>}
         <Text bold color={color}>{title}</Text>
         {subtitle && (
           <>
-            <Text> </Text>
+            <Text></Text>
             <Text dimColor>{subtitle}</Text>
           </>
         )}
@@ -49,7 +49,7 @@ export function Header({
   if (bordered) {
     return (
       <Box
-        borderStyle="round"
+        borderStyle='round'
         borderColor={color}
         paddingX={2}
         paddingY={1}
@@ -74,20 +74,20 @@ export function AppHeader({
   name,
   version,
   tagline,
-  color = "#FF9500",
+  color = '#FF9500',
 }: AppHeaderProps): React.ReactElement {
   return (
     <Box
-      borderStyle="round"
+      borderStyle='round'
       borderColor={color}
       paddingX={4}
       paddingY={1}
-      flexDirection="column"
-      alignItems="center"
+      flexDirection='column'
+      alignItems='center'
     >
       <Box>
         <Text bold color={color}>{name}</Text>
-        {version && <Text dimColor> v{version}</Text>}
+        {version && <Text dimColor>v{version}</Text>}
       </Box>
       {tagline && <Text dimColor>{tagline}</Text>}
     </Box>
@@ -105,10 +105,10 @@ export function Section({ title, icon, color }: SectionProps): React.ReactElemen
   return (
     <Box marginY={1}>
       <Text color={color} dimColor={!color}>──</Text>
-      <Text> </Text>
-      {icon && <Text color={color}>{icon} </Text>}
+      <Text></Text>
+      {icon && <Text color={color}>{icon}</Text>}
       <Text bold color={color}>{title}</Text>
-      <Text> </Text>
+      <Text></Text>
       <Text color={color} dimColor={!color}>────────────────────────────────</Text>
     </Box>
   );
@@ -136,7 +136,7 @@ export function Footer({
   bordered = true,
 }: FooterProps): React.ReactElement {
   const content = (
-    <Box justifyContent="space-between" width="100%">
+    <Box justifyContent='space-between' width='100%'>
       <Box>{left}</Box>
       <Box>{center}</Box>
       <Box>{right}</Box>
@@ -146,7 +146,7 @@ export function Footer({
   if (bordered) {
     return (
       <Box
-        borderStyle="single"
+        borderStyle='single'
         borderColor={borderColor}
         borderTop
         borderBottom={false}
@@ -173,14 +173,14 @@ export interface StatusBarProps {
   separator?: string;
 }
 
-export function StatusBar({ items, separator = "  │  " }: StatusBarProps): React.ReactElement {
+export function StatusBar({ items, separator = '  │  ' }: StatusBarProps): React.ReactElement {
   return (
     <Box paddingX={1}>
       {items.map((item, index) => (
         <Box key={index}>
           {index > 0 && <Text dimColor>{separator}</Text>}
-          {item.icon && <Text color={item.color}>{item.icon} </Text>}
-          {item.label && <Text dimColor>{item.label}: </Text>}
+          {item.icon && <Text color={item.color}>{item.icon}</Text>}
+          {item.label && <Text dimColor>{item.label}:</Text>}
           <Text color={item.color}>{item.value}</Text>
         </Box>
       ))}
@@ -197,8 +197,8 @@ export interface BreadcrumbProps {
 
 export function Breadcrumb({
   items,
-  separator = " › ",
-  activeColor = "cyan",
+  separator = ' › ',
+  activeColor = 'cyan',
 }: BreadcrumbProps): React.ReactElement {
   return (
     <Box>

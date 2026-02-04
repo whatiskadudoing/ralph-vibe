@@ -5,10 +5,11 @@
  * of metrics across all commands.
  */
 
-import React from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
-import { formatTokens } from "./TokenStats.tsx";
+import React from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
+import { formatTokens } from './TokenStats.tsx';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
@@ -30,7 +31,7 @@ export interface StatsDisplayProps {
   /** Number of iterations */
   iterations?: number;
   /** Layout direction */
-  direction?: "row" | "column";
+  direction?: 'row' | 'column';
   /** Show icons */
   showIcons?: boolean;
   /** Compact mode (shorter labels) */
@@ -42,16 +43,11 @@ export interface StatsDisplayProps {
 // ============================================================================
 
 /**
- * Formats duration in human-readable format.
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ * Re-exports for backward compatibility.
  */
-export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins < 60) return `${mins}m ${secs}s`;
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}h ${remainingMins}m`;
+export function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 /**
@@ -59,9 +55,9 @@ export function formatDuration(seconds: number): string {
  */
 export function formatModelName(model: string): string {
   const normalized = model.toLowerCase();
-  if (normalized.includes("opus")) return "Opus";
-  if (normalized.includes("sonnet")) return "Sonnet";
-  if (normalized.includes("haiku")) return "Haiku";
+  if (normalized.includes('opus')) return 'Opus';
+  if (normalized.includes('sonnet')) return 'Sonnet';
+  if (normalized.includes('haiku')) return 'Haiku';
   return model;
 }
 
@@ -88,7 +84,7 @@ function StatItem({
   compact?: boolean;
 }): React.ReactElement {
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       {showIcon && <Text color={colors.dim}>{icon}</Text>}
       <Text color={valueColor ?? colors.text} bold>{value}</Text>
       {!compact && <Text color={colors.dim}>{label}</Text>}
@@ -108,7 +104,7 @@ export function StatsDisplay({
   cacheReadTokens,
   model,
   iterations,
-  direction = "row",
+  direction = 'row',
   showIcons = true,
   compact = false,
 }: StatsDisplayProps): React.ReactElement {
@@ -118,113 +114,113 @@ export function StatsDisplay({
   // Duration
   if (durationSec !== undefined) {
     items.push(
-      <Box key="duration">
+      <Box key='duration'>
         <StatItem
-          icon="⏱"
-          label="total time"
-          value={formatDuration(durationSec)}
+          icon='⏱'
+          label='total time'
+          value={formatDurationSec(durationSec)}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Iterations
   if (iterations !== undefined) {
     items.push(
-      <Box key="iterations">
+      <Box key='iterations'>
         <StatItem
-          icon="🔄"
-          label="iterations"
+          icon='🔄'
+          label='iterations'
           value={iterations}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Operations
   if (operations !== undefined) {
     items.push(
-      <Box key="operations">
+      <Box key='operations'>
         <StatItem
-          icon="⚡"
-          label="ops"
+          icon='⚡'
+          label='ops'
           value={operations}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Tokens
   if (totalTokens > 0) {
     items.push(
-      <Box key="tokens">
+      <Box key='tokens'>
         <StatItem
-          icon="📊"
-          label={compact ? "tok" : "tokens"}
+          icon='📊'
+          label={compact ? 'tok' : 'tokens'}
           value={formatTokens(totalTokens)}
           valueColor={colors.tokenTotal}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Token breakdown (if not compact)
   if (!compact && inputTokens !== undefined && outputTokens !== undefined && totalTokens > 0) {
     items.push(
-      <Box key="breakdown" flexDirection="row" gap={1}>
+      <Box key='breakdown' flexDirection='row' gap={1}>
         <Text color={colors.dim}>(</Text>
         <Text color={colors.tokenInput}>{formatTokens(inputTokens)}</Text>
         <Text color={colors.dim}>in /</Text>
         <Text color={colors.tokenOutput}>{formatTokens(outputTokens)}</Text>
         <Text color={colors.dim}>out)</Text>
-      </Box>
+      </Box>,
     );
   }
 
   // Cache tokens
   if (cacheReadTokens !== undefined && cacheReadTokens > 0) {
     items.push(
-      <Box key="cache">
+      <Box key='cache'>
         <StatItem
-          icon="💾"
-          label="cached"
+          icon='💾'
+          label='cached'
           value={formatTokens(cacheReadTokens)}
           valueColor={colors.tokenCache}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Model
   if (model) {
     items.push(
-      <Box key="model">
+      <Box key='model'>
         <StatItem
-          icon="🤖"
-          label=""
+          icon='🤖'
+          label=''
           value={formatModelName(model)}
           valueColor={colors.accent}
           showIcon={showIcons}
           compact={compact}
         />
-      </Box>
+      </Box>,
     );
   }
 
   // Render based on direction
-  if (direction === "column") {
+  if (direction === 'column') {
     return (
-      <Box flexDirection="column">
+      <Box flexDirection='column'>
         {items}
       </Box>
     );
@@ -232,7 +228,7 @@ export function StatsDisplay({
 
   // Row layout with separators
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       {items.map((item, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text color={colors.dim}>·</Text>}
@@ -263,31 +259,31 @@ export function InlineStats({
 
   if (model) {
     parts.push(
-      <Text key="model" color={colors.dim}>{formatModelName(model)}</Text>
+      <Text key='model' color={colors.dim}>{formatModelName(model)}</Text>,
     );
   }
 
   if (operations !== undefined) {
     parts.push(
-      <Text key="ops" color={colors.dim}>{operations} ops</Text>
+      <Text key='ops' color={colors.dim}>{operations} ops</Text>,
     );
   }
 
   if (durationSec !== undefined) {
     parts.push(
-      <Text key="duration" color={colors.dim}>{formatDuration(durationSec)}</Text>
+      <Text key='duration' color={colors.dim}>{formatDuration(durationSec)}</Text>,
     );
   }
 
   const totalTokens = (inputTokens ?? 0) + (outputTokens ?? 0);
   if (totalTokens > 0) {
     parts.push(
-      <Text key="tokens" color={colors.tokenTotal}>{formatTokens(totalTokens)} tokens</Text>
+      <Text key='tokens' color={colors.tokenTotal}>{formatTokens(totalTokens)} tokens</Text>,
     );
   }
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text color={colors.dim}>·</Text>}
@@ -322,25 +318,25 @@ export function SessionSummaryStats({
   const avgTokensPerIteration = iterations > 0 ? Math.round(totalTokens / iterations) : 0;
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Text bold>Session Stats</Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1} flexDirection='column'>
         {/* Time */}
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>⏱</Text>
-          <Text bold>{formatDuration(durationSec)}</Text>
+          <Text bold>{formatDurationSec(durationSec)}</Text>
           <Text color={colors.dim}>total time</Text>
         </Box>
 
         {/* Iterations */}
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>🔄</Text>
           <Text bold>{iterations}</Text>
           <Text color={colors.dim}>iterations</Text>
         </Box>
 
         {/* Operations */}
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>⚡</Text>
           <Text bold>{operations}</Text>
           <Text color={colors.dim}>operations</Text>
@@ -349,12 +345,12 @@ export function SessionSummaryStats({
         {/* Tokens - primary metric */}
         {totalTokens > 0 && (
           <>
-            <Box flexDirection="row" gap={1}>
+            <Box flexDirection='row' gap={1}>
               <Text color={colors.dim}>📊</Text>
               <Text bold color={colors.tokenTotal}>{formatTokens(totalTokens)}</Text>
               <Text color={colors.dim}>tokens consumed</Text>
             </Box>
-            <Box flexDirection="row" gap={1} marginLeft={3}>
+            <Box flexDirection='row' gap={1} marginLeft={3}>
               <Text color={colors.tokenInput}>{formatTokens(inputTokens)}</Text>
               <Text color={colors.dim}>in /</Text>
               <Text color={colors.tokenOutput}>{formatTokens(outputTokens)}</Text>
@@ -365,7 +361,7 @@ export function SessionSummaryStats({
 
         {/* Cache savings */}
         {cacheTokensSaved > 0 && (
-          <Box flexDirection="row" gap={1}>
+          <Box flexDirection='row' gap={1}>
             <Text color={colors.dim}>💾</Text>
             <Text bold color={colors.tokenCache}>{formatTokens(cacheTokensSaved)}</Text>
             <Text color={colors.dim}>tokens saved by cache</Text>
@@ -374,7 +370,7 @@ export function SessionSummaryStats({
 
         {/* Average per iteration */}
         {avgTokensPerIteration > 0 && (
-          <Box flexDirection="row" gap={1}>
+          <Box flexDirection='row' gap={1}>
             <Text color={colors.dim}>📈</Text>
             <Text>{formatTokens(avgTokensPerIteration)}</Text>
             <Text color={colors.dim}>avg tokens/iteration</Text>
@@ -384,11 +380,11 @@ export function SessionSummaryStats({
 
       {/* Model breakdown */}
       {modelBreakdown && (modelBreakdown.opus || modelBreakdown.sonnet) && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection='column' marginTop={1}>
           <Text bold>Models Used</Text>
-          <Box marginTop={1} flexDirection="column">
+          <Box marginTop={1} flexDirection='column'>
             {modelBreakdown.opus && modelBreakdown.opus > 0 && (
-              <Box flexDirection="row" gap={1}>
+              <Box flexDirection='row' gap={1}>
                 <Text color={colors.accent}>●</Text>
                 <Text color={colors.accent}>Opus</Text>
                 <Text color={colors.dim}>×</Text>
@@ -397,7 +393,7 @@ export function SessionSummaryStats({
               </Box>
             )}
             {modelBreakdown.sonnet && modelBreakdown.sonnet > 0 && (
-              <Box flexDirection="row" gap={1}>
+              <Box flexDirection='row' gap={1}>
                 <Text color={colors.info}>●</Text>
                 <Text color={colors.info}>Sonnet</Text>
                 <Text color={colors.dim}>×</Text>

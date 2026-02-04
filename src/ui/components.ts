@@ -217,7 +217,8 @@ export function successBox(options: SuccessBoxOptions): string {
 
   // Token info (primary metric for subscription users)
   if (options.tokenInfo) {
-    const { inputTokens, outputTokens, cacheReadTokens, durationSec, operations } = options.tokenInfo;
+    const { inputTokens, outputTokens, cacheReadTokens, durationSec, operations } =
+      options.tokenInfo;
     const total = inputTokens + outputTokens;
 
     // Stats line: operations and duration
@@ -229,7 +230,11 @@ export function successBox(options: SuccessBoxOptions): string {
     }
 
     // Token line (highlight total)
-    lines.push(`${dim('→')} ${cyan(formatTokens(total))} tokens (${formatTokens(inputTokens)} in / ${formatTokens(outputTokens)} out)`);
+    lines.push(
+      `${dim('→')} ${cyan(formatTokens(total))} tokens (${formatTokens(inputTokens)} in / ${
+        formatTokens(outputTokens)
+      } out)`,
+    );
 
     // Cache savings if available
     if (cacheReadTokens !== undefined && cacheReadTokens > 0) {

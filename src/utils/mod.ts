@@ -9,3 +9,7 @@ export * from './types.ts';
 export * from './result.ts';
 export * from './string.ts';
 export * from './final-output.ts';
+export * from './formatting.ts';
+export * from './constants.ts';
+export * from './paths.ts';
+export * from './command.ts';

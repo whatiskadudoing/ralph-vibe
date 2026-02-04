@@ -10,13 +10,13 @@
  * - Delta tracking for iterations
  */
 
-import React from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
-import { formatTokens } from "./TokenStats.tsx";
-import { formatCost, type CostBreakdown } from "@/services/cost_calculator.ts";
-import { UsageBars } from "./UsageBars.tsx";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
+import React from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
+import { formatTokens } from './TokenStats.tsx';
+import { type CostBreakdown, formatCost } from '@/services/cost_calculator.ts';
+import { UsageBars } from './UsageBars.tsx';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
 
 // ============================================================================
 // Types
@@ -75,7 +75,7 @@ function getCostColor(amount: number): string {
  * Formats a delta value with + prefix.
  */
 function formatDelta(value: number, formatter: (n: number) => string): string {
-  if (value === 0) return "";
+  if (value === 0) return '';
   return `+${formatter(value)}`;
 }
 
@@ -102,35 +102,35 @@ function CompactStats({
   const totalTokens = tokens.input + tokens.output;
 
   return (
-    <Box flexDirection="row" gap={2}>
+    <Box flexDirection='row' gap={2}>
       {/* Tokens */}
-      <Box flexDirection="row" gap={0}>
-        <Text color={colors.dim}>Tokens: </Text>
+      <Box flexDirection='row' gap={0}>
+        <Text color={colors.dim}>Tokens:</Text>
         <Text color={colors.tokenTotal} bold>
           {formatTokens(totalTokens)}
         </Text>
         {delta?.tokens !== undefined && delta.tokens > 0 && (
-          <Text color={colors.tokenOutput}> {formatDelta(delta.tokens, formatTokens)}</Text>
+          <Text color={colors.tokenOutput}>{formatDelta(delta.tokens, formatTokens)}</Text>
         )}
       </Box>
 
       {/* Cost */}
       {showCost && cost && (
-        <Box flexDirection="row" gap={0}>
-          <Text color={colors.dim}>Cost: </Text>
+        <Box flexDirection='row' gap={0}>
+          <Text color={colors.dim}>Cost:</Text>
           <Text color={getCostColor(cost.total)} bold>
             {formatCost(cost.total)}
           </Text>
           {delta?.cost !== undefined && delta.cost > 0 && (
-            <Text color={getCostColor(delta.cost)}> {formatDelta(delta.cost, formatCost)}</Text>
+            <Text color={getCostColor(delta.cost)}>{formatDelta(delta.cost, formatCost)}</Text>
           )}
         </Box>
       )}
 
       {/* Cache efficiency */}
       {cacheEfficiency !== undefined && cacheEfficiency > 0 && (
-        <Box flexDirection="row" gap={0}>
-          <Text color={colors.dim}>Cache: </Text>
+        <Box flexDirection='row' gap={0}>
+          <Text color={colors.dim}>Cache:</Text>
           <Text color={colors.success} bold>
             {Math.round(cacheEfficiency)}%
           </Text>
@@ -159,42 +159,42 @@ function FullStats({
   const totalTokens = tokens.input + tokens.output;
 
   return (
-    <Box flexDirection="row" gap={3}>
+    <Box flexDirection='row' gap={3}>
       {/* Token breakdown */}
-      <Box flexDirection="row" gap={0}>
-        <Text color={colors.dim}>Tokens: </Text>
+      <Box flexDirection='row' gap={0}>
+        <Text color={colors.dim}>Tokens:</Text>
         <Text color={colors.tokenTotal} bold>
           {formatTokens(totalTokens)}
         </Text>
-        <Text color={colors.dim}> (</Text>
+        <Text color={colors.dim}>(</Text>
         <Text color={colors.dim}>↑</Text>
         <Text color={colors.tokenInput}>{formatTokens(tokens.input)}</Text>
-        <Text color={colors.dim}> </Text>
+        <Text color={colors.dim}></Text>
         <Text color={colors.dim}>↓</Text>
         <Text color={colors.tokenOutput}>{formatTokens(tokens.output)}</Text>
         <Text color={colors.dim}>)</Text>
         {delta?.tokens !== undefined && delta.tokens > 0 && (
-          <Text color={colors.tokenOutput}> {formatDelta(delta.tokens, formatTokens)}</Text>
+          <Text color={colors.tokenOutput}>{formatDelta(delta.tokens, formatTokens)}</Text>
         )}
       </Box>
 
       {/* Cost */}
       {showCost && cost && (
-        <Box flexDirection="row" gap={0}>
-          <Text color={colors.dim}>Cost: </Text>
+        <Box flexDirection='row' gap={0}>
+          <Text color={colors.dim}>Cost:</Text>
           <Text color={getCostColor(cost.total)} bold>
             {formatCost(cost.total)}
           </Text>
           {delta?.cost !== undefined && delta.cost > 0 && (
-            <Text color={getCostColor(delta.cost)}> {formatDelta(delta.cost, formatCost)}</Text>
+            <Text color={getCostColor(delta.cost)}>{formatDelta(delta.cost, formatCost)}</Text>
           )}
         </Box>
       )}
 
       {/* Cache efficiency */}
       {cacheEfficiency !== undefined && cacheEfficiency > 0 && (
-        <Box flexDirection="row" gap={0}>
-          <Text color={colors.dim}>Cache: </Text>
+        <Box flexDirection='row' gap={0}>
+          <Text color={colors.dim}>Cache:</Text>
           <Text color={colors.success} bold>
             {Math.round(cacheEfficiency)}%
           </Text>
@@ -218,25 +218,27 @@ export function StatsBar({
   delta,
 }: StatsBarProps): React.ReactElement {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {/* Stats line */}
-      {compact ? (
-        <CompactStats
-          tokens={tokens}
-          cost={cost}
-          cacheEfficiency={cacheEfficiency}
-          delta={delta}
-          showCost={showCost}
-        />
-      ) : (
-        <FullStats
-          tokens={tokens}
-          cost={cost}
-          cacheEfficiency={cacheEfficiency}
-          delta={delta}
-          showCost={showCost}
-        />
-      )}
+      {compact
+        ? (
+          <CompactStats
+            tokens={tokens}
+            cost={cost}
+            cacheEfficiency={cacheEfficiency}
+            delta={delta}
+            showCost={showCost}
+          />
+        )
+        : (
+          <FullStats
+            tokens={tokens}
+            cost={cost}
+            cacheEfficiency={cacheEfficiency}
+            delta={delta}
+            showCost={showCost}
+          />
+        )}
 
       {/* Usage bars (if provided) */}
       {usage && (

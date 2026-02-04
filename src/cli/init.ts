@@ -8,24 +8,11 @@
  */
 
 import { Command } from '@cliffy/command';
-import {
-  createProjectFiles,
-  getProjectFiles,
-  isRalphProject,
-  type ProjectFile,
-} from '@/services/project_service.ts';
+import { createProjectFiles, getProjectFiles, isRalphProject } from '@/services/project_service.ts';
 import { isGitRepo } from '@/services/git_service.ts';
 import { getClaudeVersion, isClaudeInstalled } from '@/services/claude_service.ts';
-import {
-  renderInit,
-  type ProjectFileInfo,
-} from '@/components/InitScreen.tsx';
-import {
-  continueVibeFlow,
-  enableVibeMode,
-  getNextCommands,
-  isVibeMode,
-} from './vibe.ts';
+import { type ProjectFileInfo, renderInit } from '@/components/InitScreen.tsx';
+import { continueVibeFlow, enableVibeMode, getNextCommands, isVibeMode } from './vibe.ts';
 
 // ============================================================================
 // Command
@@ -128,7 +115,7 @@ async function initAction(options: InitOptions): Promise<void> {
     if (createdFiles.length > 0) {
       await continueVibeFlow('init');
     }
-  } catch (error) {
+  } catch {
     // Error was already shown by the component
     Deno.exit(1);
   }

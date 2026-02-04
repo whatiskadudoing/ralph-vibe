@@ -10,9 +10,9 @@
  * - Claude Code: Status line JSON with context_window.used_percentage
  */
 
-import React from "react";
-import { Box, Text } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React from 'react';
+import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
 // ============================================================================
 // Types
@@ -84,7 +84,7 @@ export function ContextBar({
   showPercentage = true,
   showCounts = true,
   compact = false,
-  label = "ctx",
+  label = 'ctx',
 }: ContextBarProps): React.ReactElement {
   // Calculate percentage
   const percentage = max > 0 ? used / max : 0;
@@ -92,25 +92,21 @@ export function ContextBar({
   const isDanger = percentage >= dangerThreshold;
 
   // Determine bar color
-  const barColor = isDanger
-    ? colors.error
-    : isWarning
-    ? colors.warning
-    : colors.success;
+  const barColor = isDanger ? colors.error : isWarning ? colors.warning : colors.success;
 
   // Build the progress bar
   const filledCount = Math.min(Math.round(percentage * barWidth), barWidth);
   const emptyCount = barWidth - filledCount;
-  const filledChar = "█";
-  const emptyChar = "░";
+  const filledChar = '█';
+  const emptyChar = '░';
   const bar = filledChar.repeat(filledCount) + emptyChar.repeat(emptyCount);
 
   // Warning indicator
-  const warningIndicator = isDanger ? " ⚠" : "";
+  const warningIndicator = isDanger ? ' ⚠' : '';
 
   if (compact) {
     return (
-      <Box flexDirection="row">
+      <Box flexDirection='row'>
         <Text color={barColor}>{bar}</Text>
         {warningIndicator && <Text color={colors.error}>{warningIndicator}</Text>}
       </Box>
@@ -118,7 +114,7 @@ export function ContextBar({
   }
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={colors.dim}>{label}:</Text>
       <Text color={barColor}>{bar}</Text>
 
@@ -140,9 +136,7 @@ export function ContextBar({
         </Text>
       )}
 
-      {warningIndicator && (
-        <Text color={colors.error}>{warningIndicator}</Text>
-      )}
+      {warningIndicator && <Text color={colors.error}>{warningIndicator}</Text>}
     </Box>
   );
 }
@@ -181,48 +175,48 @@ export function ContextDetails({
   const percentage = max > 0 ? (used / max) * 100 : 0;
 
   return (
-    <Box flexDirection="column" paddingLeft={2}>
-      <Box flexDirection="row" gap={1}>
+    <Box flexDirection='column' paddingLeft={2}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>used:</Text>
         <Text color={colors.muted}>{formatTokens(used)}</Text>
         <Text color={colors.dim}>({percentage.toFixed(1)}%)</Text>
       </Box>
 
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>remaining:</Text>
         <Text color={remaining < 20000 ? colors.warning : colors.success}>
           {formatTokens(remaining)}
         </Text>
       </Box>
 
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection='row' gap={1}>
         <Text color={colors.dim}>max:</Text>
         <Text color={colors.muted}>{formatTokens(max)}</Text>
       </Box>
 
       {inputTokens !== undefined && (
-        <Box flexDirection="row" gap={1} marginTop={1}>
+        <Box flexDirection='row' gap={1} marginTop={1}>
           <Text color={colors.dim}>input:</Text>
           <Text color={colors.muted}>{formatTokens(inputTokens)}</Text>
         </Box>
       )}
 
       {outputTokens !== undefined && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>output:</Text>
           <Text color={colors.muted}>{formatTokens(outputTokens)}</Text>
         </Box>
       )}
 
       {cacheReadTokens !== undefined && cacheReadTokens > 0 && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>cache read:</Text>
           <Text color={colors.success}>{formatTokens(cacheReadTokens)}</Text>
         </Box>
       )}
 
       {cacheWriteTokens !== undefined && cacheWriteTokens > 0 && (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection='row' gap={1}>
           <Text color={colors.dim}>cache write:</Text>
           <Text color={colors.info}>{formatTokens(cacheWriteTokens)}</Text>
         </Box>
@@ -261,10 +255,10 @@ export function ContextIndicator({
     ? colors.warning
     : colors.success;
 
-  const growthIndicator = isGrowing ? "↑" : "";
+  const growthIndicator = isGrowing ? '↑' : '';
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Text color={colors.dim}>ctx:</Text>
       <Text color={indicatorColor}>
         {Math.round(percentage)}%{growthIndicator}

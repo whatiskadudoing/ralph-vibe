@@ -5,14 +5,14 @@
  * Inspired by modern UI patterns and terminal notification systems.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // ============================================================================
 // TOAST - Ephemeral notification message
 // ============================================================================
 
-export type ToastType = "info" | "success" | "warning" | "error" | "loading";
+export type ToastType = 'info' | 'success' | 'warning' | 'error' | 'loading';
 
 export interface ToastProps {
   /** Toast type determines icon and color */
@@ -28,19 +28,19 @@ export interface ToastProps {
   /** Compact mode (no padding) */
   compact?: boolean;
   /** Position hint for rendering */
-  position?: "top" | "bottom";
+  position?: 'top' | 'bottom';
 }
 
 const TOAST_STYLES: Record<ToastType, { icon: string; color: string }> = {
-  info: { icon: "ℹ", color: "blue" },
-  success: { icon: "✓", color: "green" },
-  warning: { icon: "⚠", color: "yellow" },
-  error: { icon: "✗", color: "red" },
-  loading: { icon: "◐", color: "cyan" },
+  info: { icon: 'ℹ', color: 'blue' },
+  success: { icon: '✓', color: 'green' },
+  warning: { icon: '⚠', color: 'yellow' },
+  error: { icon: '✗', color: 'red' },
+  loading: { icon: '◐', color: 'cyan' },
 };
 
 export function Toast({
-  type = "info",
+  type = 'info',
   message,
   icon,
   color,
@@ -55,7 +55,7 @@ export function Toast({
     return (
       <Box>
         <Text color={displayColor}>{displayIcon}</Text>
-        <Text> {message}</Text>
+        <Text>{message}</Text>
       </Box>
     );
   }
@@ -63,13 +63,13 @@ export function Toast({
   if (bordered) {
     return (
       <Box
-        borderStyle="round"
+        borderStyle='round'
         borderColor={displayColor}
         paddingX={2}
         paddingY={0}
       >
         <Text color={displayColor}>{displayIcon}</Text>
-        <Text> {message}</Text>
+        <Text>{message}</Text>
       </Box>
     );
   }
@@ -77,7 +77,7 @@ export function Toast({
   return (
     <Box paddingX={1}>
       <Text color={displayColor}>{displayIcon}</Text>
-      <Text> {message}</Text>
+      <Text>{message}</Text>
     </Box>
   );
 }
@@ -97,7 +97,7 @@ export interface ToastContainerProps {
   /** Array of toast items */
   toasts: ToastItem[];
   /** Position */
-  position?: "top" | "bottom";
+  position?: 'top' | 'bottom';
   /** Max visible toasts */
   maxVisible?: number;
   /** Gap between toasts */
@@ -106,7 +106,7 @@ export interface ToastContainerProps {
 
 export function ToastContainer({
   toasts,
-  position = "bottom",
+  position = 'bottom',
   maxVisible = 5,
   gap = 0,
 }: ToastContainerProps): React.ReactElement {
@@ -115,7 +115,7 @@ export function ToastContainer({
 
   return (
     <Box
-      flexDirection={position === "top" ? "column" : "column-reverse"}
+      flexDirection={position === 'top' ? 'column' : 'column-reverse'}
       gap={gap}
     >
       {visibleToasts.map((toast) => (
@@ -127,9 +127,7 @@ export function ToastContainer({
           />
         </React.Fragment>
       ))}
-      {hiddenCount > 0 && (
-        <Text dimColor>  +{hiddenCount} more...</Text>
-      )}
+      {hiddenCount > 0 && <Text dimColor>+{hiddenCount} more...</Text>}
     </Box>
   );
 }
@@ -158,7 +156,7 @@ export interface NotificationProps {
 }
 
 export function Notification({
-  type = "info",
+  type = 'info',
   title,
   message,
   icon,
@@ -172,18 +170,18 @@ export function Notification({
 
   return (
     <Box
-      flexDirection="column"
-      borderStyle="round"
+      flexDirection='column'
+      borderStyle='round'
       borderColor={style.color}
       paddingX={2}
       paddingY={1}
       width={width}
     >
       {/* Header */}
-      <Box justifyContent="space-between">
+      <Box justifyContent='space-between'>
         <Box>
           <Text color={style.color}>{displayIcon}</Text>
-          <Text bold> {title}</Text>
+          <Text bold>{title}</Text>
         </Box>
         {time && <Text dimColor>{time}</Text>}
       </Box>
@@ -230,7 +228,7 @@ export interface InlineNotificationProps {
 }
 
 export function InlineNotification({
-  type = "info",
+  type = 'info',
   message,
   showIcon = true,
   dismissible = false,
@@ -239,9 +237,9 @@ export function InlineNotification({
 
   return (
     <Box>
-      {showIcon && <Text color={style.color}>{style.icon} </Text>}
+      {showIcon && <Text color={style.color}>{style.icon}</Text>}
       <Text>{message}</Text>
-      {dismissible && <Text dimColor> [×]</Text>}
+      {dismissible && <Text dimColor>[×]</Text>}
     </Box>
   );
 }
@@ -264,7 +262,7 @@ export interface BannerNotificationProps {
 }
 
 export function BannerNotification({
-  type = "info",
+  type = 'info',
   message,
   icon,
   action,
@@ -275,18 +273,18 @@ export function BannerNotification({
 
   return (
     <Box
-      borderStyle="single"
+      borderStyle='single'
       borderColor={style.color}
       borderLeft={false}
       borderRight={false}
       paddingX={2}
       paddingY={0}
       width={width}
-      justifyContent="space-between"
+      justifyContent='space-between'
     >
       <Box>
         <Text color={style.color}>{displayIcon}</Text>
-        <Text> {message}</Text>
+        <Text>{message}</Text>
       </Box>
       {action && (
         <Text color={style.color} underline>
@@ -315,16 +313,16 @@ export interface SnackbarProps {
 export function Snackbar({
   message,
   action,
-  actionColor = "cyan",
+  actionColor = 'cyan',
   duration,
 }: SnackbarProps): React.ReactElement {
   return (
     <Box
-      borderStyle="round"
-      borderColor="gray"
+      borderStyle='round'
+      borderColor='gray'
       paddingX={2}
       paddingY={0}
-      justifyContent="space-between"
+      justifyContent='space-between'
       gap={4}
     >
       <Text>{message}</Text>
@@ -362,26 +360,26 @@ export function ProgressToast({
   progress,
   status,
   barWidth = 20,
-  color = "cyan",
+  color = 'cyan',
 }: ProgressToastProps): React.ReactElement {
   const filledWidth = Math.round((progress / 100) * barWidth);
   const emptyWidth = barWidth - filledWidth;
 
   return (
     <Box
-      flexDirection="column"
-      borderStyle="round"
+      flexDirection='column'
+      borderStyle='round'
       borderColor={color}
       paddingX={2}
       paddingY={1}
     >
-      <Box justifyContent="space-between">
+      <Box justifyContent='space-between'>
         <Text bold>{title}</Text>
         <Text color={color}>{progress}%</Text>
       </Box>
       <Box marginTop={1}>
-        <Text color={color}>{"█".repeat(filledWidth)}</Text>
-        <Text dimColor>{"░".repeat(emptyWidth)}</Text>
+        <Text color={color}>{'█'.repeat(filledWidth)}</Text>
+        <Text dimColor>{'░'.repeat(emptyWidth)}</Text>
       </Box>
       {status && (
         <Box marginTop={1}>
@@ -424,7 +422,7 @@ export function ActivityLog({
   const visibleItems = items.slice(-maxVisible);
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {title && (
         <Box marginBottom={1}>
           <Text bold dimColor>{title}</Text>
@@ -432,10 +430,8 @@ export function ActivityLog({
       )}
       {visibleItems.map((item) => (
         <Box key={item.id}>
-          {showTime && item.time && (
-            <Text dimColor>{item.time} </Text>
-          )}
-          {item.icon && <Text color={item.color}>{item.icon} </Text>}
+          {showTime && item.time && <Text dimColor>{item.time}</Text>}
+          {item.icon && <Text color={item.color}>{item.icon}</Text>}
           <Text color={item.color}>{item.message}</Text>
         </Box>
       ))}

@@ -8,15 +8,10 @@
  */
 
 import { Command } from '@cliffy/command';
-import { amber, dim, error, muted } from '@/ui/colors.ts';
+import { dim, error, muted } from '@/ui/colors.ts';
 import { CROSS, INFO } from '@/ui/symbols.ts';
 import { readConfig } from '@/services/project_service.ts';
-import {
-  formatToolUse,
-  isClaudeInstalled,
-  parseAssistantMessage,
-  runClaude,
-} from '@/services/claude_service.ts';
+import { isClaudeInstalled, parseAssistantMessage, runClaude } from '@/services/claude_service.ts';
 import { createDirectory, exists } from '@/services/file_service.ts';
 import { resolvePaths } from '@/services/path_resolver.ts';
 import { getSubscriptionUsage } from '@/services/usage_service.ts';

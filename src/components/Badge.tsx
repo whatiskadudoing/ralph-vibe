@@ -4,8 +4,8 @@
  * Badge/tag component using deno-ink.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 export interface BadgeProps {
   /** Badge text */
@@ -19,7 +19,7 @@ export interface BadgeProps {
 export function Badge({ text, color, icon }: BadgeProps): React.ReactElement {
   return (
     <Box>
-      {icon && <Text color={color}>{icon} </Text>}
+      {icon && <Text color={color}>{icon}</Text>}
       <Text color={color}>{text}</Text>
     </Box>
   );
@@ -27,18 +27,18 @@ export function Badge({ text, color, icon }: BadgeProps): React.ReactElement {
 
 // Model badge with predefined colors
 const MODEL_COLORS: Record<string, string> = {
-  opus: "#FF9500", // amber/orange
-  sonnet: "cyan",
-  haiku: "gray",
+  opus: '#FF9500', // amber/orange
+  sonnet: 'cyan',
+  haiku: 'gray',
 };
 
 export function ModelBadge({
   model,
 }: {
-  model: "opus" | "sonnet" | "haiku" | string;
+  model: 'opus' | 'sonnet' | 'haiku' | string;
 }): React.ReactElement {
-  const color = MODEL_COLORS[model] ?? "white";
-  return <Badge text={model} color={color} icon="●" />;
+  const color = MODEL_COLORS[model] ?? 'white';
+  return <Badge text={model} color={color} icon='●' />;
 }
 
 // Status badge

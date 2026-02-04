@@ -2,6 +2,8 @@
  * @module tests/services/project_service_test
  *
  * Tests for services/project_service module.
+ * Covers project initialization, detection, config operations,
+ * plan operations, and file management.
  */
 
 import { assertEquals, assertStringIncludes } from '@std/assert';

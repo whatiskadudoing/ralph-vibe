@@ -4,9 +4,9 @@
  * Animated gradient text component.
  */
 
-import React, { useState, useEffect } from "react";
-import { Text } from "../../../packages/deno-ink/src/mod.ts";
-import { gradientColors } from "./theme.ts";
+import React, { useEffect, useState } from 'react';
+import { Text } from '../../../packages/deno-ink/src/mod.ts';
+import { gradientColors } from './theme.ts';
 
 export interface GradientTextProps {
   children: string;
@@ -29,7 +29,9 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
   const g = Math.round(g1 + (g2 - g1) * factor);
   const b = Math.round(b1 + (b2 - b1) * factor);
 
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${
+    b.toString(16).padStart(2, '0')
+  }`;
 }
 
 // Get color at position in gradient
@@ -39,8 +41,8 @@ function getGradientColor(position: number, colorList: string[], offset: number)
   const segment = Math.floor(adjustedPos * segmentCount);
   const segmentFactor = (adjustedPos * segmentCount) % 1;
 
-  const c1 = colorList[segment] ?? colorList[0] ?? "#FFFFFF";
-  const c2 = colorList[segment + 1] ?? colorList[0] ?? "#FFFFFF";
+  const c1 = colorList[segment] ?? colorList[0] ?? '#FFFFFF';
+  const c2 = colorList[segment + 1] ?? colorList[0] ?? '#FFFFFF';
 
   return interpolateColor(c1, c2, segmentFactor);
 }
@@ -60,7 +62,7 @@ export function GradientText({
     return () => clearInterval(timer);
   }, [speed]);
 
-  const chars = children.split("");
+  const chars = children.split('');
 
   return (
     <Text bold={bold}>
@@ -78,7 +80,15 @@ export function GradientText({
 }
 
 // Preset gradient styles
-export const fireGradient = ["#FF0000", "#FF4500", "#FF8C00", "#FFD700", "#FF8C00", "#FF4500", "#FF0000"];
-export const oceanGradient = ["#0077BE", "#00A9CE", "#00CED1", "#00A9CE", "#0077BE"];
-export const sunsetGradient = ["#FF6B6B", "#FF8E53", "#FFC857", "#FF8E53", "#FF6B6B"];
-export const neonGradient = ["#FF00FF", "#00FFFF", "#FF00FF"];
+export const fireGradient = [
+  '#FF0000',
+  '#FF4500',
+  '#FF8C00',
+  '#FFD700',
+  '#FF8C00',
+  '#FF4500',
+  '#FF0000',
+];
+export const oceanGradient = ['#0077BE', '#00A9CE', '#00CED1', '#00A9CE', '#0077BE'];
+export const sunsetGradient = ['#FF6B6B', '#FF8E53', '#FFC857', '#FF8E53', '#FF6B6B'];
+export const neonGradient = ['#FF00FF', '#00FFFF', '#FF00FF'];

@@ -75,7 +75,9 @@ export async function findProjectRoot(startDir?: string): Promise<string | null>
 export async function requireProjectRoot(startDir?: string): Promise<string> {
   const root = await findProjectRoot(startDir);
   if (!root) {
-    throw new Error('Not in a Ralph project. Run `ralph init` first, or navigate to a Ralph project directory.');
+    throw new Error(
+      'Not in a Ralph project. Run `ralph init` first, or navigate to a Ralph project directory.',
+    );
   }
   return root;
 }

@@ -9,6 +9,7 @@ import React from 'react';
 import { Box, Text } from '../../../packages/deno-ink/src/mod.ts';
 import { colors } from './theme.ts';
 import { formatTokens } from './TokenStats.tsx';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
@@ -76,14 +77,11 @@ function getRandomCompletionMessage(): string {
   return COMPLETION_MESSAGES[idx] ?? COMPLETION_MESSAGES[0] ?? 'Nailed it!';
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins < 60) return `${mins}m ${secs}s`;
-  const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
-  return `${hours}h ${remainingMins}m`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatCost(dollars: number): string {
@@ -158,7 +156,7 @@ export function SessionSummary({
             {stats.durationSec !== undefined && stats.durationSec > 0 && (
               <Box flexDirection='row' gap={1}>
                 <Text color={colors.dim}>⏱</Text>
-                <Text bold>{formatDuration(stats.durationSec)}</Text>
+                <Text bold>{formatDurationSec(stats.durationSec)}</Text>
                 <Text color={colors.dim}>total time</Text>
               </Box>
             )}

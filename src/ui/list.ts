@@ -4,10 +4,10 @@
  * List component for formatted lists with consistent styling.
  */
 
-import { dim, muted } from './colors.ts';
-import { BULLET, ARROW_RIGHT } from './symbols.ts';
-import { status, statusIcon, type StatusType } from './status.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { muted } from './colors.ts';
+import { ARROW_RIGHT, BULLET } from './symbols.ts';
+import { statusIcon, type StatusType } from './status.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // List Types
@@ -55,7 +55,7 @@ export interface ListConfig {
 // List Bullets
 // ============================================================================
 
-const LIST_BULLETS: Record<ListStyle, string> = {
+const _LIST_BULLETS: Record<ListStyle, string> = {
   bullet: '•',
   numbered: '', // Handled specially
   checkbox: '', // Handled with status icons
@@ -229,7 +229,10 @@ export function arrowList(items: string[], indent?: number): string {
 /**
  * Creates a checkbox list with status indicators.
  */
-export function checkboxList(items: Array<{ text: string; checked?: boolean }>, indent?: number): string {
+export function checkboxList(
+  items: Array<{ text: string; checked?: boolean }>,
+  indent?: number,
+): string {
   return list({
     items: items.map((item) => ({
       text: item.text,

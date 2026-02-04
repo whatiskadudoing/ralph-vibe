@@ -11,11 +11,11 @@
  */
 
 import { Command } from '@cliffy/command';
-import { error, muted, success, dim, orange } from '@/ui/colors.ts';
-import { CROSS, CHECK, BULLET } from '@/ui/symbols.ts';
+import { dim, error, muted, orange, success } from '@/ui/colors.ts';
+import { BULLET, CHECK, CROSS } from '@/ui/symbols.ts';
 import { isClaudeInstalled } from '@/services/claude_service.ts';
 import { readTextFile } from '@/services/file_service.ts';
-import { resolvePaths, type ResolvedPaths } from '@/services/path_resolver.ts';
+import { type ResolvedPaths, resolvePaths } from '@/services/path_resolver.ts';
 import { RALPH_DONE_MARKER } from '@/core/constants.ts';
 import { getSubscriptionUsage, type SubscriptionUsage } from '@/services/usage_service.ts';
 import { errorBox } from '@/ui/components.ts';
@@ -26,6 +26,7 @@ import {
   isVibeMode,
   showVibeActivated,
 } from './vibe.ts';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Prompt Reading
@@ -64,16 +65,18 @@ interface SpecOptions {
 // Simple Console Output (no Ink - for interactive Claude session)
 // ============================================================================
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function printHeader(featureHint?: string, usage?: SubscriptionUsage): void {
   console.log('');
-  console.log(`${orange(BULLET)} ${orange('Ralph Spec')} ${dim('· Add new feature specifications')}`);
+  console.log(
+    `${orange(BULLET)} ${orange('Ralph Spec')} ${dim('· Add new feature specifications')}`,
+  );
 
   if (usage) {
     const fiveHr = usage.fiveHour.utilization.toFixed(1);
@@ -110,7 +113,7 @@ function printSummary(options: {
   }
 
   // Stats
-  const stats = [formatDuration(options.durationSec)];
+  const stats = [formatDurationSec(options.durationSec)];
   if (options.usageDelta !== undefined && options.usageDelta > 0) {
     stats.push(`+${options.usageDelta.toFixed(1)}% usage`);
   }

@@ -5,7 +5,7 @@
  */
 
 import { dim, muted } from './colors.ts';
-import { theme, type ColorFn } from './theme.ts';
+import { type ColorFn } from './theme.ts';
 
 // ============================================================================
 // Stats Types

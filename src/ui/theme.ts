@@ -25,7 +25,7 @@ export const theme = {
     error: colors.error,
     warning: colors.warning,
     info: colors.info,
-    pending: colors.gray.base,
+    pending: colors.grayScale.base,
     running: colors.cyan,
   },
 
@@ -46,7 +46,7 @@ export const theme = {
 
   /** Border colors for different box states */
   border: {
-    default: colors.gray.dark,
+    default: colors.grayScale.dark,
     active: colors.accent.orange,
     success: colors.success,
     error: colors.error,

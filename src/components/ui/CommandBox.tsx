@@ -5,10 +5,10 @@
  * Use this as the wrapper for all command screens.
  */
 
-import React, { useState, useEffect } from "react";
-import { Box, Text, useInput, useApp } from "../../../packages/deno-ink/src/mod.ts";
-import { colors, gradientColors } from "./theme.ts";
-import { useTerminalSize } from "../../../packages/deno-ink/src/mod.ts";
+import React, { useEffect, useState } from 'react';
+import { Box, useApp, useInput } from '../../../packages/deno-ink/src/mod.ts';
+import { colors, gradientColors } from './theme.ts';
+import { useTerminalSize } from '../../../packages/deno-ink/src/mod.ts';
 
 export interface CommandBoxProps {
   children?: React.ReactNode;
@@ -41,7 +41,7 @@ export function CommandBox({
 
   // Handle quit
   useInput((input, key) => {
-    if (input === "q" || key.escape) {
+    if (input === 'q' || key.escape) {
       onQuit?.();
       exit();
     }
@@ -54,8 +54,8 @@ export function CommandBox({
 
   return (
     <Box
-      flexDirection="column"
-      borderStyle="round"
+      flexDirection='column'
+      borderStyle='round'
       borderColor={borderColor}
       paddingX={2}
       paddingY={1}

@@ -43,6 +43,7 @@ Enhanced the ToolActivity component with new features for better visualization a
 ## Key Features Implemented
 
 ### 1. Tree-Style Connectors
+
 ```
 ├─ 📖 Read src/auth/session.ts                    ✓ 0.2s
 ├─ 📝 Edit src/auth/session.ts                    ✓ 0.5s
@@ -50,6 +51,7 @@ Enhanced the ToolActivity component with new features for better visualization a
 ```
 
 ### 2. Tool-Specific Icons
+
 - Read: 📖
 - Write: ✏️
 - Edit: 📝
@@ -59,7 +61,9 @@ Enhanced the ToolActivity component with new features for better visualization a
 - WebFetch/WebSearch: 🌐
 
 ### 3. Input Previews
+
 Automatically extracts relevant information:
+
 - **Read/Write/Edit**: Shows filename or last 2 path segments
 - **Bash**: Shows command (truncated if needed)
 - **Task**: Shows description in quotes
@@ -69,23 +73,29 @@ Automatically extracts relevant information:
 - **WebSearch**: Shows query in quotes
 
 ### 4. Subagent Model Badges
+
 Task tools show their model:
+
 ```
 🤖 Task "analyze code" [sonnet]  ✓ 12.3s
 ```
 
 Supports:
+
 - [opus] - purple/pink accent color
 - [sonnet] - blue info color
 - [haiku] - green success color
 
 ### 5. Live Duration Updates
+
 Running tools show live elapsed time that updates every second:
+
 ```
 ⚡ Bash npm test  ⠋ 8s...
 ```
 
 ### 6. Status Indicators
+
 - ○ pending (dim)
 - ⠋ running (spinner animation, accent color)
 - ✓ success (green)
@@ -98,11 +108,11 @@ Running tools show live elapsed time that updates every second:
 ```typescript
 interface EnhancedToolActivityProps {
   tools: EnhancedToolCall[];
-  maxVisible?: number;        // default: 5
-  showTimeline?: boolean;     // default: true
-  showSubagents?: boolean;    // default: true
+  maxVisible?: number; // default: 5
+  showTimeline?: boolean; // default: true
+  showSubagents?: boolean; // default: true
   showInputPreview?: boolean; // default: true
-  maxWidth?: number;          // default: 80
+  maxWidth?: number; // default: 80
 }
 ```
 
@@ -128,53 +138,58 @@ getModelBadgeColor(model?: string): string
 ## Usage Example
 
 ```typescript
-import { EnhancedToolActivity, type EnhancedToolCall } from "./ui/mod.ts";
+import { EnhancedToolActivity, type EnhancedToolCall } from './ui/mod.ts';
 
 const tools: EnhancedToolCall[] = [
   {
-    id: "1",
-    name: "Read",
-    status: "success",
+    id: '1',
+    name: 'Read',
+    status: 'success',
     startTime: Date.now() - 5000,
     endTime: Date.now() - 4800,
-    input: { file_path: "/path/to/file.ts" },
+    input: { file_path: '/path/to/file.ts' },
   },
   {
-    id: "2",
-    name: "Task",
-    status: "running",
+    id: '2',
+    name: 'Task',
+    status: 'running',
     startTime: Date.now() - 3000,
-    subagentModel: "sonnet",
-    input: { description: "analyze code" },
+    subagentModel: 'sonnet',
+    input: { description: 'analyze code' },
   },
 ];
 
-<EnhancedToolActivity tools={tools} />
+<EnhancedToolActivity tools={tools} />;
 ```
 
 ## Technical Implementation
 
 ### Tree Connectors
+
 - Uses Unicode box drawing characters: ├─ (TREE_BRANCH) and └─ (TREE_LAST)
 - Automatically detects last item in list
 
 ### Icon System
+
 - Stored in TOOL_ICONS constant with icon and color
 - Fallback to "▸" for unknown tools
 - Each tool has semantic color (info, success, accent, etc.)
 
 ### Input Preview Extraction
+
 - Switch statement handles each tool type
 - Smart path formatting (shows last 2 segments)
 - Hostname extraction for URLs
 - Automatic truncation with "..."
 
 ### Live Updates
+
 - LiveDuration component uses useEffect with 1s interval
 - Updates elapsed time display in real-time
 - Only active for running tools
 
 ### Spinner Animation
+
 - Uses existing SpinnerIcon component
 - 80ms frame interval for smooth animation
 - 10 frames: ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -189,6 +204,7 @@ const tools: EnhancedToolCall[] = [
 ## Testing
 
 All helper functions have comprehensive unit tests:
+
 - ✓ 12 tests covering all functionality
 - Tests for icon/color retrieval
 - Tests for input preview extraction
@@ -196,6 +212,7 @@ All helper functions have comprehensive unit tests:
 - Tests for edge cases (empty input, long strings, etc.)
 
 Run tests:
+
 ```bash
 deno test src/components/ui/ToolActivity.test.ts
 ```

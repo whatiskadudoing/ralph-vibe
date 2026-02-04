@@ -4,11 +4,11 @@
  * Step indicator component for multi-step flows.
  */
 
-import React from "react";
-import { Box, Text, Spinner } from "../../../packages/deno-ink/src/mod.ts";
-import { colors } from "./theme.ts";
+import React from 'react';
+import { Box, Spinner, Text } from '../../../packages/deno-ink/src/mod.ts';
+import { colors } from './theme.ts';
 
-export type StepStatus = "pending" | "active" | "completed" | "error";
+export type StepStatus = 'pending' | 'active' | 'completed' | 'error';
 
 export interface Step {
   label: string;
@@ -22,10 +22,10 @@ export interface StepsProps {
 
 export function Steps({ steps, vertical = false }: StepsProps): React.ReactElement {
   return (
-    <Box flexDirection={vertical ? "column" : "row"} gap={vertical ? 0 : 2}>
+    <Box flexDirection={vertical ? 'column' : 'row'} gap={vertical ? 0 : 2}>
       {steps.map((step, i) => (
         <React.Fragment key={i}>
-          {!vertical && i > 0 && <Text color={colors.dim}>{">"}</Text>}
+          {!vertical && i > 0 && <Text color={colors.dim}>{'>'}</Text>}
           <StepItem step={step} index={i + 1} />
         </React.Fragment>
       ))}
@@ -41,11 +41,11 @@ interface StepItemProps {
 function StepItem({ step, index }: StepItemProps): React.ReactElement {
   const getIcon = (): React.ReactElement => {
     switch (step.status) {
-      case "completed":
+      case 'completed':
         return <Text color={colors.success}>✓</Text>;
-      case "active":
-        return <Spinner type="dots" />;
-      case "error":
+      case 'active':
+        return <Spinner type='dots' />;
+      case 'error':
         return <Text color={colors.error}>✗</Text>;
       default:
         return <Text color={colors.dim}>{index}</Text>;
@@ -54,11 +54,11 @@ function StepItem({ step, index }: StepItemProps): React.ReactElement {
 
   const getColor = (): string => {
     switch (step.status) {
-      case "completed":
+      case 'completed':
         return colors.success;
-      case "active":
+      case 'active':
         return colors.accent;
-      case "error":
+      case 'error':
         return colors.error;
       default:
         return colors.dim;
@@ -66,7 +66,7 @@ function StepItem({ step, index }: StepItemProps): React.ReactElement {
   };
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Box width={2}>{getIcon()}</Box>
       <Text color={getColor()}>{step.label}</Text>
     </Box>
@@ -83,11 +83,11 @@ export interface StepIndicatorProps {
 export function StepIndicator({ status, label, detail }: StepIndicatorProps): React.ReactElement {
   const getIcon = (): React.ReactElement => {
     switch (status) {
-      case "completed":
+      case 'completed':
         return <Text color={colors.success}>✓</Text>;
-      case "active":
-        return <Spinner type="dots" />;
-      case "error":
+      case 'active':
+        return <Spinner type='dots' />;
+      case 'error':
         return <Text color={colors.error}>✗</Text>;
       default:
         return <Text color={colors.dim}>○</Text>;
@@ -96,11 +96,11 @@ export function StepIndicator({ status, label, detail }: StepIndicatorProps): Re
 
   const getColor = (): string => {
     switch (status) {
-      case "completed":
+      case 'completed':
         return colors.success;
-      case "active":
+      case 'active':
         return colors.muted;
-      case "error":
+      case 'error':
         return colors.error;
       default:
         return colors.dim;
@@ -108,7 +108,7 @@ export function StepIndicator({ status, label, detail }: StepIndicatorProps): Re
   };
 
   return (
-    <Box flexDirection="row" gap={1}>
+    <Box flexDirection='row' gap={1}>
       <Box width={3}>{getIcon()}</Box>
       <Text color={getColor()}>{label}</Text>
       {detail && <Text color={colors.dim}>({detail})</Text>}

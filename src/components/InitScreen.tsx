@@ -4,19 +4,27 @@
  * Init screen using shared UI components.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Box, Text, render, useApp, useFinalOutput, Spinner, useInput } from "../../packages/deno-ink/src/mod.ts";
-import type { ProjectFile } from "@/services/project_service.ts";
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Box,
+  render,
+  Spinner,
+  Text,
+  useApp,
+  useFinalOutput,
+  useInput,
+} from '../../packages/deno-ink/src/mod.ts';
+import { type ProjectFile } from '../services/project_service.ts';
+import {
+  colors,
   CommandBox,
   Header,
-  StatusResult,
   KeyboardHints,
+  StatusResult,
   StepIndicator,
-  colors,
   type StepStatus,
-} from "./ui/mod.ts";
-import { buildFinalOutput } from "./CommandScreen.tsx";
+} from './ui/mod.ts';
+import { buildFinalOutput } from './CommandScreen.tsx';
 
 // ============================================================================
 // Types
@@ -29,7 +37,7 @@ export interface ProjectFileInfo {
   exists: boolean;
 }
 
-type Phase = "checking" | "select-files" | "creating" | "done";
+type Phase = 'checking' | 'select-files' | 'creating' | 'done';
 
 interface PrerequisitesState {
   project: { status: StepStatus; message: string; detail?: string };
@@ -62,27 +70,32 @@ function FileSelector({
 }: FileSelectorProps): React.ReactElement {
   const [focusedIndex, setFocusedIndex] = useState(0);
 
-  useInput((input: string, key: { escape?: boolean; upArrow?: boolean; downArrow?: boolean; return?: boolean }) => {
-    if (key.escape) {
-      onCancel();
-    } else if (key.upArrow) {
-      setFocusedIndex((i: number) => Math.max(0, i - 1));
-    } else if (key.downArrow) {
-      setFocusedIndex((i: number) => Math.min(files.length - 1, i + 1));
-    } else if (input === " ") {
-      const file = files[focusedIndex];
-      if (file) onToggle(file.key);
-    } else if (key.return) {
-      onConfirm();
-    } else if (input === "a" || input === "A") {
-      onSelectAll();
-    } else if (input === "n" || input === "N") {
-      onSelectNone();
-    }
-  });
+  useInput(
+    (
+      input: string,
+      key: { escape?: boolean; upArrow?: boolean; downArrow?: boolean; return?: boolean },
+    ) => {
+      if (key.escape) {
+        onCancel();
+      } else if (key.upArrow) {
+        setFocusedIndex((i: number) => Math.max(0, i - 1));
+      } else if (key.downArrow) {
+        setFocusedIndex((i: number) => Math.min(files.length - 1, i + 1));
+      } else if (input === ' ') {
+        const file = files[focusedIndex];
+        if (file) onToggle(file.key);
+      } else if (key.return) {
+        onConfirm();
+      } else if (input === 'a' || input === 'A') {
+        onSelectAll();
+      } else if (input === 'n' || input === 'N') {
+        onSelectNone();
+      }
+    },
+  );
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       <Box marginBottom={1}>
         <Text color={colors.muted}>Select files to update (existing files):</Text>
       </Box>
@@ -91,12 +104,12 @@ function FileSelector({
         const isSelected = selectedKeys.has(file.key);
         const isFocused = i === focusedIndex;
         return (
-          <Box key={file.key} flexDirection="row" gap={1}>
+          <Box key={file.key} flexDirection='row' gap={1}>
             <Text color={isFocused ? colors.accent : colors.dim}>
-              {isFocused ? ">" : " "}
+              {isFocused ? '>' : ' '}
             </Text>
             <Text color={isSelected ? colors.success : colors.dim}>
-              {isSelected ? "[x]" : "[ ]"}
+              {isSelected ? '[x]' : '[ ]'}
             </Text>
             <Text color={isSelected ? colors.text : colors.muted}>{file.name}</Text>
             <Text color={colors.dim}>- {file.description}</Text>
@@ -105,14 +118,16 @@ function FileSelector({
       })}
 
       <Box marginTop={1}>
-        <KeyboardHints hints={[
-          { key: "↑↓", label: "navigate" },
-          { key: "space", label: "toggle" },
-          { key: "a", label: "all" },
-          { key: "n", label: "none" },
-          { key: "enter", label: "confirm" },
-          { key: "esc", label: "quit" },
-        ]} />
+        <KeyboardHints
+          hints={[
+            { key: '↑↓', label: 'navigate' },
+            { key: 'space', label: 'toggle' },
+            { key: 'a', label: 'all' },
+            { key: 'n', label: 'none' },
+            { key: 'enter', label: 'confirm' },
+            { key: 'esc', label: 'quit' },
+          ]}
+        />
       </Box>
     </Box>
   );
@@ -151,11 +166,11 @@ function InitScreen({
   const setFinalOutput = useFinalOutput();
 
   // State
-  const [phase, setPhase] = useState<Phase>("checking");
+  const [phase, setPhase] = useState<Phase>('checking');
   const [prerequisites, setPrerequisites] = useState<PrerequisitesState>({
-    project: { status: "active", message: "Checking project..." },
-    git: { status: "pending", message: "Checking git..." },
-    claude: { status: "pending", message: "Checking Claude CLI..." },
+    project: { status: 'active', message: 'Checking project...' },
+    git: { status: 'pending', message: 'Checking git...' },
+    claude: { status: 'pending', message: 'Checking Claude CLI...' },
   });
   const [projectFiles, setProjectFiles] = useState<ProjectFileInfo[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<Set<ProjectFile>>(new Set());
@@ -170,11 +185,11 @@ function InitScreen({
       setPrerequisites((prev: PrerequisitesState) => ({
         ...prev,
         project: {
-          status: "completed",
+          status: 'completed',
           message: projectResult.message,
           detail: projectResult.detail,
         },
-        git: { ...prev.git, status: "active" },
+        git: { ...prev.git, status: 'active' },
       }));
 
       // Check git
@@ -182,11 +197,11 @@ function InitScreen({
       setPrerequisites((prev: PrerequisitesState) => ({
         ...prev,
         git: {
-          status: gitResult.ok ? "completed" : "error",
+          status: gitResult.ok ? 'completed' : 'error',
           message: gitResult.message,
           detail: gitResult.detail,
         },
-        claude: { ...prev.claude, status: "active" },
+        claude: { ...prev.claude, status: 'active' },
       }));
 
       // Check Claude CLI
@@ -194,15 +209,15 @@ function InitScreen({
       setPrerequisites((prev: PrerequisitesState) => ({
         ...prev,
         claude: {
-          status: claudeResult.ok ? "completed" : "error",
+          status: claudeResult.ok ? 'completed' : 'error',
           message: claudeResult.message,
           detail: claudeResult.detail,
         },
       }));
 
       if (!claudeResult.ok) {
-        setErrorMessage("Claude CLI not found");
-        onError("Claude CLI not found");
+        setErrorMessage('Claude CLI not found');
+        onError('Claude CLI not found');
         setTimeout(() => exit(), 2000);
         return;
       }
@@ -214,17 +229,17 @@ function InitScreen({
       const existingFiles = files.filter((f: ProjectFileInfo) => f.exists);
 
       if (projectResult.isInit && existingFiles.length > 0) {
-        setPhase("select-files");
+        setPhase('select-files');
       } else {
-        setPhase("creating");
+        setPhase('creating');
         const allFileKeys = new Set<ProjectFile>(files.map((f: ProjectFileInfo) => f.key));
         const result = await createFiles(allFileKeys);
         if (result.ok) {
           setCreatedFiles(Array.from(allFileKeys));
-          setPhase("done");
+          setPhase('done');
         } else {
-          setErrorMessage(result.error?.message ?? "Unknown error");
-          onError(result.error?.message ?? "Unknown error");
+          setErrorMessage(result.error?.message ?? 'Unknown error');
+          onError(result.error?.message ?? 'Unknown error');
           setTimeout(() => exit(), 2000);
         }
       }
@@ -233,7 +248,7 @@ function InitScreen({
 
   // Handle file creation for existing project
   const handleConfirm = useCallback(async () => {
-    setPhase("creating");
+    setPhase('creating');
 
     const missingFiles = projectFiles
       .filter((f: ProjectFileInfo) => !f.exists)
@@ -242,29 +257,29 @@ function InitScreen({
 
     if (filesToCreate.size === 0) {
       setCreatedFiles([]);
-      setPhase("done");
+      setPhase('done');
       return;
     }
 
     const result = await createFiles(filesToCreate);
     if (result.ok) {
       setCreatedFiles(Array.from(filesToCreate));
-      setPhase("done");
+      setPhase('done');
     } else {
-      setErrorMessage(result.error?.message ?? "Unknown error");
-      onError(result.error?.message ?? "Unknown error");
+      setErrorMessage(result.error?.message ?? 'Unknown error');
+      onError(result.error?.message ?? 'Unknown error');
       setTimeout(() => exit(), 2000);
     }
   }, [projectFiles, selectedFiles, createFiles, onError, exit]);
 
   // Exit when done
   useEffect(() => {
-    if (phase === "done") {
+    if (phase === 'done') {
       setFinalOutput(buildFinalOutput({
         success: true,
-        title: "Ready to vibe!",
+        title: 'Ready to vibe!',
         files: createdFiles.length > 0 ? createdFiles.map((k: ProjectFile) => k) : undefined,
-        nextCommand: vibeMode ? undefined : "ralph start",
+        nextCommand: vibeMode ? undefined : 'ralph start',
       }));
 
       const timer = setTimeout(() => {
@@ -279,19 +294,19 @@ function InitScreen({
   const existingFiles = projectFiles.filter((f: ProjectFileInfo) => f.exists);
 
   return (
-    <CommandBox animateBorder={phase === "checking" || phase === "creating"}>
+    <CommandBox animateBorder={phase === 'checking' || phase === 'creating'}>
       <Header
-        name="Ralph Init"
+        name='Ralph Init'
         vibeMode={vibeMode}
-        vibeCurrentStep="init"
+        vibeCurrentStep='init'
         vibeSteps={vibeSteps}
       />
 
       {/* Checking phase */}
-      {phase === "checking" && (
-        <Box flexDirection="column">
+      {phase === 'checking' && (
+        <Box flexDirection='column'>
           <Text color={colors.muted} bold>Checking prerequisites...</Text>
-          <Box flexDirection="column" paddingLeft={2} marginTop={1}>
+          <Box flexDirection='column' paddingLeft={2} marginTop={1}>
             <StepIndicator
               status={prerequisites.project.status}
               label={prerequisites.project.message}
@@ -312,7 +327,7 @@ function InitScreen({
       )}
 
       {/* File selection phase */}
-      {phase === "select-files" && existingFiles.length > 0 && (
+      {phase === 'select-files' && existingFiles.length > 0 && (
         <FileSelector
           files={existingFiles}
           selectedKeys={selectedFiles}
@@ -327,7 +342,8 @@ function InitScreen({
               return next;
             });
           }}
-          onSelectAll={() => setSelectedFiles(new Set(existingFiles.map((f: ProjectFileInfo) => f.key)))}
+          onSelectAll={() =>
+            setSelectedFiles(new Set(existingFiles.map((f: ProjectFileInfo) => f.key)))}
           onSelectNone={() => setSelectedFiles(new Set())}
           onConfirm={handleConfirm}
           onCancel={() => {
@@ -338,22 +354,18 @@ function InitScreen({
       )}
 
       {/* Creating phase */}
-      {phase === "creating" && (
-        <Box flexDirection="row" gap={1}>
-          <Spinner type="dots" />
+      {phase === 'creating' && (
+        <Box flexDirection='row' gap={1}>
+          <Spinner type='dots' />
           <Text>Creating project files...</Text>
         </Box>
       )}
 
       {/* Done phase */}
-      {phase === "done" && (
-        <StatusResult type="success" title="Ready to vibe!" />
-      )}
+      {phase === 'done' && <StatusResult type='success' title='Ready to vibe!' />}
 
       {/* Error */}
-      {errorMessage && (
-        <StatusResult type="error" title="Error" detail={errorMessage} />
-      )}
+      {errorMessage && <StatusResult type='error' title='Error' detail={errorMessage} />}
     </CommandBox>
   );
 }
@@ -398,15 +410,15 @@ export async function renderInit(options: RenderInitOptions): Promise<ProjectFil
       vibeMode={options.vibeMode}
       vibeSteps={options.vibeSteps}
     />,
-    { fullScreen: true }
+    { fullScreen: true },
   );
 
   await waitUntilExit();
 
-  const createdFiles = await completePromise;
+  const _createdFiles = await completePromise;
 
   if (wasCancelled) {
-    console.log("\nCancelled.");
+    console.log('\nCancelled.');
     Deno.exit(0);
   }
 

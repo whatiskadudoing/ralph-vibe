@@ -5,10 +5,10 @@
  * Shows version, mascot, and a random friendly message.
  */
 
-import React from "react";
-import { Box, Text } from "@ink/mod.ts";
-import { orange } from "@/ui/colors.ts";
-import denoConfig from "../../deno.json" with { type: "json" };
+import React from 'react';
+import { Box, Text } from '@ink/mod.ts';
+import { orange } from '@/ui/colors.ts';
+import denoConfig from '../../deno.json' with { type: 'json' };
 
 export interface VersionDisplayProps {
   /** Override version (defaults to deno.json version) */
@@ -18,22 +18,22 @@ export interface VersionDisplayProps {
 }
 
 // Colors - using the orange theme
-const ORANGE = "#FF9500";
+const ORANGE = '#FF9500';
 
 /**
  * Fun random messages for the version display
  */
 const VERSION_MESSAGES = [
-  "Ready to vibe!",
+  'Ready to vibe!',
   "Let's build something awesome!",
-  "Autonomous coding awaits...",
-  "Time to ship some code!",
-  "Your AI pair programmer is ready.",
+  'Autonomous coding awaits...',
+  'Time to ship some code!',
+  'Your AI pair programmer is ready.',
   "Let's get vibing!",
-  "Ready when you are!",
-  "Code. Vibe. Ship. Repeat.",
-  "The future of coding is here.",
-  "Less typing, more shipping.",
+  'Ready when you are!',
+  'Code. Vibe. Ship. Repeat.',
+  'The future of coding is here.',
+  'Less typing, more shipping.',
 ];
 
 /**
@@ -41,7 +41,7 @@ const VERSION_MESSAGES = [
  */
 function getRandomMessage(): string {
   const index = Math.floor(Math.random() * VERSION_MESSAGES.length);
-  return VERSION_MESSAGES[index] ?? VERSION_MESSAGES[0] ?? "";
+  return VERSION_MESSAGES[index] ?? VERSION_MESSAGES[0] ?? '';
 }
 
 /**
@@ -49,13 +49,13 @@ function getRandomMessage(): string {
  * Reusable across the app
  */
 export const RALPH_MASCOT = [
-  "    ▄▄▄▄▄▄▄    ",
-  "  ▄█████████▄  ",
-  " ███ ▀███▀ ███ ",
-  " █████████████ ",
-  "   ▀█▄▄▄▄▄█▀   ",
-  "    █ █ █ █    ",
-  "   ▀       ▀   ",
+  '    ▄▄▄▄▄▄▄    ',
+  '  ▄█████████▄  ',
+  ' ███ ▀███▀ ███ ',
+  ' █████████████ ',
+  '   ▀█▄▄▄▄▄█▀   ',
+  '    █ █ █ █    ',
+  '   ▀       ▀   ',
 ];
 
 export interface MascotProps {
@@ -70,10 +70,8 @@ export interface MascotProps {
  */
 export function Mascot({ color = ORANGE, lines = RALPH_MASCOT }: MascotProps): React.ReactElement {
   return (
-    <Box flexDirection="column" alignItems="center">
-      {lines.map((line, i) => (
-        <Text key={i} color={color}>{line}</Text>
-      ))}
+    <Box flexDirection='column' alignItems='center'>
+      {lines.map((line, i) => <Text key={i} color={color}>{line}</Text>)}
     </Box>
   );
 }
@@ -92,15 +90,13 @@ export function VersionDisplay({
   const message = getRandomMessage();
 
   return (
-    <Box flexDirection="column" alignItems="center">
-      <Text> </Text>
-      {RALPH_MASCOT.map((line, i) => (
-        <Text key={i} color={ORANGE}>{line}</Text>
-      ))}
-      <Text> </Text>
+    <Box flexDirection='column' alignItems='center'>
+      <Text></Text>
+      {RALPH_MASCOT.map((line, i) => <Text key={i} color={ORANGE}>{line}</Text>)}
+      <Text></Text>
       <Text>Ralph CLI v{version}</Text>
       <Text color={ORANGE}>{message}</Text>
-      <Text> </Text>
+      <Text></Text>
     </Box>
   );
 }

@@ -5,10 +5,7 @@
 ### 1. Import the Component
 
 ```typescript
-import {
-  EnhancedToolActivity,
-  type EnhancedToolCall,
-} from "./ui/mod.ts";
+import { EnhancedToolActivity, type EnhancedToolCall } from './ui/mod.ts';
 ```
 
 ### 2. Use in Your Screen Component
@@ -17,23 +14,27 @@ Replace the existing ToolActivity with EnhancedToolActivity:
 
 ```typescript
 // Before
-{showTools && tools.length > 0 && (
-  <Box marginTop={1}>
-    <ToolActivity tools={tools} visible={showTools} />
-  </Box>
-)}
+{
+  showTools && tools.length > 0 && (
+    <Box marginTop={1}>
+      <ToolActivity tools={tools} visible={showTools} />
+    </Box>
+  );
+}
 
 // After
-{showTools && tools.length > 0 && (
-  <Box marginTop={1}>
-    <EnhancedToolActivity
-      tools={tools}
-      maxVisible={5}
-      showInputPreview={true}
-      showSubagents={true}
-    />
-  </Box>
-)}
+{
+  showTools && tools.length > 0 && (
+    <Box marginTop={1}>
+      <EnhancedToolActivity
+        tools={tools}
+        maxVisible={5}
+        showInputPreview={true}
+        showSubagents={true}
+      />
+    </Box>
+  );
+}
 ```
 
 ## Integration Examples
@@ -42,68 +43,72 @@ Replace the existing ToolActivity with EnhancedToolActivity:
 
 ```typescript
 // In the running phase
-{phase === "running" && (
-  <Box flexDirection="column">
-    {/* Task title */}
-    <Box flexDirection="row" gap={1} marginBottom={1}>
-      <Text color={colors.accent}>[#{currentIteration}]</Text>
-      <Text bold>{currentTask}</Text>
-    </Box>
+{
+  phase === 'running' && (
+    <Box flexDirection='column'>
+      {/* Task title */}
+      <Box flexDirection='row' gap={1} marginBottom={1}>
+        <Text color={colors.accent}>[#{currentIteration}]</Text>
+        <Text bold>{currentTask}</Text>
+      </Box>
 
-    {/* Stats line */}
-    <Box marginBottom={1}>
-      <StatsLine
-        model={currentModel}
-        operations={operationCount}
-        startTime={startTime}
-        modelBreakdown={liveModelBreakdown}
-      />
-    </Box>
-
-    <ProgressLine status={status} startTime={startTime} />
-
-    {/* Enhanced tool activity */}
-    {showTools && tools.length > 0 && (
-      <Box marginTop={1}>
-        <EnhancedToolActivity
-          tools={tools}
-          maxVisible={5}
-          showInputPreview={true}
-          showSubagents={true}
-          maxWidth={columns - 6}
+      {/* Stats line */}
+      <Box marginBottom={1}>
+        <StatsLine
+          model={currentModel}
+          operations={operationCount}
+          startTime={startTime}
+          modelBreakdown={liveModelBreakdown}
         />
       </Box>
-    )}
-  </Box>
-)}
+
+      <ProgressLine status={status} startTime={startTime} />
+
+      {/* Enhanced tool activity */}
+      {showTools && tools.length > 0 && (
+        <Box marginTop={1}>
+          <EnhancedToolActivity
+            tools={tools}
+            maxVisible={5}
+            showInputPreview={true}
+            showSubagents={true}
+            maxWidth={columns - 6}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+}
 ```
 
 ### PlanScreen.tsx
 
 ```typescript
-{phase === "planning" && (
-  <Box flexDirection="column">
-    <ProgressLine status={status} startTime={startTime} />
+{
+  phase === 'planning' && (
+    <Box flexDirection='column'>
+      <ProgressLine status={status} startTime={startTime} />
 
-    {/* Enhanced tool activity */}
-    {showTools && tools.length > 0 && (
-      <Box marginTop={1}>
-        <EnhancedToolActivity
-          tools={tools}
-          maxVisible={5}
-          showInputPreview={true}
-          maxWidth={columns - 6}
-        />
+      {/* Enhanced tool activity */}
+      {showTools && tools.length > 0 && (
+        <Box marginTop={1}>
+          <EnhancedToolActivity
+            tools={tools}
+            maxVisible={5}
+            showInputPreview={true}
+            maxWidth={columns - 6}
+          />
+        </Box>
+      )}
+
+      {/* Stats line */}
+      <Box marginTop={1} flexDirection='row' gap={1}>
+        <Text color={colors.accent}>{operationCount}</Text>
+        <Text color={colors.dim}>operations</Text>
       </Box>
-    )}
-
-    {/* Stats line */}
-    <Box marginTop={1} flexDirection="row" gap={1}>
-      <Text color={colors.accent}>{operationCount}</Text>
-      <Text color={colors.dim}>operations</Text>
     </Box>
-  </Box>
-)}
+  );
+}
 ```
 
 ## Tool Tracking Best Practices
@@ -114,11 +119,11 @@ Replace the existing ToolActivity with EnhancedToolActivity:
 // When tool starts
 const tool: EnhancedToolCall = {
   id: crypto.randomUUID(),
-  name: "Read",
-  status: "running",
+  name: 'Read',
+  status: 'running',
   startTime: Date.now(),
   input: {
-    file_path: "/path/to/file.ts",
+    file_path: '/path/to/file.ts',
   },
 };
 
@@ -131,7 +136,7 @@ handleToolUse(tool);
 // When tool completes
 const updatedTool: EnhancedToolCall = {
   ...tool,
-  status: "success", // or "error"
+  status: 'success', // or "error"
   endTime: Date.now(),
   result: {
     fileSize: 1024,
@@ -147,12 +152,12 @@ handleToolUse(updatedTool);
 // For Task tools with subagents
 const taskTool: EnhancedToolCall = {
   id: crypto.randomUUID(),
-  name: "Task",
-  status: "running",
+  name: 'Task',
+  status: 'running',
   startTime: Date.now(),
-  subagentModel: "sonnet", // Shows [sonnet] badge
+  subagentModel: 'sonnet', // Shows [sonnet] badge
   input: {
-    description: "analyze code structure and dependencies",
+    description: 'analyze code structure and dependencies',
   },
 };
 
@@ -164,7 +169,7 @@ handleToolUse(taskTool);
 ### Custom Width Based on Terminal Size
 
 ```typescript
-import { useTerminalSize } from "../../packages/deno-ink/src/mod.ts";
+import { useTerminalSize } from '../../packages/deno-ink/src/mod.ts';
 
 const { columns } = useTerminalSize();
 
@@ -172,7 +177,7 @@ const { columns } = useTerminalSize();
   tools={tools}
   maxVisible={5}
   maxWidth={Math.min(columns - 10, 120)}
-/>
+/>;
 ```
 
 ### Toggle Between Original and Enhanced
@@ -181,16 +186,14 @@ const { columns } = useTerminalSize();
 const [useEnhanced, setUseEnhanced] = useState(true);
 
 // In keyboard handler
-if (input === "e" || input === "E") {
+if (input === 'e' || input === 'E') {
   setUseEnhanced((v) => !v);
 }
 
 // In render
-{useEnhanced ? (
-  <EnhancedToolActivity tools={tools} />
-) : (
-  <ToolActivity tools={tools} />
-)}
+{
+  useEnhanced ? <EnhancedToolActivity tools={tools} /> : <ToolActivity tools={tools} />;
+}
 ```
 
 ### Conditional Features
@@ -203,7 +206,7 @@ const showPreview = columns > 80;
   tools={tools}
   showInputPreview={showPreview}
   maxWidth={columns - 10}
-/>
+/>;
 ```
 
 ## Helper Functions Usage
@@ -211,11 +214,7 @@ const showPreview = columns > 80;
 ### Custom Tool Display
 
 ```typescript
-import {
-  getToolIcon,
-  getToolColor,
-  getInputPreview,
-} from "./ui/mod.ts";
+import { getInputPreview, getToolColor, getToolIcon } from './ui/mod.ts';
 
 // Custom tool row
 function CustomToolRow({ tool }: { tool: EnhancedToolCall }) {
@@ -224,9 +223,9 @@ function CustomToolRow({ tool }: { tool: EnhancedToolCall }) {
   const preview = getInputPreview(tool, 30);
 
   return (
-    <Box flexDirection="row">
+    <Box flexDirection='row'>
       <Text color={color}>{icon}</Text>
-      <Text> {preview}</Text>
+      <Text>{preview}</Text>
     </Box>
   );
 }
@@ -235,7 +234,7 @@ function CustomToolRow({ tool }: { tool: EnhancedToolCall }) {
 ### Model Badge Display
 
 ```typescript
-import { getModelBadge, getModelBadgeColor } from "./ui/mod.ts";
+import { getModelBadge, getModelBadgeColor } from './ui/mod.ts';
 
 // Show model badge separately
 function ModelInfo({ model }: { model?: string }) {
@@ -244,9 +243,7 @@ function ModelInfo({ model }: { model?: string }) {
   const badge = getModelBadge(model);
   const color = getModelBadgeColor(model);
 
-  return (
-    <Text color={color}>{badge}</Text>
-  );
+  return <Text color={color}>{badge}</Text>;
 }
 ```
 
@@ -266,14 +263,16 @@ function ModelInfo({ model }: { model?: string }) {
 ### Icons Not Displaying
 
 Ensure your terminal supports emoji/unicode:
+
 ```typescript
 // Fallback for terminals without emoji support
-const useEmoji = Deno.env.get("TERM_PROGRAM") !== "Apple_Terminal";
+const useEmoji = Deno.env.get('TERM_PROGRAM') !== 'Apple_Terminal';
 ```
 
 ### Tools Not Updating
 
 Make sure you're updating the same tool instance:
+
 ```typescript
 // Use consistent IDs
 const toolId = crypto.randomUUID();
@@ -288,13 +287,14 @@ handleToolUse({ id: toolId, name: "Read", status: "success", ... });
 ### Live Duration Not Updating
 
 Ensure startTime is set when tool starts:
+
 ```typescript
 const tool = {
-  id: "...",
-  name: "Bash",
-  status: "running",
+  id: '...',
+  name: 'Bash',
+  status: 'running',
   startTime: Date.now(), // Required for live duration
-  input: { command: "npm test" },
+  input: { command: 'npm test' },
 };
 ```
 
@@ -310,10 +310,11 @@ const tool = {
 ### Change Icons
 
 Edit TOOL_ICONS in ToolActivity.tsx:
+
 ```typescript
 const TOOL_ICONS = {
-  Read: { icon: "👁️", color: colors.info },
-  Write: { icon: "✍️", color: colors.success },
+  Read: { icon: '👁️', color: colors.info },
+  Write: { icon: '✍️', color: colors.success },
   // ... etc
 };
 ```
@@ -321,6 +322,7 @@ const TOOL_ICONS = {
 ### Change Colors
 
 Edit TOOL_COLORS or model colors:
+
 ```typescript
 const MODEL_COLORS = {
   opus: colors.purple,

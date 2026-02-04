@@ -5,33 +5,46 @@
  * Now with full stats display matching the original UI.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, render, useApp, useInput, useFinalOutput, useTerminalSize } from "../../packages/deno-ink/src/mod.ts";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Box,
+  render,
+  Text,
+  useApp,
+  useFinalOutput,
+  useInput,
+  useTerminalSize,
+} from '../../packages/deno-ink/src/mod.ts';
+import {
+  colors,
   CommandBox,
+  ContextIndicator,
+  type EnhancedToolCall,
   Header,
-  UsageBars,
-  ToolActivity,
+  KeyboardHints,
   ProgressLine,
   StatusResult,
-  KeyboardHints,
   TokenStats,
-  ContextIndicator,
-  formatTokens as formatTokensUI,
-  colors,
-  type EnhancedToolCall,
-} from "./ui/mod.ts";
-import { ansi } from "./CommandScreen.tsx";
-import type { SubscriptionUsage } from "@/services/usage_service.ts";
-import { calculateCostBreakdown, calculateCacheSavings, formatCost, type CostBreakdown } from "../services/cost_calculator.ts";
+  ToolActivity,
+  UsageBars,
+} from './ui/mod.ts';
+import { ansi } from './CommandScreen.tsx';
+import type { SubscriptionUsage } from '@/services/usage_service.ts';
+import {
+  calculateCacheSavings,
+  calculateCostBreakdown,
+  type CostBreakdown,
+  formatCost,
+} from '../services/cost_calculator.ts';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type { EnhancedToolCall } from "./ui/mod.ts";
+export type { EnhancedToolCall } from './ui/mod.ts';
 
-export type PlanPhase = "planning" | "done" | "error";
+export type PlanPhase = 'planning' | 'done' | 'error';
 
 export interface PlanStats {
   operations: number;
@@ -66,11 +79,11 @@ export interface PlanScreenProps {
 // Helpers
 // ============================================================================
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatTokens(tokens: number): string {
@@ -95,13 +108,13 @@ function PlanScreen({
   const { columns } = useTerminalSize();
 
   // State
-  const [phase, setPhase] = useState<PlanPhase>("planning");
-  const [status, setStatus] = useState("Starting gap analysis...");
+  const [phase, setPhase] = useState<PlanPhase>('planning');
+  const [status, setStatus] = useState('Starting gap analysis...');
   const [tools, setTools] = useState<EnhancedToolCall[]>([]);
   const [startTime] = useState(() => Date.now());
-  const [outputPath, setOutputPath] = useState<string | undefined>();
+  const [_outputPath, setOutputPath] = useState<string | undefined>();
   const [errorMsg, setErrorMsg] = useState<string | undefined>();
-  const [stats, setStats] = useState<PlanStats | undefined>();
+  const [_stats, setStats] = useState<PlanStats | undefined>();
   const [showTools, setShowTools] = useState(true);
 
   // Track total operations and tokens (use ref to capture latest value in async closure)
@@ -121,7 +134,7 @@ function PlanScreen({
 
   // Update elapsed time every second
   useEffect(() => {
-    if (phase !== "planning") return;
+    if (phase !== 'planning') return;
     const timer = setInterval(() => {
       setElapsedSec(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
@@ -130,16 +143,16 @@ function PlanScreen({
 
   // Handle keyboard input for toggles
   useInput((input: string) => {
-    if (input === "t" || input === "T") {
+    if (input === 't' || input === 'T') {
       setShowTools((v: boolean) => !v);
     }
-    if (input === "k" || input === "K") {
+    if (input === 'k' || input === 'K') {
       setShowTokens((v: boolean) => !v);
     }
-    if (input === "c" || input === "C") {
+    if (input === 'c' || input === 'C') {
       setShowCost((v: boolean) => !v);
     }
-    if (input === "x" || input === "X") {
+    if (input === 'x' || input === 'X') {
       setShowContext((v: boolean) => !v);
     }
   });
@@ -179,12 +192,18 @@ function PlanScreen({
       if (existingIndex >= 0) {
         // Update existing tool with new status/endTime
         const updated = [...prev];
-        updated[existingIndex] = {
-          ...prev[existingIndex]!,
-          status: tool.status,
-          endTime: tool.endTime,
-          result: tool.result ?? prev[existingIndex]!.result,
-        };
+        const existing = prev[existingIndex];
+        if (existing) {
+          updated[existingIndex] = {
+            ...existing,
+            status: tool.status,
+            endTime: tool.endTime,
+            result: tool.result ?? existing.result,
+            tokenUsage: tool.tokenUsage ?? existing.tokenUsage,
+            costUsd: tool.costUsd ?? existing.costUsd,
+            model: tool.model ?? existing.model,
+          };
+        }
         return updated;
       }
 
@@ -202,7 +221,7 @@ function PlanScreen({
   const handleQuit = useCallback(() => {
     setFinalOutput(buildPlanFinalOutput({
       success: false,
-      title: "Cancelled",
+      title: 'Cancelled',
     }));
   }, [setFinalOutput]);
 
@@ -253,14 +272,14 @@ function PlanScreen({
 
       if (result.success) {
         setOutputPath(result.outputPath);
-        setPhase("done");
+        setPhase('done');
 
         setFinalOutput(buildPlanFinalOutput({
           success: true,
-          title: "Plan generated",
+          title: 'Plan generated',
           outputPath: result.outputPath,
           stats: finalStats,
-          nextCommand: vibeMode ? undefined : "ralph work",
+          nextCommand: vibeMode ? undefined : 'ralph work',
         }));
 
         setTimeout(() => {
@@ -268,12 +287,12 @@ function PlanScreen({
           exit();
         }, 500);
       } else {
-        setErrorMsg(result.error ?? "Planning failed");
-        setPhase("error");
+        setErrorMsg(result.error ?? 'Planning failed');
+        setPhase('error');
 
         setFinalOutput(buildPlanFinalOutput({
           success: false,
-          title: "Planning failed",
+          title: 'Planning failed',
           stats: finalStats,
         }));
 
@@ -284,32 +303,34 @@ function PlanScreen({
       }
     })();
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Build keyboard hints
   const hints = [
-    { key: "t", label: showTools ? "hide tools" : "show tools" },
-    { key: "k", label: showTokens ? "hide tokens" : "show tokens" },
-    { key: "c", label: showCost ? "hide cost" : "show cost" },
-    { key: "x", label: showContext ? "hide context" : "show context" },
-    ...(usage ? [{ key: "u", label: "usage" }] : []),
-    { key: "q", label: "quit" },
+    { key: 't', label: showTools ? 'hide tools' : 'show tools' },
+    { key: 'k', label: showTokens ? 'hide tokens' : 'show tokens' },
+    { key: 'c', label: showCost ? 'hide cost' : 'show cost' },
+    { key: 'x', label: showContext ? 'hide context' : 'show context' },
+    ...(usage ? [{ key: 'u', label: 'usage' }] : []),
+    { key: 'q', label: 'quit' },
   ];
 
   return (
-    <CommandBox onQuit={handleQuit} animateBorder={phase === "planning"}>
+    <CommandBox onQuit={handleQuit} animateBorder={phase === 'planning'}>
       <Header
-        name="Ralph Plan"
+        name='Ralph Plan'
         description={model}
         vibeMode={vibeMode}
-        vibeCurrentStep="plan"
-        vibeSteps={["plan", "work"]}
+        vibeCurrentStep='plan'
+        vibeSteps={['plan', 'work']}
       />
 
       {/* Token stats, context, and usage metrics */}
-      <Box flexDirection="row" gap={2} marginBottom={1}>
+      <Box flexDirection='row' gap={2} marginBottom={1}>
         {showTokens && (tokenCount.input + tokenCount.output > 0) && (
           <TokenStats
             inputTokens={tokenCount.input}
@@ -321,32 +342,43 @@ function PlanScreen({
           <ContextIndicator
             used={tokenCount.input + tokenCount.output}
             max={contextMax}
-            isGrowing={phase === "planning"}
+            isGrowing={phase === 'planning'}
           />
         )}
         {usage && <UsageBars usage={usage} />}
       </Box>
 
-      {phase === "planning" && (
-        <Box flexDirection="column">
+      {phase === 'planning' && (
+        <Box flexDirection='column'>
           <ProgressLine status={status} startTime={startTime} width={columns - 6} />
 
           {showTools && tools.length > 0 && (
             <Box marginTop={1}>
-              <ToolActivity tools={tools} visible={showTools} showStats={false} showTimeline={false} />
+              <ToolActivity
+                tools={tools}
+                visible={showTools}
+                showStats={false}
+                showTimeline={false}
+                showTokens={true}
+                showTokenDetails={false}
+                showCacheDots={false}
+                showModels={false}
+              />
             </Box>
           )}
 
           {/* Stats line - clean, single line format */}
-          <Box marginTop={1} flexDirection="row" gap={1}>
+          <Box marginTop={1} flexDirection='row' gap={1}>
             <Text color={colors.accent}>{operationCount}</Text>
             <Text color={colors.dim}>operations</Text>
             <Text color={colors.dim}>·</Text>
-            <Text color={colors.muted}>{formatDuration(elapsedSec)}</Text>
+            <Text color={colors.muted}>{formatDurationSec(elapsedSec)}</Text>
             {tokenCount.input + tokenCount.output > 0 && (
               <>
                 <Text color={colors.dim}>·</Text>
-                <Text color={colors.tokenTotal}>{formatTokens(tokenCount.input + tokenCount.output)}</Text>
+                <Text color={colors.tokenTotal}>
+                  {formatTokens(tokenCount.input + tokenCount.output)}
+                </Text>
                 <Text color={colors.dim}>tokens (</Text>
                 <Text color={colors.tokenInput}>{formatTokens(tokenCount.input)}</Text>
                 <Text color={colors.dim}>in /</Text>
@@ -358,8 +390,8 @@ function PlanScreen({
                     <Text color={colors.accent}>{formatCost(cost.total)}</Text>
                     {cacheSavings > 0 && (
                       <>
-                        <Text color={colors.dim}> (saved </Text>
-                        <Text color="green">{formatCost(cacheSavings)}</Text>
+                        <Text color={colors.dim}>(saved</Text>
+                        <Text color='green'>{formatCost(cacheSavings)}</Text>
                         <Text color={colors.dim}>)</Text>
                       </>
                     )}
@@ -372,17 +404,17 @@ function PlanScreen({
       )}
 
       {/* Done phase - simple status, useFinalOutput handles detailed stats */}
-      {phase === "done" && (
+      {phase === 'done' && (
         <StatusResult
-          type="success"
-          title="Plan generated"
+          type='success'
+          title='Plan generated'
         />
       )}
 
-      {phase === "error" && (
+      {phase === 'error' && (
         <StatusResult
-          type="error"
-          title="Planning failed"
+          type='error'
+          title='Planning failed'
           detail={errorMsg}
         />
       )}
@@ -416,24 +448,31 @@ function buildPlanFinalOutput(options: {
 
   // Stats - more detailed
   if (options.stats) {
-    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings } = options.stats;
+    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings } =
+      options.stats;
 
     // Line 1: Operations and duration
     const statsParts = [
       `${operations} operations`,
-      formatDuration(durationSec),
-    ].join(" · ");
+      formatDurationSec(durationSec),
+    ].join(' · ');
     lines.push(`${ansi.dimGray}${statsParts}${ansi.reset}`);
 
     // Line 2: Tokens (primary metric for subscription users)
     if (inputTokens !== undefined && outputTokens !== undefined) {
       const totalTokens = inputTokens + outputTokens;
-      lines.push(`${ansi.cyan}${formatTokens(totalTokens)}${ansi.reset} ${ansi.dimGray}tokens (${formatTokens(inputTokens)} in / ${formatTokens(outputTokens)} out)${ansi.reset}`);
+      lines.push(
+        `${ansi.cyan}${formatTokens(totalTokens)}${ansi.reset} ${ansi.dimGray}tokens (${
+          formatTokens(inputTokens)
+        } in / ${formatTokens(outputTokens)} out)${ansi.reset}`,
+      );
     }
 
     // Line 3: Cost information
     if (cost) {
-      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${formatCost(cost.total)}${ansi.reset}`;
+      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${
+        formatCost(cost.total)
+      }${ansi.reset}`;
       if (cacheSavings !== undefined && cacheSavings > 0) {
         costLine += ` ${ansi.green}(saved ${formatCost(cacheSavings)})${ansi.reset}`;
       }
@@ -443,18 +482,18 @@ function buildPlanFinalOutput(options: {
 
   // Output file
   if (options.outputPath) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.dimGray}→${ansi.reset} ${ansi.orange}${options.outputPath}${ansi.reset}`);
   }
 
   // Next command
   if (options.nextCommand) {
-    lines.push("");
+    lines.push('');
     lines.push(`${ansi.bold}Next:${ansi.reset} ${ansi.orange}${options.nextCommand}${ansi.reset}`);
   }
 
-  lines.push("");
-  return lines.join("\n");
+  lines.push('');
+  return lines.join('\n');
 }
 
 // ============================================================================
@@ -462,13 +501,15 @@ function buildPlanFinalOutput(options: {
 // ============================================================================
 
 export interface RenderPlanOptions {
-  onRun: PlanScreenProps["onRun"];
+  onRun: PlanScreenProps['onRun'];
   model: string;
   usage?: SubscriptionUsage;
   vibeMode?: boolean;
 }
 
-export async function renderPlan(options: RenderPlanOptions): Promise<{ success: boolean; stats?: PlanStats }> {
+export async function renderPlan(
+  options: RenderPlanOptions,
+): Promise<{ success: boolean; stats?: PlanStats }> {
   let result = { success: false, stats: undefined as PlanStats | undefined };
 
   const { waitUntilExit } = await render(
@@ -481,7 +522,7 @@ export async function renderPlan(options: RenderPlanOptions): Promise<{ success:
         result = { success: s, stats };
       }}
     />,
-    { fullScreen: true }
+    { fullScreen: true },
   );
 
   await waitUntilExit();

@@ -30,7 +30,13 @@ import {
 } from './ui/mod.ts';
 import { ansi } from './CommandScreen.tsx';
 import type { SubscriptionUsage } from '@/services/usage_service.ts';
-import { calculateCostBreakdown, calculateCacheSavings, formatCost, type CostBreakdown } from '@/services/cost_calculator.ts';
+import {
+  calculateCacheSavings,
+  calculateCostBreakdown,
+  type CostBreakdown,
+  formatCost,
+} from '@/services/cost_calculator.ts';
+import { formatDuration } from '@/utils/formatting.ts';
 
 // ============================================================================
 // Types
@@ -73,11 +79,11 @@ export interface ResearchScreenProps {
 // Helpers
 // ============================================================================
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
+/**
+ * Wrapper for formatDuration that takes seconds instead of milliseconds.
+ */
+function formatDurationSec(seconds: number): string {
+  return formatDuration(seconds * 1000);
 }
 
 function formatTokens(tokens: number): string {
@@ -108,7 +114,7 @@ function ResearchScreen({
   const [tools, setTools] = useState<EnhancedToolCall[]>([]);
   const [startTime] = useState(() => Date.now());
   const [errorMsg, setErrorMsg] = useState<string | undefined>();
-  const [stats, setStats] = useState<ResearchStats | undefined>();
+  const [_stats, setStats] = useState<ResearchStats | undefined>();
   const [showTools, setShowTools] = useState(true);
 
   // Track total operations and tokens (use ref to capture latest value in async closure)
@@ -187,12 +193,18 @@ function ResearchScreen({
       if (existingIndex >= 0) {
         // Update existing tool with new status/endTime
         const updated = [...prev];
-        updated[existingIndex] = {
-          ...prev[existingIndex]!,
-          status: tool.status,
-          endTime: tool.endTime,
-          result: tool.result ?? prev[existingIndex]!.result,
-        };
+        const existing = prev[existingIndex];
+        if (existing) {
+          updated[existingIndex] = {
+            ...existing,
+            status: tool.status,
+            endTime: tool.endTime,
+            result: tool.result ?? existing.result,
+            tokenUsage: tool.tokenUsage ?? existing.tokenUsage,
+            costUsd: tool.costUsd ?? existing.costUsd,
+            model: tool.model ?? existing.model,
+          };
+        }
         return updated;
       }
 
@@ -346,6 +358,10 @@ function ResearchScreen({
                 visible={showTools}
                 showStats={true}
                 showTimeline={false}
+                showTokens={true}
+                showTokenDetails={false}
+                showCacheDots={false}
+                showModels={false}
               />
             </Box>
           )}
@@ -355,7 +371,7 @@ function ResearchScreen({
             <Text color={colors.accent}>{operationCount}</Text>
             <Text color={colors.dim}>operations</Text>
             <Text color={colors.dim}>·</Text>
-            <Text color={colors.muted}>{formatDuration(elapsedSec)}</Text>
+            <Text color={colors.muted}>{formatDurationSec(elapsedSec)}</Text>
             {tokenCount.input + tokenCount.output > 0 && (
               <>
                 <Text color={colors.dim}>·</Text>
@@ -373,7 +389,7 @@ function ResearchScreen({
                     <Text color={colors.accent}>{formatCost(cost.total)}</Text>
                     {cacheSavings > 0 && (
                       <>
-                        <Text color={colors.dim}> (saved </Text>
+                        <Text color={colors.dim}>(saved</Text>
                         <Text color='green'>{formatCost(cacheSavings)}</Text>
                         <Text color={colors.dim}>)</Text>
                       </>
@@ -430,12 +446,13 @@ function buildResearchFinalOutput(options: {
 
   // Stats - more detailed
   if (options.stats) {
-    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings } = options.stats;
+    const { operations, durationSec, inputTokens, outputTokens, cost, cacheSavings } =
+      options.stats;
 
     // Line 1: Operations and duration
     const statsParts = [
       `${operations} operations`,
-      formatDuration(durationSec),
+      formatDurationSec(durationSec),
     ].join(' · ');
     lines.push(`${ansi.dimGray}${statsParts}${ansi.reset}`);
 
@@ -451,7 +468,9 @@ function buildResearchFinalOutput(options: {
 
     // Line 3: Cost information
     if (cost) {
-      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${formatCost(cost.total)}${ansi.reset}`;
+      let costLine = `${ansi.dimGray}Cost:${ansi.reset} ${ansi.orange}${
+        formatCost(cost.total)
+      }${ansi.reset}`;
       if (cacheSavings !== undefined && cacheSavings > 0) {
         costLine += ` ${ansi.green}(saved ${formatCost(cacheSavings)})${ansi.reset}`;
       }
@@ -506,7 +525,7 @@ export async function renderResearch(
         result = { success: s, stats };
       }}
     />,
-    { fullScreen: true }
+    { fullScreen: true },
   );
 
   await waitUntilExit();

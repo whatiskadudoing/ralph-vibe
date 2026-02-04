@@ -4,8 +4,8 @@
  * Dashboard layout components using deno-ink.
  */
 
-import React, { type ReactNode } from "react";
-import { Box, Text } from "@ink/mod.ts";
+import React, { type ReactNode } from 'react';
+import { Box, Text } from '@ink/mod.ts';
 
 // Grid layout
 export interface GridProps {
@@ -17,9 +17,9 @@ export interface GridProps {
   children: ReactNode;
 }
 
-export function Grid({ columns = 2, gap = 2, children }: GridProps): React.ReactElement {
+export function Grid({ columns: _columns = 2, gap = 2, children }: GridProps): React.ReactElement {
   return (
-    <Box flexDirection="row" flexWrap="wrap" gap={gap}>
+    <Box flexDirection='row' flexWrap='wrap' gap={gap}>
       {children}
     </Box>
   );
@@ -34,7 +34,7 @@ export interface PanelProps {
   /** Title color */
   titleColor?: string;
   /** Border style */
-  borderStyle?: "single" | "round" | "double";
+  borderStyle?: 'single' | 'round' | 'double';
   /** Border color */
   borderColor?: string;
   /** Panel width */
@@ -49,7 +49,7 @@ export function Panel({
   title,
   icon,
   titleColor,
-  borderStyle = "round",
+  borderStyle = 'round',
   borderColor,
   width,
   height,
@@ -61,12 +61,12 @@ export function Panel({
       borderColor={borderColor}
       width={width}
       height={height}
-      flexDirection="column"
+      flexDirection='column'
       paddingX={1}
     >
       {title && (
         <Box marginBottom={1}>
-          {icon && <Text color={titleColor}>{icon} </Text>}
+          {icon && <Text color={titleColor}>{icon}</Text>}
           <Text bold color={titleColor}>{title}</Text>
         </Box>
       )}
@@ -88,7 +88,7 @@ export interface MetricProps {
   /** Icon */
   icon?: string;
   /** Trend indicator */
-  trend?: "up" | "down" | "neutral";
+  trend?: 'up' | 'down' | 'neutral';
   /** Trend value */
   trendValue?: string;
 }
@@ -102,18 +102,16 @@ export function Metric({
   trend,
   trendValue,
 }: MetricProps): React.ReactElement {
-  const trendIcon = trend === "up" ? "↑" : trend === "down" ? "↓" : "";
-  const trendColor = trend === "up" ? "green" : trend === "down" ? "red" : undefined;
+  const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '';
+  const trendColor = trend === 'up' ? 'green' : trend === 'down' ? 'red' : undefined;
 
   return (
-    <Box flexDirection="column" alignItems="center" paddingX={1}>
+    <Box flexDirection='column' alignItems='center' paddingX={1}>
       {icon && <Text color={color}>{icon}</Text>}
       <Box>
         <Text bold color={color}>{String(value)}</Text>
         {unit && <Text dimColor>{unit}</Text>}
-        {trendIcon && (
-          <Text color={trendColor}> {trendIcon}{trendValue}</Text>
-        )}
+        {trendIcon && <Text color={trendColor}>{trendIcon}{trendValue}</Text>}
       </Box>
       <Text dimColor>{label}</Text>
     </Box>
@@ -123,16 +121,16 @@ export function Metric({
 // Metrics row (horizontal metrics)
 export function MetricsRow({
   metrics,
-  separator = "│",
+  separator = '│',
 }: {
   metrics: MetricProps[];
   separator?: string;
 }): React.ReactElement {
   return (
-    <Box justifyContent="space-around">
+    <Box justifyContent='space-around'>
       {metrics.map((metric, index) => (
         <Box key={index}>
-          {index > 0 && <Text dimColor> {separator} </Text>}
+          {index > 0 && <Text dimColor>{separator}</Text>}
           <Metric {...metric} />
         </Box>
       ))}
@@ -144,7 +142,7 @@ export function MetricsRow({
 export function Sparkline({
   data,
   width = 20,
-  color = "cyan",
+  color = 'cyan',
 }: {
   data: number[];
   width?: number;
@@ -156,14 +154,14 @@ export function Sparkline({
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  const chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+  const chars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
   const normalizedData = data.slice(-width);
 
   const sparkline = normalizedData.map((value) => {
     const normalized = (value - min) / range;
     const charIndex = Math.floor(normalized * (chars.length - 1));
     return chars[charIndex];
-  }).join("");
+  }).join('');
 
   return <Text color={color}>{sparkline}</Text>;
 }
@@ -188,15 +186,15 @@ export function MiniBarChart({
   const maxLabelWidth = Math.max(...items.map((i) => i.label.length));
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {items.map((item, index) => {
         const barWidth = Math.round((item.value / maxValue) * maxWidth);
         return (
           <Box key={index}>
             <Text dimColor>{item.label.padEnd(maxLabelWidth)}</Text>
-            <Text> </Text>
-            <Text color={item.color ?? "cyan"}>{"█".repeat(barWidth)}</Text>
-            {showValues && <Text dimColor> {item.value}</Text>}
+            <Text></Text>
+            <Text color={item.color ?? 'cyan'}>{'█'.repeat(barWidth)}</Text>
+            {showValues && <Text dimColor>{item.value}</Text>}
           </Box>
         );
       })}
@@ -207,8 +205,8 @@ export function MiniBarChart({
 // Activity/heat map style display
 export function ActivityMap({
   data,
-  emptyChar = "░",
-  filledChar = "█",
+  emptyChar = '░',
+  filledChar: _filledChar = '█',
   levels = 4,
 }: {
   data: number[][];
@@ -216,11 +214,11 @@ export function ActivityMap({
   filledChar?: string;
   levels?: number;
 }): React.ReactElement {
-  const chars = ["░", "▒", "▓", "█"].slice(0, levels);
+  const chars = ['░', '▒', '▓', '█'].slice(0, levels);
   const max = Math.max(...data.flat());
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection='column'>
       {data.map((row, rowIndex) => (
         <Box key={rowIndex}>
           {row.map((value, colIndex) => {
@@ -228,7 +226,7 @@ export function ActivityMap({
               return <Text key={colIndex} dimColor>{emptyChar}</Text>;
             }
             const level = Math.min(Math.floor((value / max) * levels), levels - 1);
-            return <Text key={colIndex} color="green">{chars[level]}</Text>;
+            return <Text key={colIndex} color='green'>{chars[level]}</Text>;
           })}
         </Box>
       ))}
@@ -251,7 +249,7 @@ export function ResourceGauge({
   label,
   value,
   max = 100,
-  unit = "%",
+  unit = '%',
   width = 20,
   warningThreshold = 70,
   criticalThreshold = 90,
@@ -259,19 +257,19 @@ export function ResourceGauge({
   const percent = (value / max) * 100;
   const filledWidth = Math.round((percent / 100) * width);
 
-  let color = "green";
+  let color = 'green';
   if (percent >= criticalThreshold) {
-    color = "red";
+    color = 'red';
   } else if (percent >= warningThreshold) {
-    color = "yellow";
+    color = 'yellow';
   }
 
   return (
     <Box>
       <Text dimColor>{label.padEnd(8)}</Text>
-      <Text color={color}>{"█".repeat(filledWidth)}</Text>
-      <Text dimColor>{"░".repeat(width - filledWidth)}</Text>
-      <Text> </Text>
+      <Text color={color}>{'█'.repeat(filledWidth)}</Text>
+      <Text dimColor>{'░'.repeat(width - filledWidth)}</Text>
+      <Text></Text>
       <Text color={color}>{value}{unit}</Text>
     </Box>
   );
@@ -296,20 +294,20 @@ export function Dashboard({
   footer,
 }: DashboardProps): React.ReactElement {
   return (
-    <Box flexDirection="column" padding={1}>
+    <Box flexDirection='column' padding={1}>
       {(title || header) && (
         <Box
-          borderStyle="round"
-          borderColor="#FF9500"
+          borderStyle='round'
+          borderColor='#FF9500'
           paddingX={2}
           paddingY={1}
           marginBottom={1}
         >
-          {title && <Text bold color="#FF9500">{title}</Text>}
+          {title && <Text bold color='#FF9500'>{title}</Text>}
           {header}
         </Box>
       )}
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection='column' gap={1}>
         {children}
       </Box>
       {footer && (

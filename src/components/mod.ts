@@ -26,469 +26,442 @@
  */
 
 // Re-export deno-ink primitives for convenience
-export { render, Box, Text, Spinner, Newline, Spacer } from "@ink/mod.ts";
-export type { BoxProps, TextProps, SpinnerProps, Styles } from "@ink/mod.ts";
+export { Box, Newline, render, Spacer, Spinner, Text } from '@ink/mod.ts';
+export type { BoxProps, SpinnerProps, Styles, TextProps } from '@ink/mod.ts';
 
 // Progress Bar
-export { ProgressBar, type ProgressBarProps } from "./ProgressBar.tsx";
+export { ProgressBar, type ProgressBarProps } from './ProgressBar.tsx';
 
 // Status Indicator
 export {
-  StatusIndicator,
-  StatusSuccess,
   StatusError,
-  StatusWarning,
+  StatusIndicator,
+  type StatusIndicatorProps,
   StatusInfo,
   StatusPending,
   StatusRunning,
-  type StatusIndicatorProps,
+  StatusSuccess,
   type StatusType,
-} from "./StatusIndicator.tsx";
+  StatusWarning,
+} from './StatusIndicator.tsx';
 
 // List
 export {
-  List,
-  BulletList,
-  NumberedList,
   ArrowList,
-  TaskList,
-  type ListProps,
+  BulletList,
+  List,
   type ListItem,
+  type ListProps,
   type ListStyle,
-} from "./List.tsx";
+  NumberedList,
+  TaskList,
+} from './List.tsx';
 
 // Stats Line
-export {
-  StatsLine,
-  Stat,
-  IconStat,
-  type StatsLineProps,
-  type StatItem,
-} from "./StatsLine.tsx";
+export { IconStat, Stat, type StatItem, StatsLine, type StatsLineProps } from './StatsLine.tsx';
 
 // Badge
-export {
-  Badge,
-  ModelBadge,
-  StatusBadge,
-  LabelBadge,
-  type BadgeProps,
-} from "./Badge.tsx";
+export { Badge, type BadgeProps, LabelBadge, ModelBadge, StatusBadge } from './Badge.tsx';
 
 // Divider
-export {
-  Divider,
-  Line,
-  SectionHeader,
-  type DividerProps,
-  type DividerStyle,
-} from "./Divider.tsx";
+export { Divider, type DividerProps, type DividerStyle, Line, SectionHeader } from './Divider.tsx';
 
 // Table
 export {
-  Table,
-  KeyValueTable,
-  type TableProps,
-  type ColumnConfig,
   type ColumnAlign,
+  type ColumnConfig,
   type HeaderStyle,
-} from "./Table.tsx";
+  KeyValueTable,
+  Table,
+  type TableProps,
+} from './Table.tsx';
 
 // Title Box
-export {
-  TitleBox,
-  BorderedBox,
-  type TitleBoxProps,
-  type BorderStyle,
-} from "./TitleBox.tsx";
+export { BorderedBox, type BorderStyle, TitleBox, type TitleBoxProps } from './TitleBox.tsx';
 
 // Alert/Banner
 export {
   Alert,
-  InfoAlert,
-  SuccessAlert,
-  WarningAlert,
-  ErrorAlert,
-  TipAlert,
-  Banner,
   type AlertProps,
   type AlertType,
+  Banner,
   type BannerProps,
-} from "./Alert.tsx";
+  ErrorAlert,
+  InfoAlert,
+  SuccessAlert,
+  TipAlert,
+  WarningAlert,
+} from './Alert.tsx';
 
 // Card
 export {
   Card,
+  type CardProps,
   CompactCard,
   FeatureCard,
-  StatCard,
-  InfoCard,
-  type CardProps,
   type FeatureCardProps,
-  type StatCardProps,
+  InfoCard,
   type InfoCardProps,
-} from "./Card.tsx";
+  StatCard,
+  type StatCardProps,
+} from './Card.tsx';
 
 // Keyboard
 export {
+  HelpFooter,
   Key,
   KeyCombo,
-  Shortcut,
-  ShortcutList,
-  ShortcutBar,
-  HelpFooter,
-  type KeyProps,
   type KeyComboProps,
-  type ShortcutProps,
-  type ShortcutListProps,
+  type KeyProps,
+  Shortcut,
+  ShortcutBar,
   type ShortcutBarProps,
-} from "./Keyboard.tsx";
+  ShortcutList,
+  type ShortcutListProps,
+  type ShortcutProps,
+} from './Keyboard.tsx';
 
 // Header/Footer/Layout
 export {
-  Header,
   AppHeader,
-  Section,
-  Footer,
-  StatusBar,
-  Breadcrumb,
-  type HeaderProps,
   type AppHeaderProps,
-  type SectionProps,
-  type FooterProps,
-  type StatusBarProps,
+  Breadcrumb,
   type BreadcrumbProps,
-} from "./Header.tsx";
+  Footer,
+  type FooterProps,
+  Header,
+  type HeaderProps,
+  Section,
+  type SectionProps,
+  StatusBar,
+  type StatusBarProps,
+} from './Header.tsx';
 
 // Tree
 export {
-  Tree,
+  type FileNode,
   FileTree,
   IndentedList,
-  type TreeProps,
+  Tree,
   type TreeNode,
-  type FileNode,
-} from "./Tree.tsx";
+  type TreeProps,
+} from './Tree.tsx';
 
 // CodeBlock
 export {
   CodeBlock,
-  InlineCode,
-  Command,
-  Diff,
-  JsonDisplay,
-  LogOutput,
   type CodeBlockProps,
+  Command,
   type CommandProps,
+  Diff,
   type DiffLine,
   type DiffProps,
+  InlineCode,
+  JsonDisplay,
   type LogEntry,
-} from "./CodeBlock.tsx";
+  LogOutput,
+} from './CodeBlock.tsx';
 
 // Callout
 export {
-  Callout,
-  Quote,
-  Highlight,
-  Definition,
-  Step,
-  Steps,
   Aside,
+  type AsideProps,
+  Callout,
   type CalloutProps,
   type CalloutType,
-  type QuoteProps,
-  type HighlightProps,
+  Definition,
   type DefinitionProps,
+  Highlight,
+  type HighlightProps,
+  Quote,
+  type QuoteProps,
+  Step,
   type StepProps,
+  Steps,
   type StepsProps,
-  type AsideProps,
-} from "./Callout.tsx";
+} from './Callout.tsx';
 
 // Gradient
 export {
-  GradientText,
   BrandGradient,
-  RainbowText,
   FireText,
-  OceanText,
-  NeonText,
-  PulsingText,
   GradientArt,
-  GRADIENTS,
-  type GradientTextProps,
   type GradientPreset,
-} from "./Gradient.tsx";
+  GRADIENTS,
+  GradientText,
+  type GradientTextProps,
+  NeonText,
+  OceanText,
+  PulsingText,
+  RainbowText,
+} from './Gradient.tsx';
 
 // Icons
 export {
-  STATUS_ICONS,
-  PROGRESS_ICONS,
-  ARROW_ICONS,
-  UI_ICONS,
-  TECH_ICONS,
   AI_ICONS,
-  WEATHER_ICONS,
-  SPINNER_FRAMES,
+  ARROW_ICONS,
   BOX_CHARS,
-  Icon,
-  StatusIcon,
   getIcon,
+  Icon,
   type IconProps,
-} from "./Icons.tsx";
+  PROGRESS_ICONS,
+  SPINNER_FRAMES,
+  STATUS_ICONS,
+  StatusIcon,
+  TECH_ICONS,
+  UI_ICONS,
+  WEATHER_ICONS,
+} from './Icons.tsx';
 
 // Timer
 export {
   Countdown,
-  Elapsed,
   Duration,
-  TimeRange,
-  RelativeTime,
+  Elapsed,
   ETA,
+  RelativeTime,
+  TimeRange,
   type TimerProps,
-} from "./Timer.tsx";
+} from './Timer.tsx';
 
 // Dashboard
 export {
-  Grid,
-  Panel,
-  Metric,
-  MetricsRow,
-  Sparkline,
-  MiniBarChart,
   ActivityMap,
-  ResourceGauge,
-  Dashboard,
-  type GridProps,
-  type PanelProps,
-  type MetricProps,
   type BarChartItem,
-  type ResourceGaugeProps,
+  Dashboard,
   type DashboardProps,
-} from "./Dashboard.tsx";
+  Grid,
+  type GridProps,
+  Metric,
+  type MetricProps,
+  MetricsRow,
+  MiniBarChart,
+  Panel,
+  type PanelProps,
+  ResourceGauge,
+  type ResourceGaugeProps,
+  Sparkline,
+} from './Dashboard.tsx';
 
 // Input displays
 export {
-  InputField,
   Checkbox,
+  type CheckboxProps,
+  Confirm,
+  type ConfirmProps,
+  FormActions,
+  type FormActionsProps,
+  FormGroup,
+  type FormGroupProps,
+  InputField,
+  type InputFieldProps,
+  Prompt,
+  type PromptProps,
   Radio,
   RadioGroup,
-  SelectDisplay,
-  FormGroup,
-  FormActions,
-  Prompt,
-  Confirm,
-  type InputFieldProps,
-  type CheckboxProps,
-  type RadioProps,
   type RadioGroupProps,
+  type RadioProps,
+  SelectDisplay,
   type SelectDisplayProps,
-  type FormGroupProps,
-  type FormActionsProps,
-  type PromptProps,
-  type ConfirmProps,
-} from "./Input.tsx";
+} from './Input.tsx';
 
 // Layout
 export {
-  Columns,
-  Column,
-  Rows,
-  Row,
-  Split,
-  GridLayout,
-  GridCell,
-  Stack,
-  Center,
-  Spacer as LayoutSpacer,
   Absolute,
-  SidebarLayout,
-  FullScreen,
-  HolyGrailLayout,
-  ResponsiveColumns,
-  AspectBox,
-  Masonry,
-  Overlay,
-  Inline,
-  TitledSection,
-  TwoColumnCard,
-  type ColumnsProps,
-  type ColumnProps,
-  type RowsProps,
-  type RowProps,
-  type SplitProps,
-  type GridLayoutProps,
-  type GridCellProps,
-  type StackProps,
-  type CenterProps,
-  type SpacerProps,
   type AbsoluteProps,
-  type SidebarLayoutProps,
-  type FullScreenProps,
-  type HolyGrailLayoutProps,
-  type ResponsiveColumnsProps,
+  AspectBox,
   type AspectBoxProps,
-  type MasonryProps,
-  type OverlayProps,
+  Center,
+  type CenterProps,
+  Column,
+  type ColumnProps,
+  Columns,
+  type ColumnsProps,
+  FullScreen,
+  type FullScreenProps,
+  GridCell,
+  type GridCellProps,
+  GridLayout,
+  type GridLayoutProps,
+  HolyGrailLayout,
+  type HolyGrailLayoutProps,
+  Inline,
   type InlineProps,
+  Masonry,
+  type MasonryProps,
+  Overlay,
+  type OverlayProps,
+  ResponsiveColumns,
+  type ResponsiveColumnsProps,
+  Row,
+  type RowProps,
+  Rows,
+  type RowsProps,
+  SidebarLayout,
+  type SidebarLayoutProps,
+  Spacer as LayoutSpacer,
+  type SpacerProps,
+  Split,
+  type SplitProps,
+  Stack,
+  type StackProps,
+  TitledSection,
   type TitledSectionProps,
+  TwoColumnCard,
   type TwoColumnCardProps,
-} from "./Layout.tsx";
+} from './Layout.tsx';
 
 // Modal/Dialog
 export {
-  Modal,
-  Dialog,
-  ConfirmDialog,
-  AlertDialog,
-  InputDialog,
   ActionSheet,
-  Popover,
-  Tooltip,
-  type ModalProps,
-  type DialogProps,
-  type ConfirmDialogProps,
-  type AlertDialogProps,
-  type InputDialogProps,
-  type ActionSheetProps,
   type ActionSheetAction,
+  type ActionSheetProps,
+  AlertDialog,
+  type AlertDialogProps,
+  ConfirmDialog,
+  type ConfirmDialogProps,
+  Dialog,
+  type DialogProps,
+  InputDialog,
+  type InputDialogProps,
+  Modal,
+  type ModalProps,
+  Popover,
   type PopoverProps,
+  Tooltip,
   type TooltipProps,
-} from "./Modal.tsx";
+} from './Modal.tsx';
 
 // Toast/Notification
 export {
+  type ActivityItem,
+  ActivityLog,
+  type ActivityLogProps,
+  BannerNotification,
+  type BannerNotificationProps,
+  InlineNotification,
+  type InlineNotificationProps,
+  Notification,
+  type NotificationProps,
+  ProgressToast,
+  type ProgressToastProps,
+  Snackbar,
+  type SnackbarProps,
   Toast,
   ToastContainer,
-  Notification,
-  InlineNotification,
-  BannerNotification,
-  Snackbar,
-  ProgressToast,
-  ActivityLog,
+  type ToastContainerProps,
+  type ToastItem,
   type ToastProps,
   type ToastType,
-  type ToastItem,
-  type ToastContainerProps,
-  type NotificationProps,
-  type InlineNotificationProps,
-  type BannerNotificationProps,
-  type SnackbarProps,
-  type ProgressToastProps,
-  type ActivityItem,
-  type ActivityLogProps,
-} from "./Toast.tsx";
+} from './Toast.tsx';
 
 // Tabs
 export {
-  Tabs,
-  TabBar,
-  Tab,
-  VerticalTabs,
-  SegmentedControl,
-  StepTabs,
   BottomTabs,
-  type TabsProps,
-  type TabBarProps,
-  type TabProps,
-  type TabItem,
-  type VerticalTabsProps,
-  type SegmentedControlProps,
-  type StepTabsProps,
   type BottomTabsProps,
-} from "./Tabs.tsx";
+  SegmentedControl,
+  type SegmentedControlProps,
+  StepTabs,
+  type StepTabsProps,
+  Tab,
+  TabBar,
+  type TabBarProps,
+  type TabItem,
+  type TabProps,
+  Tabs,
+  type TabsProps,
+  VerticalTabs,
+  type VerticalTabsProps,
+} from './Tabs.tsx';
 
 // Animation
 export {
-  Typewriter,
-  Pulse,
   Blink,
-  FadeIn,
-  Wave,
-  Rainbow,
-  Shimmer,
-  Bounce,
-  Glitch,
-  Marquee,
-  Counter,
-  LoadingDots,
-  Skeleton,
-  type TypewriterProps,
-  type PulseProps,
   type BlinkProps,
-  type FadeInProps,
-  type WaveProps,
-  type RainbowProps,
-  type ShimmerProps,
+  Bounce,
   type BounceProps,
-  type GlitchProps,
-  type MarqueeProps,
+  Counter,
   type CounterProps,
+  FadeIn,
+  type FadeInProps,
+  Glitch,
+  type GlitchProps,
+  LoadingDots,
   type LoadingDotsProps,
+  Marquee,
+  type MarqueeProps,
+  Pulse,
+  type PulseProps,
+  Rainbow,
+  type RainbowProps,
+  Shimmer,
+  type ShimmerProps,
+  Skeleton,
   type SkeletonProps,
-} from "./Animation.tsx";
+  Typewriter,
+  type TypewriterProps,
+  Wave,
+  type WaveProps,
+} from './Animation.tsx';
 
 // Version Display & Mascot
 export {
-  VersionDisplay,
-  renderVersion,
   Mascot,
-  RALPH_MASCOT,
-  type VersionDisplayProps,
   type MascotProps,
-} from "./VersionDisplay.tsx";
+  RALPH_MASCOT,
+  renderVersion,
+  VersionDisplay,
+  type VersionDisplayProps,
+} from './VersionDisplay.tsx';
 
 // Help Screen
-export {
-  HelpScreen,
-  renderHelp,
-  type HelpScreenProps,
-} from "./HelpScreen.tsx";
+export { HelpScreen, type HelpScreenProps, renderHelp } from './HelpScreen.tsx';
 
 // Menu/CommandPalette
 export {
-  MenuItem,
-  Menu,
-  DropdownMenu,
-  ContextMenu,
-  CommandPalette,
-  Autocomplete,
-  BreadcrumbMenu,
   ActionBar,
-  type MenuItemProps,
-  type MenuItemData,
-  type MenuProps,
-  type DropdownMenuProps,
-  type ContextMenuProps,
-  type CommandPaletteProps,
-  type CommandItem,
-  type AutocompleteProps,
-  type SuggestionItem,
-  type BreadcrumbMenuProps,
-  type ActionBarProps,
   type ActionBarItem,
-} from "./Menu.tsx";
+  type ActionBarProps,
+  Autocomplete,
+  type AutocompleteProps,
+  BreadcrumbMenu,
+  type BreadcrumbMenuProps,
+  type CommandItem,
+  CommandPalette,
+  type CommandPaletteProps,
+  ContextMenu,
+  type ContextMenuProps,
+  DropdownMenu,
+  type DropdownMenuProps,
+  Menu,
+  MenuItem,
+  type MenuItemData,
+  type MenuItemProps,
+  type MenuProps,
+  type SuggestionItem,
+} from './Menu.tsx';
 
 // Loading
 export {
-  LoadingPhrase,
-  LoadingState,
-  ProgressIndicator,
-  StepLoader,
-  SkeletonLoader,
-  LoadingOverlay,
-  OperationStatus,
-  BatchOperations,
-  DEFAULT_LOADING_PHRASES,
-  WITTY_PHRASES,
-  TECHNICAL_PHRASES,
-  type LoadingPhraseProps,
-  type LoadingStateProps,
-  type ProgressIndicatorProps,
-  type StepLoaderStep,
-  type StepLoaderProps,
-  type SkeletonLoaderProps,
-  type LoadingOverlayProps,
-  type OperationStatusProps,
   type BatchOperation,
+  BatchOperations,
   type BatchOperationsProps,
-} from "./Loading.tsx";
+  DEFAULT_LOADING_PHRASES,
+  LoadingOverlay,
+  type LoadingOverlayProps,
+  LoadingPhrase,
+  type LoadingPhraseProps,
+  LoadingState,
+  type LoadingStateProps,
+  OperationStatus,
+  type OperationStatusProps,
+  ProgressIndicator,
+  type ProgressIndicatorProps,
+  SkeletonLoader,
+  type SkeletonLoaderProps,
+  StepLoader,
+  type StepLoaderProps,
+  type StepLoaderStep,
+  TECHNICAL_PHRASES,
+  WITTY_PHRASES,
+} from './Loading.tsx';
