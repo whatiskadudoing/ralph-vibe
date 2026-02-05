@@ -170,6 +170,280 @@ export function renderBuildPromptForked(): string {
 }
 
 /**
+ * Generates the Task-Scoped SLC build prompt.
+ * Each iteration becomes a mini SLC (Spec-Learn-Create) cycle for ONE task,
+ * using Claude Code's Tasks system as coordination and safeguard mechanism.
+ *
+ * Structure: SPEC → LEARN → CREATE → SAFEGUARD
+ *
+ * Benefits:
+ * - Nothing forgotten (task breakdown)
+ * - Better context (parallel exploration)
+ * - Multi-gate verification (safeguards)
+ * - Higher first-time success rate
+ */
+export function renderBuildPromptTaskSLC(): string {
+  return dedent(`
+    # Build Mode - Task-Scoped SLC
+
+    You will complete ONE task from IMPLEMENTATION_PLAN.md using the **SLC process**.
+    This structured approach ensures completeness and quality.
+
+    ---
+
+    ## 📋 SPEC Phase: Task Breakdown
+
+    1. **Read the parent task** from IMPLEMENTATION_PLAN.md (the next unchecked task)
+
+    2. **Break it down** into sub-tasks using TaskCreate:
+       - Each sub-task should be concrete and testable
+       - Express dependencies using \`addBlockedBy\`
+       - Identify which sub-tasks can run in parallel
+       - Typical breakdown: 4-8 sub-tasks
+
+    **Example** for "Implement user authentication":
+    \`\`\`
+    TaskCreate(subject: "Read auth spec and existing code",
+               description: "Study specs/auth.md and existing auth patterns",
+               activeForm: "Reading auth spec")
+
+    TaskCreate(subject: "Create JWT utility functions",
+               description: "Sign, verify, decode tokens. No placeholders.",
+               activeForm: "Creating JWT utils")
+
+    TaskCreate(subject: "Add authentication middleware",
+               description: "Verify tokens, attach user to request",
+               activeForm: "Adding auth middleware",
+               addBlockedBy: ["Create JWT utility functions"])
+
+    TaskCreate(subject: "Create auth routes",
+               description: "Login, logout, refresh endpoints",
+               activeForm: "Creating auth routes",
+               addBlockedBy: ["Add authentication middleware"])
+
+    TaskCreate(subject: "Write unit tests",
+               description: "Test JWT utils and middleware in isolation",
+               activeForm: "Writing unit tests",
+               addBlockedBy: ["Add authentication middleware"])
+
+    TaskCreate(subject: "Write integration tests",
+               description: "Test full auth flow end-to-end",
+               activeForm: "Writing integration tests",
+               addBlockedBy: ["Create auth routes"])
+
+    TaskCreate(subject: "Update documentation",
+               description: "Document auth endpoints and usage",
+               activeForm: "Updating docs",
+               addBlockedBy: ["Create auth routes"])
+    \`\`\`
+
+    **Sub-task Categories:**
+    - **Reading/Analysis**: Study specs, read existing code (usually parallel-safe)
+    - **Foundation**: Core utilities and helpers (other things depend on these)
+    - **Main Implementation**: Primary functionality (depends on foundation)
+    - **Integration**: Connecting components (depends on main)
+    - **Verification**: Tests and validation (depends on implementation)
+    - **Documentation**: Update docs (depends on implementation)
+
+    ---
+
+    ## 🔍 LEARN Phase: Gather Context
+
+    Use **parallel Task agents** to gather information efficiently:
+
+    \`\`\`
+    Task(subagent_type: "Explore",
+         description: "Find auth best practices",
+         prompt: "Search for JWT authentication best practices, security considerations, and common pitfalls in 2026",
+         model: "sonnet")
+
+    Task(subagent_type: "Explore",
+         description: "Read existing patterns",
+         prompt: "Study existing code patterns in this codebase - error handling, middleware structure, test patterns",
+         model: "sonnet")
+
+    Task(subagent_type: "Explore",
+         description: "Check security requirements",
+         prompt: "Review specs/auth.md for security requirements, token expiry, refresh flow details",
+         model: "sonnet")
+    \`\`\`
+
+    **Wait for all agents to complete**, then synthesize their findings.
+    Use this context throughout the CREATE phase.
+
+    ---
+
+    ## ⚙️ CREATE Phase: Implementation
+
+    Execute sub-tasks following their dependency chain:
+
+    1. **Get unblocked tasks**: TaskList → Find tasks with empty \`blockedBy\` list
+
+    2. **For each task**:
+       - TaskUpdate(taskId: X, status: "in_progress")
+       - Implement fully (no placeholders!)
+       - Use findings from LEARN phase
+       - Follow existing codebase patterns
+       - TaskUpdate(taskId: X, status: "completed")
+
+    3. **Repeat** until all sub-tasks complete
+
+    **Parallel execution (optional)**:
+    - If multiple sub-tasks are unblocked AND modify different files
+    - You MAY spawn parallel builder agents
+    - Use \`Task(subagent_type: "builder", run_in_background: true)\`
+    - But this is optional - serial execution is fine
+
+    **Search before implementing**:
+    - Use up to 500 parallel Sonnet subagents for reading/searching
+    - Don't assume functionality is missing
+    - Reuse existing patterns
+
+    **Build/test backpressure**:
+    - Use only 1 Sonnet subagent for build/test operations
+    - This prevents overwhelming the system
+
+    ---
+
+    ## 🛡️ SAFEGUARD Phase: Multi-Gate Verification
+
+    **CRITICAL**: You CANNOT exit until ALL safeguards pass.
+
+    Run these checks in order:
+
+    ### Gate 1: Task Completion
+    \`\`\`
+    TaskList
+
+    ✅ All sub-tasks show status: "completed"?
+    ❌ NO? Continue working - mark incomplete tasks as in_progress and fix
+    \`\`\`
+
+    ### Gate 2: Test Verification
+    \`\`\`bash
+    # Run command from AGENTS.md (usually: deno test, npm test, etc.)
+    [test command]
+
+    ✅ Exit code 0? All tests pass?
+    ❌ NO? Which sub-task's code broke tests?
+         → TaskUpdate that task to in_progress
+         → Fix the issue
+         → Re-run safeguards
+    \`\`\`
+
+    ### Gate 3: Type Verification
+    \`\`\`bash
+    # Run type check from AGENTS.md (e.g., deno check, tsc --noEmit)
+    [type check command]
+
+    ✅ No type errors?
+    ❌ NO? Fix types and re-verify
+    \`\`\`
+
+    ### Gate 4: Linter Verification
+    \`\`\`bash
+    # Run linter from AGENTS.md (e.g., deno lint, eslint)
+    [lint command]
+
+    ✅ Clean? No warnings?
+    ❌ NO? Fix issues and re-verify
+    \`\`\`
+
+    ### Gate 5: Completeness Check
+    - ✅ No TODO comments in new code
+    - ✅ No placeholder implementations
+    - ✅ No commented-out code blocks
+    - ✅ All acceptance criteria from spec met
+    - ✅ Edge cases handled
+
+    ### Gate 6: UI Verification (if applicable)
+    If your task involved UI changes:
+    - ✅ Screenshot taken showing changes
+    - ✅ Visual appearance correct
+    - ✅ UI tests pass (if they exist)
+
+    ---
+
+    ## ✅ Completion
+
+    **ONLY when ALL safeguards pass:**
+
+    1. Mark parent task \`[x]\` complete in IMPLEMENTATION_PLAN.md
+    2. Note any discoveries or bugs found
+    3. If you learned operational tips, update AGENTS.md
+    4. Commit with message capturing the **why**
+    5. Push to remote
+
+    **Exit the iteration.**
+
+    ---
+
+    ## Critical Rules (Guardrails)
+
+    999999. **ONE PARENT TASK ONLY** - Pick one task from the plan, complete it using SLC, exit. Never do multiple parent tasks.
+    999998. **CANNOT SKIP SAFEGUARDS** - All gates must pass. No exceptions.
+    999997. **SUB-TASKS REQUIRED** - Break down any non-trivial work. Don't skip SPEC phase.
+    999996. **FULL IMPLEMENTATIONS** - No placeholders, no TODOs, no "will implement later".
+    999995. **SEARCH BEFORE IMPLEMENTING** - Always search codebase first. Don't assume functionality is missing.
+    999994. **TESTS MUST PASS** - Never exit if tests fail. Fix failures first.
+    999993. **NO INVENTED FEATURES** - Only implement what's in the specs. Don't add unrequested features.
+    999992. **MATCH EXISTING PATTERNS** - Follow the codebase's established conventions.
+    999991. **NO MIGRATIONS OR ADAPTERS** - Maintain single sources of truth.
+    999990. **FIX ALL TEST FAILURES** - Even unrelated ones discovered during testing.
+    999989. **SPEC INCONSISTENCIES** - Note in IMPLEMENTATION_PLAN.md; update specs if critical (Opus + ultrathink).
+
+    ---
+
+    ## Output Format
+
+    End with RALPH_STATUS showing which phase you're in:
+
+    \`\`\`
+    RALPH_STATUS:
+    task: "[parent task name]"
+    phase: "SPEC|LEARN|CREATE|SAFEGUARD|COMPLETE"
+    sub_tasks_complete: [number]/[total]
+    validation: pass/fail
+    EXIT_SIGNAL: true/false
+    SLC_COMPLETE: true/false
+    \`\`\`
+
+    **Phase guide:**
+    - SPEC: Creating task breakdown
+    - LEARN: Gathering context
+    - CREATE: Implementing sub-tasks
+    - SAFEGUARD: Running verification gates
+    - COMPLETE: All done, ready to exit
+
+    **EXIT_SIGNAL:**
+    - \`true\` = All safeguards passed, task marked complete, ready to exit
+    - \`false\` = Still working (in any phase) or safeguards failed
+
+    **SLC_COMPLETE:**
+    - \`true\` = ALL specs in \`specs/*\` fully implemented
+    - \`false\` = Current task done, but more tasks remain
+
+    ---
+
+    ## Example Output
+
+    \`\`\`
+    RALPH_STATUS:
+    task: "Implement user authentication"
+    phase: "COMPLETE"
+    sub_tasks_complete: 7/7
+    validation: pass
+    EXIT_SIGNAL: true
+    SLC_COMPLETE: false
+    \`\`\`
+
+    ---
+
+    **Start now with SPEC phase.** Read IMPLEMENTATION_PLAN.md and break down the next unchecked task.
+  `).trim();
+}
+
+/**
  * Generates the PROMPT_plan.md content.
  * This is used when generating or regenerating the implementation plan.
  * Now includes SLC (Simple, Lovable, Complete) release planning.

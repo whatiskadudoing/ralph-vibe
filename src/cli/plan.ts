@@ -291,6 +291,8 @@ export function createPlanCommand(): Command<any> {
   return new Command()
     .description('Generate implementation plan from specs (gap analysis)')
     .option('--model <model:string>', 'Model to use (opus or sonnet). Default: from config or opus')
-    .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
+    .option('--vibe', 'Vibe mode (default) - automatically continue to subsequent steps. Use --no-vibe to disable', {
+      default: true,
+    })
     .action(planAction);
 }

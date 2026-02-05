@@ -298,6 +298,8 @@ export function createSpecCommand(): Command<any> {
   return new Command()
     .description('Add a new feature spec via interview')
     .option('-f, --feature <description:string>', 'Feature hint to start the interview')
-    .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
+    .option('--vibe', 'Vibe mode (default) - automatically continue to subsequent steps. Use --no-vibe to disable', {
+      default: true,
+    })
     .action(specAction);
 }

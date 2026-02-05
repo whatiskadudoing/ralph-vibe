@@ -295,6 +295,7 @@ const VIBE_ENV = {
   MODE: 'RALPH_VIBE_MODE',
   SLC_ITERATION: 'RALPH_SLC_ITERATION',
   MAX_SLC_ITERATIONS: 'RALPH_MAX_SLC_ITERATIONS',
+  TASK_SLC_MODE: 'RALPH_TASK_SLC_MODE',
 } as const;
 
 /**
@@ -303,6 +304,7 @@ const VIBE_ENV = {
 export interface VibeLoopState {
   readonly slcIteration: number;
   readonly maxSlcIterations: number;
+  readonly taskSlcMode: boolean;
 }
 
 /**
@@ -318,10 +320,12 @@ export function getVibeLoopState(): VibeLoopState | null {
     Deno.env.get(VIBE_ENV.MAX_SLC_ITERATIONS) ?? String(DEFAULT_WORK.maxSlcIterations),
     10,
   );
+  const taskSlcMode = Deno.env.get(VIBE_ENV.TASK_SLC_MODE) === '1';
 
   return {
     slcIteration: iteration,
     maxSlcIterations: maxIterations,
+    taskSlcMode: taskSlcMode,
   };
 }
 
@@ -333,6 +337,7 @@ export function setVibeLoopEnv(state: VibeLoopState): Record<string, string> {
     [VIBE_ENV.MODE]: '1',
     [VIBE_ENV.SLC_ITERATION]: String(state.slcIteration),
     [VIBE_ENV.MAX_SLC_ITERATIONS]: String(state.maxSlcIterations),
+    [VIBE_ENV.TASK_SLC_MODE]: state.taskSlcMode ? '1' : '0',
   };
 }
 
@@ -340,10 +345,14 @@ export function setVibeLoopEnv(state: VibeLoopState): Record<string, string> {
  * Initializes vibe loop environment for the first iteration.
  * Call this when starting work with --vibe flag.
  */
-export function initializeVibeLoop(maxSlcIterations: number): Record<string, string> {
+export function initializeVibeLoop(
+  maxSlcIterations: number,
+  taskSlcMode: boolean = false,
+): Record<string, string> {
   return setVibeLoopEnv({
     slcIteration: 1,
     maxSlcIterations,
+    taskSlcMode,
   });
 }
 
@@ -709,7 +718,7 @@ export function showVibeLoopTransition(
   // Show cumulative metrics so far
   showCumulativeMetrics();
 
-  console.log(dim('Starting next cycle: research → plan → work'));
+  console.log(dim('Starting next cycle: plan → work'));
   console.log();
 
   // Reset phase to learn for next cycle
@@ -724,7 +733,7 @@ export function showMaxSlcReached(maxIterations: number): void {
   console.log();
   console.log(`${amber('⚠')} ${bold('Max SLC Iterations Reached')}`);
   console.log();
-  console.log(`Completed ${amber(String(maxIterations))} research → plan → work cycles.`);
+  console.log(`Completed ${amber(String(maxIterations))} plan → work cycles.`);
   console.log();
 
   // Show full completion summary
@@ -832,6 +841,37 @@ export async function runNextCommandWithEnv(
 }
 
 /**
+ * Runs a command with additional arguments and environment variables.
+ * Used for vibe loop to pass flags (like --task-slc) to child processes.
+ */
+export async function runNextCommandWithArgs(
+  command: string,
+  args: string[],
+  extraEnv: Record<string, string>,
+): Promise<boolean> {
+  // Merge current env with extra env
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(Deno.env.toObject())) {
+    env[key] = value;
+  }
+  for (const [key, value] of Object.entries(extraEnv)) {
+    env[key] = value;
+  }
+
+  const cmd = new Deno.Command('ralph', {
+    args: [command, ...args],
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
+    env,
+  });
+
+  const process = cmd.spawn();
+  const status = await process.status;
+  return status.success;
+}
+
+/**
  * Continues the vibe loop with the next SLC cycle (research → plan → work).
  * Called when work completes but SLC_COMPLETE is false.
  */
@@ -849,22 +889,27 @@ export async function continueVibeSlcLoop(
   // Show transition message
   showVibeLoopTransition(nextIteration, currentState.maxSlcIterations);
 
-  // Create env for next cycle
+  // Create env for next cycle - preserve taskSlcMode
   const nextEnv = setVibeLoopEnv({
     slcIteration: nextIteration,
     maxSlcIterations: currentState.maxSlcIterations,
+    taskSlcMode: currentState.taskSlcMode,
   });
 
-  // Run research → plan → work sequence
-  const commands = ['research', 'plan', 'work'];
+  // Run plan → work sequence (research is one-time, not part of the loop)
+  const commands = ['plan', 'work'];
 
   for (const command of commands) {
     showVibeTransition(
-      command === 'research' ? 'work' : commands[commands.indexOf(command) - 1] ?? 'work',
+      command === 'plan' ? 'work' : commands[commands.indexOf(command) - 1] ?? 'work',
       command,
     );
 
-    const success = await runNextCommandWithEnv(command, nextEnv);
+    // Add --task-slc flag when running work command if taskSlcMode is enabled
+    const success = command === 'work' && currentState.taskSlcMode
+      ? await runNextCommandWithArgs(command, ['--task-slc'], nextEnv)
+      : await runNextCommandWithEnv(command, nextEnv);
+
     if (!success) {
       Deno.exit(1);
     }

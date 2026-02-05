@@ -319,6 +319,13 @@ export function getBuildPromptPath(projectDir?: string): string {
 }
 
 /**
+ * Gets the task-scoped SLC build prompt file path.
+ */
+export function getTaskSlcBuildPromptPath(projectDir?: string): string {
+  return resolveProjectPath(projectDir, 'PROMPT_build_task_slc.md');
+}
+
+/**
  * Gets the plan prompt file path.
  */
 export function getPlanPromptPath(projectDir?: string): string {

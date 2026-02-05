@@ -274,7 +274,9 @@ async function startAction(cliOptions: StartOptions): Promise<void> {
 export function createStartCommand(): Command<any> {
   return new Command()
     .description('Start an interactive interview to create your first specs')
-    .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
+    .option('--vibe', 'Vibe mode (default) - automatically continue to subsequent steps. Use --no-vibe to disable', {
+      default: true,
+    })
     .option('--skip-audience', 'Skip audience interview (jump to specs)')
     .action(startAction);
 }

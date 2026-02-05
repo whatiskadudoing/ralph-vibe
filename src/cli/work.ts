@@ -82,6 +82,7 @@ interface WorkOptions {
   readonly vibe?: boolean;
   readonly adaptive?: boolean;
   readonly model?: Model;
+  readonly taskSlc?: boolean;
 }
 
 interface WorkSessionContext {
@@ -124,11 +125,14 @@ interface IterationCallbacks {
 // ============================================================================
 
 /**
- * Reads the build prompt from the project's configured build prompt file.
+ * Reads the build prompt from file.
+ * If taskSlc is true, reads PROMPT_build_task_slc.md.
+ * Otherwise, reads PROMPT_build.md (traditional mode).
  */
-async function readBuildPrompt(): Promise<string | null> {
+async function readBuildPrompt(taskSlc: boolean = false): Promise<string | null> {
   const paths = await resolvePaths();
-  const result = await readTextFile(paths.buildPrompt);
+  const promptPath = taskSlc ? paths.buildPromptTaskSlc : paths.buildPrompt;
+  const result = await readTextFile(promptPath);
   return result.ok ? result.value : null;
 }
 
@@ -154,6 +158,7 @@ async function getNextTaskFromPlan(): Promise<NextTask | null> {
 function initializeVibeModeIfNeeded(
   options: WorkOptions,
   maxSlcIterations: number,
+  taskSlc: boolean,
 ): void {
   const vibeLoopState = getVibeLoopState();
 
@@ -164,13 +169,13 @@ function initializeVibeModeIfNeeded(
 
   if (options.vibe) {
     enableVibeMode();
-    const vibeEnv = initializeVibeLoop(maxSlcIterations);
+    const vibeEnv = initializeVibeLoop(maxSlcIterations, taskSlc);
     for (const [key, value] of Object.entries(vibeEnv)) {
       Deno.env.set(key, value);
     }
     showVibeActivated([
       'Run autonomous build loop',
-      'If more SLCs remain -> research -> plan -> work (repeat)',
+      'If more SLCs remain → plan → work (repeat)',
     ]);
   }
 }
@@ -915,6 +920,7 @@ function createSuccessResult(
 function createIterationHandler(
   context: WorkSessionContext,
   modelMode: ModelMode,
+  taskSlc: boolean = false,
 ): (iteration: number, callbacks: IterationCallbacks) => Promise<IterationResult> {
   return async (
     iteration: number,
@@ -927,11 +933,13 @@ function createIterationHandler(
 
     const model = selectModelForIteration(modelMode, nextTask);
 
-    const prompt = await readBuildPrompt();
+    const prompt = await readBuildPrompt(taskSlc);
     if (!prompt) {
       return createErrorResult(
         model,
-        'PROMPT_build.md not found. Run `ralph init` to create it.',
+        taskSlc
+          ? 'Failed to generate Task-SLC prompt'
+          : 'PROMPT_build.md not found. Run `ralph init` to create it.',
         0,
         0,
       );
@@ -992,7 +1000,15 @@ async function workAction(options: WorkOptions): Promise<void> {
   const maxIterations = options.maxIterations ?? DEFAULT_WORK.maxIterations;
   const maxSlcIterations = config?.work.maxSlcIterations ?? DEFAULT_WORK.maxSlcIterations;
 
-  initializeVibeModeIfNeeded(options, maxSlcIterations);
+  // Check for task-slc mode from environment variable (set by vibe loop)
+  // Environment variable takes precedence (can be '1' or '0')
+  // If not in vibe loop, use options.taskSlc (defaults to true)
+  const taskSlcEnvVar = Deno.env.get('RALPH_TASK_SLC_MODE');
+  const taskSlc = taskSlcEnvVar !== null
+    ? taskSlcEnvVar === '1'  // Vibe loop sets '1' or '0'
+    : options.taskSlc;        // Defaults to true, or false if --no-task-slc
+
+  initializeVibeModeIfNeeded(options, maxSlcIterations, taskSlc);
   warnIfHighIterationLimit(maxIterations);
   await checkPrerequisites();
 
@@ -1022,7 +1038,7 @@ async function workAction(options: WorkOptions): Promise<void> {
       const usage = await getSubscriptionUsage();
       return usage.ok ? usage.value : undefined;
     },
-    onRunIteration: createIterationHandler(context, modelMode),
+    onRunIteration: createIterationHandler(context, modelMode, taskSlc),
   });
 
   const aggregatedMetrics = getAggregatedMetrics(context.metricsState);
@@ -1061,7 +1077,9 @@ export function createWorkCommand(): Command<any> {
       },
     )
     .option('--dry-run', 'Show what would happen without running')
-    .option('--vibe', 'Vibe mode (no effect on work - already the last step)')
+    .option('--vibe', 'Vibe mode (default) - enables SLC loop cycles (research→plan→work). Use --no-vibe to disable', {
+      default: true,
+    })
     .option('--adaptive', 'Adaptive model selection (sonnet for simple, opus for complex)')
     .option('--model <model:string>', 'Force specific model (opus or sonnet)', {
       value: (val: string) => {
@@ -1070,6 +1088,9 @@ export function createWorkCommand(): Command<any> {
         }
         return val as 'opus' | 'sonnet';
       },
+    })
+    .option('--task-slc', 'Task-Scoped SLC mode (default: SPEC→LEARN→CREATE→SAFEGUARD). Use --no-task-slc for traditional mode', {
+      default: true,
     })
     .action(workAction);
 }

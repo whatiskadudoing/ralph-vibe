@@ -29,6 +29,7 @@ export interface ResolvedPaths {
   readonly agents: string;
   readonly audienceJtbd: string;
   readonly buildPrompt: string;
+  readonly buildPromptTaskSlc: string;
   readonly planPrompt: string;
   readonly researchPrompt: string;
   readonly startPrompt: string;
@@ -117,6 +118,7 @@ export async function resolvePaths(startDir?: string): Promise<ResolvedPaths> {
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
+    buildPromptTaskSlc: join(root, paths.buildPromptTaskSlc),
     planPrompt: join(root, paths.planPrompt),
     researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
@@ -145,6 +147,7 @@ export async function tryResolvePaths(startDir?: string): Promise<ResolvedPaths 
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
+    buildPromptTaskSlc: join(root, paths.buildPromptTaskSlc),
     planPrompt: join(root, paths.planPrompt),
     researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
@@ -170,6 +173,7 @@ export function resolvePathsFromConfig(config: RalphConfig, cwd?: string): Resol
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
+    buildPromptTaskSlc: join(root, paths.buildPromptTaskSlc),
     planPrompt: join(root, paths.planPrompt),
     researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),
@@ -195,6 +199,7 @@ export function resolveDefaultPaths(cwd?: string): ResolvedPaths {
     agents: join(root, paths.agents),
     audienceJtbd: join(root, paths.audienceJtbd),
     buildPrompt: join(root, paths.buildPrompt),
+    buildPromptTaskSlc: join(root, paths.buildPromptTaskSlc),
     planPrompt: join(root, paths.planPrompt),
     researchPrompt: join(root, paths.researchPrompt),
     startPrompt: join(root, paths.startPrompt),

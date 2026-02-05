@@ -35,6 +35,7 @@ export interface PathsConfig {
   readonly agents: string;
   readonly audienceJtbd: string;
   readonly buildPrompt: string;
+  readonly buildPromptTaskSlc: string;
   readonly planPrompt: string;
   readonly researchPrompt: string;
   readonly startPrompt: string;
@@ -90,6 +91,7 @@ export const DEFAULT_PATHS: PathsConfig = {
   agents: 'AGENTS.md',
   audienceJtbd: 'AUDIENCE_JTBD.md',
   buildPrompt: 'PROMPT_build.md',
+  buildPromptTaskSlc: 'PROMPT_build_task_slc.md',
   planPrompt: 'PROMPT_plan.md',
   researchPrompt: 'PROMPT_research.md',
   startPrompt: 'PROMPT_start.md',

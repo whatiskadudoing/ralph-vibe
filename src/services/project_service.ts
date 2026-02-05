@@ -22,6 +22,7 @@ import {
   getSpecPromptPath,
   getSpecsDir,
   getStartPromptPath,
+  getTaskSlcBuildPromptPath,
   readTextFile,
   writeTextFile,
 } from './file_service.ts';
@@ -37,6 +38,7 @@ import {
   renderAgentsMd,
   renderAudiencePrompt,
   renderBuildPrompt,
+  renderBuildPromptTaskSLC,
   renderInitialAudienceJtbd,
   renderInitialPlan,
   renderInitialResearchReadme,
@@ -75,6 +77,7 @@ export type ProjectFile =
   | 'plan'
   | 'audience_jtbd'
   | 'prompt_build'
+  | 'prompt_build_task_slc'
   | 'prompt_plan'
   | 'prompt_research'
   | 'prompt_start'
@@ -124,6 +127,11 @@ const FILE_TEMPLATES: readonly FileTemplate[] = [
     key: 'prompt_build',
     render: renderBuildPrompt,
     getPath: getBuildPromptPath,
+  },
+  {
+    key: 'prompt_build_task_slc',
+    render: renderBuildPromptTaskSLC,
+    getPath: getTaskSlcBuildPromptPath,
   },
   {
     key: 'prompt_plan',
@@ -403,6 +411,12 @@ export async function getProjectFiles(cwd?: string): Promise<ProjectFileInfo[]> 
       path: getBuildPromptPath(root),
       name: 'PROMPT_build.md',
       description: 'Build instructions',
+    },
+    {
+      key: 'prompt_build_task_slc',
+      path: getTaskSlcBuildPromptPath(root),
+      name: 'PROMPT_build_task_slc.md',
+      description: 'Build instructions (Task-SLC mode)',
     },
     {
       key: 'prompt_plan',

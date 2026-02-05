@@ -128,6 +128,8 @@ async function initAction(options: InitOptions): Promise<void> {
 export function createInitCommand(): Command<any> {
   return new Command()
     .description('Initialize a new Ralph project')
-    .option('--vibe', 'Vibe mode - automatically continue to subsequent steps')
+    .option('--vibe', 'Vibe mode (default) - automatically continue to subsequent steps. Use --no-vibe to disable', {
+      default: true,
+    })
     .action(initAction);
 }
